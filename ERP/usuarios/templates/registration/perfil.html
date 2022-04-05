@@ -1,0 +1,56 @@
+{% extends "base_usuario.html" %}
+{% load static verbose_names %}
+
+{% block create_button %}
+    <h1>{{ object.id }}</h1>{% endblock %}
+
+{% block inner_content %}
+<div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "username" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.username }}
+    </div>
+</div>
+<div class="row mb-2">
+    <div class="col-7">
+      <strong>{{ etiquetas.nombre_completo }}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.first_name }} {{ object.last_name }}
+    </div>
+</div>
+<div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "email" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.email }}
+    </div>
+</div>
+<div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "date_joined" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.date_joined }}
+    </div>
+</div>
+<div class="row mb-2">
+    <div class="col-7">
+      <strong>{{ etiquetas.grupos }}</strong>
+    </div>
+    <div class="col-5">
+{% if object.is_superuser %}
+    {{ etiquetas.superusuario }}
+{% else %}
+        <ul>
+      {% for grupo in object.groups.values_list %}
+            <li>{{ grupo.1 }}</li>
+      {% endfor %}
+        </ul>
+{% endif %}
+    </div>
+</div>
+{% endblock %}
