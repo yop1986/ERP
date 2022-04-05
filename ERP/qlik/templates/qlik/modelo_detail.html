@@ -1,0 +1,132 @@
+{% extends "base_qlik.html" %}
+{% load verbose_names crispy_forms_tags static %}
+
+{% block inner_content %}
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "nombre" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "descripcion" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.descripcion }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "stream" %}</strong>
+    </div>
+    <div class="col-5">
+      <a href="{{ object.stream.detail_url }}">{{ object.stream }}</a>
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{{ opciones.etiqueta }}</strong>
+    </div>
+    <div class="col-5">
+      <a href="{{ object.external_url }}" class="btn btn-info" target="_blank">{{ opciones.ir }}</a>
+      {% if perms.qlik.change_modelo %}
+      <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
+      {% endif %}
+      {% if perms.qlik.delete_modelo %}
+      <a href="{{ object.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
+      {% endif %}
+    </div>
+  </div>
+<!-- FORMULARIOS DE INGRESO -->
+  <div class="row mb-2">
+    <div class="col-6">
+    {% if perms.qlik.add_origendatomodelo %}
+      <form method="post" id="ModeloUsaOrigenes" autocomplete="off" url_ajax_origenes="{% url 'qlik:ajax_origenes' %}">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <input type="submit" name="{{ botones.usa }}" value="{{ botones.usa }}" class="btn btn-dark">
+      </form>
+    {% endif %}
+    </div>
+    <div class="col-6">
+      {% if perms.qlik.add_origendato %}
+      <form method="post" autocomplete="off">
+        {% csrf_token %}
+        {{ genera_form|crispy }}
+        <input type="submit" name="{{ botones.genera }}" value="{{ botones.genera }}" class="btn btn-dark">
+      </form>
+      {% endif %}
+    </div>
+  </div>
+<!-- FIN FORMULARIOS DE INGRESO -->
+
+
+  <div class="row">
+    <div class="col-6">
+    {% if perms.qlik.view_origendatomodelo %}
+      <h3>{{ sub_titulo.usa_datos }}</h3>
+      {% if origendatomodelo %}
+        {% for object in origendatomodelo %}
+        <p>
+          {% if perms.qlik.delete_origendatomodelo %}
+          <a href="{{ object.delete_url }}" class="btn btn-danger btn-sm"><img src="{% static '/images/qlik_remove.svg' %}" width="18" alt="{{ opciones.eliminar }}"></a>
+          {% endif %}
+          <a href="{{ object.origendato.detail_url }}">{{ object.origendato }} ({{ object.origendato.tipodato }})</a> 
+        </p>
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+    </div>
+    <div class="col-6">
+    {% if perms.qlik.view_origendato %}
+      <h3>{{ sub_titulo.genera_datos }}</h3>
+      {% if origendato %}
+        {% for object in origendato %}
+        <p>
+          {% if perms.qlik.delete_origendato %}
+          <a href="{{ object.delete_url }}" class="btn btn-danger btn-sm"><img src="{% static '/images/qlik_remove.svg' %}" width="18" alt="{{ opciones.eliminar }}"></a>
+          {% endif %}
+          <a href="{{ object.detail_url }}">{{ object }} ({{ object.tipodato }})</a> 
+        </p>
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/jquery-3.6.0.min.js'%}"></script>
+<script>
+$("#id_tipodato").on("change", function() {
+    //obtiene la url que consulta el detalle de origenes
+    var url = $("#ModeloUsaOrigenes").attr("url_ajax_origenes"); 
+    var tipo_origen_id = 0;
+
+    //obtiene el id del tipo de origen seleccionado
+    if ($(this).val() != '' ){
+      tipo_origen_id = $(this).val();
+    }
+
+    //llamado ajax
+    $.ajax({
+      //url que se debe llamar
+      url: url,
+      //parametros GET
+      data: {
+        'tipo_origen_id': tipo_origen_id
+      },
+
+      //data recibe la infomración de la llamada si fue exitosa
+      success: function(data) {
+        //reemplaza data dentor de id_origendato
+        $("#id_origendato").html(data);
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base_qlik.html" %}
+{% load crispy_forms_tags %}
+
+{% block inner_content %}
+
+    <form method="post">
+        {% csrf_token %}
+        <p class="alert alert-danger">¿Está seguro de desasociar el origen "{{ object.origendato }}" del modelo "{{ object.modelo }}"?</p>
+        {{ form|crispy }}
+        <input type="submit" name="{{ botones.confirmar }}" value="{{ botones.confirmar }}" class="btn 
+        btn-danger">
+        <a href="{{ object.modelo.detail_url }}" class="btn btn-dark">{{ botones.regresar }}</a>
+    </form>
+    
+    <!-- {% crispy form %} -->
+
+{% endblock %}

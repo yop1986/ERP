@@ -1,0 +1,79 @@
+{% extends "base_qlik.html" %}
+{% load verbose_names crispy_forms_tags %}
+
+{% block inner_content %}
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "nombre" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{{ opciones.etiqueta }}</strong>
+    </div>
+    <div class="col-5">
+      <a href="{{ object.external_url }}" class="btn btn-info" target="_blank">{{ opciones.ir }}</a>
+      {% if perms.qlik.change_stream %}
+      <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
+      {% endif %}
+      {% if perms.qlik.delete_stream %}
+      <a href="{{ object.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
+      {% endif %}
+    </div>
+  </div>
+  {% if perms.qlik.add_modelo %}
+  <div class="row mb-2">
+    <div class="col-2">
+    </div>
+    <div class="col-8">
+      <form method="post" autocomplete="off">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <input type="submit" name="{{ botones.guardar }}" value="{{ botones.guardar }}" class="btn btn-dark">
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+{% if perms.qlik.view_modelo %}
+  <div class="row">
+    <div class="col">
+  {% if modelos %}
+      <h3>{{ sub_titulo.modelos }}</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">{% get_verbose_field_name modelos.0 "nombre" %}</th>
+            <th scope="col">{% get_verbose_field_name modelos.0 "descripcion" %}</th>
+            <th scope="col">{{ opciones.etiqueta }}</th>
+          </tr>
+        </thead>
+      <tbody>
+    {% for modelo in modelos %}
+        <tr>
+          <th scope="row">{{ forloop.counter }}</th>
+          <td>{{ modelo }}</td>
+          <td>{{ modelo.get_resumen }}</td>
+          <td>
+            <a href="{{ modelo.external_url }}" class="btn btn-info" target="_blank">{{ opciones.ir }}</a>
+            <a href="{{ modelo.detail_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
+            {% if perms.qlik.change_modelo %}
+            <a href="{{ modelo.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
+            {% endif %}
+            {% if perms.qlik.delete_modelo %}
+            <a href="{{ modelo.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
+            {% endif %}
+          </td>
+        </tr>
+    {% endfor %}
+      </tbody>
+      </table>
+  {% endif %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "base_qlik.html" %}
+{% load verbose_names %}
+
+{% block inner_content %}
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "nombre" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "origenmodelo" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.get_si_origen_modelo }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "vigente" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.get_estado }}
+    </div>
+  </div>
+  {% if perms.qlik.change_tipodato or perms.qlik.delete_tipodato %}
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{{ opciones.etiqueta }}</strong>
+    </div>
+    <div class="col-5">
+      {% if perms.qlik.change_tipodato %}
+      <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
+      {% endif %}
+      {% if perms.qlik.delete_tipodato %}
+      <a href="{{ object.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+{% if origenes and perms.qlik.view_origendato %}
+  <div class="row mb-2">
+    <div class="col">
+      <h3>{{ sub_titulo.origenes }}</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">{% get_verbose_field_name origenes.0 "nombre" %}</th>
+            <th scope="col">{% get_verbose_field_name origenes.0 "modelo" %}</th>
+            <th scope="col">{% get_verbose_field_name origenes.0 "vigente" %}</th>
+            {% if perms.qlik.change_origendato or perms.qlik.delete_origendato %}
+            <th scope="col">{{ opciones.etiqueta }}</th>
+            {% endif %}
+          </tr>
+        </thead>
+      <tbody>
+    {% for origen in origenes %}
+        <tr>
+          <th scope="row">{{ forloop.counter }}</th>
+          <td>{{ origen }}</td>
+          <td>
+            {% if origen.modelo %}<a href="{{ origen.modelo.detail_url }}">{{ origen.modelo }}</a>
+            {% else %} - 
+            {% endif %}</td>
+          <td>{{ origen.get_estado }}</td>
+          <td>
+            <a href="{{ origen.detail_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
+            {% if perms.qlik.change_origendato %}
+            <a href="{{ origen.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
+            {% endif %}
+            {% if perms.qlik.delete_origendato %}
+            <a href="{{ origen.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
+            {% endif %}
+          </td>
+        </tr>
+    {% endfor %}
+      </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

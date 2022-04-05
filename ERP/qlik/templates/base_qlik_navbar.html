@@ -1,0 +1,21 @@
+<div class="collapse navbar-collapse" id="navbarNavDropdown">
+    <ul class="navbar-nav">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Catálogos
+        </a>
+        <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+          <li><a class="dropdown-item" href="{% url 'qlik:tipodato_list' %}">Tipo de Datos</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="{% url 'qlik:origendato_list' %}">Origenes de Datos</a></li>
+        </ul>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'qlik:stream_list' %}">Streams</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'qlik:modelo_list' %}">Modelos</a>
+      </li>
+    </ul>
+  </div>
