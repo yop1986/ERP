@@ -4,6 +4,9 @@
 # Python 
 __pycache__
 
+# Django
+migrations/
+
 # Varios
 .sqlite3
 ERP/usuarios/static/css/
