@@ -1,0 +1,10 @@
+# Ambientes virtuales
+.venv
+
+# Python 
+__pycache__
+
+# Varios
+.sqlite3
+ERP/usuarios/static/css/
+ERP/usuarios/static/js/
