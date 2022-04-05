@@ -5,9 +5,10 @@
 __pycache__
 
 # Django
+manage.py
 ERP/ERP/
 migrations/
-manage.py
+Packages/
 
 # CSS y JS de Bootstrap
 ERP/usuarios/static/css/
@@ -15,4 +16,6 @@ ERP/usuarios/static/js/
 
 # Varios
 *.sqlite3
+*.rar
+*.zip
 
