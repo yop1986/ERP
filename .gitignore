@@ -6,8 +6,12 @@ __pycache__
 
 # Django
 migrations/
+manage.py
 
-# Varios
-.sqlite3
+# CSS y JS de Bootstrap
 ERP/usuarios/static/css/
 ERP/usuarios/static/js/
+
+# Varios
+*.sqlite3
+
