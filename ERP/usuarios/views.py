@@ -22,12 +22,12 @@ class Inicio_Template(TemplateView):
 
     def get_aplicaciones_instaladas(self):
         apps = {}
-        if('inventario' in settings.INSTALLED_APPS):
-            apps['inventario'] = {
-                'image': 'images/inventario.png',
-                'nombre': 'Inventario',
-                'descripcion': 'Inventario de productos y agrupación por categorías.',
-                'url': reverse_lazy('inventario:index'),
+        if('expedientes' in settings.INSTALLED_APPS):
+            apps['expedientes'] = {
+                'image': 'images/expedientes.png',
+                'nombre': 'Expedientes',
+                'descripcion': 'Control de expedientes en bodega.',
+                'url': reverse_lazy('expedientes:index'),
             }
         if('qlik' in settings.INSTALLED_APPS):
             apps['qlik'] = {
