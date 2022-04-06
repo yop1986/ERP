@@ -13,7 +13,7 @@ class Busqueda(forms.Form):
         self.fields['valor'].widget.attrs.update({'class':'form-control'})
 
 
-class Stream_CreateForm(forms.ModelForm):
+class Stream_Form(forms.ModelForm):
     class Meta:
         model = Stream
         fields = ['nombre', 'qlik_id']
@@ -22,11 +22,6 @@ class Stream_CreateForm(forms.ModelForm):
                 'invalid': _('Ingrese un ID válido')
             }
         }
-
-    #def __init__(self, *args, **kwargs):
-    #    super().__init__(*args, **kwargs)
-    #    self.fields['nombre'].widget.attrs.update({'class':'form-control'})
-    #    self.fields['qlik_id'].widget.attrs.update({'class':'form-control'})
 
 
 class Modelo_CreateForm(forms.ModelForm):
@@ -46,6 +41,20 @@ class Modelo_CreateForm(forms.ModelForm):
                 'invalid': _('Ingrese un ID válido')
             }
         }
+
+
+class Modelo_Form(forms.ModelForm):
+    '''
+        Creación de modelos
+    '''
+    class Meta:
+        model = Modelo
+        fields = ['nombre', 'descripcion', 'qlik_id', 'stream']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['stream'].queryset = Stream.objects.all().order_by('nombre')
+
 
 class ModeloUsaDato_Form(forms.ModelForm):
     '''
@@ -87,11 +96,11 @@ class ModeloGeneraDato_Form(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(ModeloGeneraDato_Form, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields['tipodato'].queryset = TipoDato.objects.filter(vigente=True, origenmodelo=True).order_by('nombre')
 
 
-class OrigenDato_CreateForm(forms.ModelForm):
+class OrigenDato_Form(forms.ModelForm):
     '''
         Form para Crear Origen de datos en el CreateView
     '''
@@ -100,5 +109,5 @@ class OrigenDato_CreateForm(forms.ModelForm):
         fields = ['nombre', 'tipodato']
     
     def __init__(self, *args, **kwargs):
-        super(OrigenDato_CreateForm, self).__init__(*args, **kwargs)
-        self.fields['tipodato'].queryset = TipoDato.objects.filter(vigente=True, origenmodelo=False)
+        super().__init__(*args, **kwargs)
+        self.fields['tipodato'].queryset = TipoDato.objects.filter(vigente=True, origenmodelo=False).order_by('nombre')

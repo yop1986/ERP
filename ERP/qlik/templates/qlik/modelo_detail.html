@@ -72,7 +72,7 @@
         {% for object in origendatomodelo %}
         <p>
           {% if perms.qlik.delete_origendatomodelo %}
-          <a href="{{ object.delete_url }}" class="btn btn-danger btn-sm"><img src="{% static '/images/qlik_remove.svg' %}" width="18" alt="{{ opciones.eliminar }}"></a>
+          <a href="{{ object.delete_url }}" class="btn btn-danger btn-sm"><img src="{% static '/images/qlik_remove.png' %}" width="18" alt="{{ opciones.eliminar }}"></a>
           {% endif %}
           <a href="{{ object.origendato.detail_url }}">{{ object.origendato }} ({{ object.origendato.tipodato }})</a> 
         </p>
@@ -87,7 +87,7 @@
         {% for object in origendato %}
         <p>
           {% if perms.qlik.delete_origendato %}
-          <a href="{{ object.delete_url }}" class="btn btn-danger btn-sm"><img src="{% static '/images/qlik_remove.svg' %}" width="18" alt="{{ opciones.eliminar }}"></a>
+          <a href="{{ object.delete_url }}" class="btn btn-danger btn-sm"><img src="{% static '/images/qlik_remove.png' %}" width="18" alt="{{ opciones.eliminar }}"></a>
           {% endif %}
           <a href="{{ object.detail_url }}">{{ object }} ({{ object.tipodato }})</a> 
         </p>

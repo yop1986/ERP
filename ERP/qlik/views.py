@@ -6,7 +6,7 @@ from django.views.generic.edit import FormMixin
 from django.utils.translation import gettext as _
 
 from .models import Stream, Modelo, TipoDato, OrigenDato, OrigenDatoModelo
-from .forms import Busqueda, Stream_CreateForm, Modelo_CreateForm, OrigenDato_CreateForm, ModeloUsaDato_Form, ModeloGeneraDato_Form
+from .forms import Busqueda, Stream_Form, Modelo_CreateForm, Modelo_Form, OrigenDato_Form, ModeloUsaDato_Form, ModeloGeneraDato_Form
 from usuarios.views_base import ListView_Login, DetailView_Login, CreateView_Login, UpdateView_Login, DeleteView_Login
 
 
@@ -101,7 +101,7 @@ class Stream_DetailView(FormMixin, DetailView_Login):
 class Stream_CreateView(CreateView_Login):
     model = Stream
     permission_required = 'qlik.add_stream'
-    form_class = Stream_CreateForm
+    form_class = Stream_Form
     template_name = 'qlik/form.html'
     extra_context = {
         'title': _('Nuevo Stream'),
@@ -117,7 +117,7 @@ class Stream_UpdateView(UpdateView_Login):
     model = Stream
     permission_required = 'qlik.change_stream'
     template_name = 'qlik/form.html'
-    form_class = Stream_CreateForm
+    form_class = Stream_Form
     extra_context = {
         'title': _('Modificar Stream'),
         'botones': {
@@ -237,8 +237,8 @@ class Modelo_DetailView(FormMixin, DetailView_Login):
 class Modelo_CreateView(CreateView_Login):
     model = Modelo
     permission_required = 'qlik.add_modelo'
-    fields = ['nombre', 'descripcion', 'qlik_id', 'stream']
     template_name = 'qlik/form.html'
+    form_class = Modelo_Form
     extra_context = {
         'title': _('Nuevo Modelo'),
         'botones': {
@@ -252,8 +252,8 @@ class Modelo_CreateView(CreateView_Login):
 class Modelo_UpdateView(UpdateView_Login):
     model = Modelo
     permission_required = 'qlik.change_modelo'
-    fields = ['nombre', 'descripcion', 'qlik_id', 'stream']
     template_name = 'qlik/form.html'
+    form_class = Modelo_Form
     extra_context = {
         'title': _('Modificar Modelo'),
         'botones': {
@@ -417,7 +417,7 @@ class OrigenDato_CreateView(CreateView_Login):
     model = OrigenDato
     permission_required = 'qlik.add_origendato'
     template_name = 'qlik/form.html'
-    form_class = OrigenDato_CreateForm
+    form_class = OrigenDato_Form
     extra_context = {
         'title': _('Nuevo Origen de Datos'),
         'botones': {
@@ -431,8 +431,8 @@ class OrigenDato_CreateView(CreateView_Login):
 class OrigenDato_UpdateView(UpdateView_Login):
     model = OrigenDato
     permission_required = 'qlik.change_origendato'
-    fields = ['nombre', 'tipodato']
     template_name = 'qlik/form.html'
+    form_class = OrigenDato_Form
     extra_context = {
         'title': _('Modificar Origen de Datos'),
         'botones': {
