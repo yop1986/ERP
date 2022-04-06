@@ -18,9 +18,22 @@ class CreateView_Login(LoginRequiredMixin, PermissionRequiredMixin, SuccessMessa
     login_url = reverse_lazy('login')
     success_message = _('Registro guardado correctamente')
 
+    def get_success_url(self):
+        return self.object.list_url()
+
 class UpdateView_Login(LoginRequiredMixin, PermissionRequiredMixin, SuccessMessageMixin, UpdateView):
     login_url = reverse_lazy('login')
     success_message = _('Registro actualizado correctamente')
 
-class DeleteView_Login(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    def get_success_url(self):
+        return self.object.detail_url()
+
+class DeleteView_Login(LoginRequiredMixin, PermissionRequiredMixin, SuccessMessageMixin, DeleteView):
     login_url = reverse_lazy('login')
+    success_message = _('Registro modificado correctamente')
+
+    def get_success_url(self, estado=True):
+        if estado:
+            return self.object.list_url()
+        else:
+            return self.object.detail_url()
