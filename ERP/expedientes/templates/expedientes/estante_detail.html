@@ -1,0 +1,65 @@
+{% extends "base_expedientes.html" %}
+{% load verbose_names math_operations crispy_forms_tags %}
+
+{% block inner_content %}
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "bodega" %}</strong>
+    </div>
+    <div class="col-5">
+      <a href="{{ object.bodega.detail_url }}">{{ object.bodega }}</a>
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "codigo" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.codigo }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "vigente" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.get_estado }}
+    </div>
+  </div>
+
+<div class="accordion accordion-flush" id="accordion-estructura">
+
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="flush-headingOne">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+        {{ sub_titulo.estructura }}
+      </button>
+    </h2>
+    <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="flush-headingOne" data-bs-parent="#accordion-estructura">
+      <div class="accordion-body">
+        <table class="table">
+          <thead>
+            <tr>
+              {% for nivel in estructura.niveles %}
+              <th scope="col"><a href="{{ nivel.detail_url }}">{{ nivel.numero }}</a></th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+          {% for posicion in estructura.posiciones %}
+            {% if forloop.counter|modulo:estructura.no_columnas == 1 %}<tr>{% endif %}
+            <td class='table-success' data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip }}:{{ posicion }}">
+              <a href="{{ posicion.detail_url }}">{{ posicion.numero }}</a>
+            </td>
+            {% if forloop.counter|modulo:estructura.no_columnas == 0 %}</tr>{% endif %}
+          {% endfor %}
+          </tbody>
+        </table>
+
+      </div>
+    </div>
+  </div>
+  
+</div>
+
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base_expedientes.html" %}
+{% load verbose_names math_operations crispy_forms_tags %}
+
+{% block inner_content %}
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "posicion" %}</strong>
+    </div>
+    <div class="col-5">
+      <a href="{{ object.posicion.detail_url }}">{{ object.posicion }}</a>
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "numero" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.numero }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "vigente" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.get_estado }}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
