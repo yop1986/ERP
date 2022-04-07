@@ -54,12 +54,6 @@ class Bodega(models.Model):
     def get_estado(self):
         return _("Vigente") if self.vigente else _("No Vigente")
 
-    def get_tiene_hijos(self):
-        return True if self.estante_bodega.count()>0 else False
-
-    def get_hijos(self):
-        return self.estante_bodega.all()
-
 
 class Estante(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -102,14 +96,11 @@ class Estante(models.Model):
     def delete_url(self):
         return reverse('expedientes:estante_delete', kwargs={'pk': self.id})
 
+    def labels_url(self):
+        return reverse('expedientes:estante_labels', kwargs={'pk': self.id})
+
     def get_estado(self):
         return _("Vigente") if self.vigente else _("No Vigente")
-
-    def get_tiene_hijos(self):
-        return True if self.nivel_estante.count()>0 else False
-
-    def get_hijos(self):
-        return self.nivel_estante.all()
 
 
 class Nivel(models.Model):
@@ -148,14 +139,11 @@ class Nivel(models.Model):
     def delete_url(self):
         return reverse('expedientes:nivel_delete', kwargs={'pk': self.id})
 
+    def labels_url(self):
+        return reverse('expedientes:nivel_labels', kwargs={'pk': self.id})
+
     def get_estado(self):
         return _("Vigente") if self.vigente else _("No Vigente")
-
-    def get_tiene_hijos(self):
-        return True if self.posicion_nivel.count()>0 else False
-
-    def get_hijos(self):
-        return self.posicion_nivel.all()
 
 
 class Posicion(models.Model):
@@ -197,11 +185,8 @@ class Posicion(models.Model):
     def get_estado(self):
         return _("Vigente") if self.vigente else _("No Vigente")
 
-    def get_tiene_hijos(self):
-        return True if self.caja_posicion.count()>0 else False
-
-    def get_hijos(self):
-        return self.caja_posicion.all()
+    def labels_url(self):
+        return reverse('expedientes:posicion_labels', kwargs={'pk': self.id})
 
 
 class Caja(models.Model):
@@ -243,11 +228,8 @@ class Caja(models.Model):
     def get_estado(self):
         return _("Vigente") if self.vigente else _("No Vigente")
 
-    def get_tiene_hijos(self):
-        return True if self.folio_caja.count()>0 else False
-
-    def get_hijos(self):
-        return self.folio_caja.all()
+    def labels_url(self):
+        return reverse('expedientes:caja_labels', kwargs={'pk': self.id})
 
 
 class Cliente(models.Model):

@@ -11,6 +11,7 @@ class Busqueda(forms.Form):
         self.fields['valor'].label = False
         self.fields['valor'].widget.attrs.update({'class':'form-control'})
 
+
 class GeneraEstructura(forms.Form):
     '''
         Bodega Detail
@@ -21,3 +22,7 @@ class GeneraEstructura(forms.Form):
     niveles = forms.IntegerField(required=True, min_value=1)
     posiciones = forms.IntegerField(required=True, min_value=1)
     cajas = forms.IntegerField(required=True, min_value=1)
+
+
+class GeneraEtiquetasForm(forms.Form):
+    posicion = forms.IntegerField(min_value=1, max_value=26)

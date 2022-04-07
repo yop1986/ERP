@@ -1,5 +1,5 @@
 {% extends "base_expedientes.html" %}
-{% load verbose_names math_operations crispy_forms_tags %}
+{% load static verbose_names math_operations crispy_forms_tags %}
 
 {% block inner_content %}
   <div class="row mb-2">
@@ -24,6 +24,14 @@
     </div>
     <div class="col-5">
       {{ object.get_estado }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{{ opciones.etiqueta }}</strong>
+    </div>
+    <div class="col-5">
+      <a href="{{ object.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}"></a>
     </div>
   </div>
 

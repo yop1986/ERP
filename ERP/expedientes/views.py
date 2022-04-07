@@ -10,7 +10,7 @@ from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
 
 from .models import Bodega, Estante, Nivel, Posicion, Caja, Folio
-from .forms import Busqueda, GeneraEstructura
+from .forms import Busqueda, GeneraEstructura, GeneraEtiquetasForm
 from usuarios.views_base import ListView_Login, DetailView_Login, CreateView_Login, UpdateView_Login, DeleteView_Login
 
 # Create your views here.
@@ -228,6 +228,10 @@ class Estante_DetailView(DetailView_Login):
         'sub_titulo': {
             'estructura': _('Estructura'),
         },
+        'opciones':{
+            'etiqueta':_('Opciones'),
+            'etiquetas':_('Etiquetas'),
+        },
     }
 
     def get_context_data(self, *args, **kwargs):
@@ -242,6 +246,26 @@ class Estante_DetailView(DetailView_Login):
         }
         return context
 
+class Estante_Etiqueta(DetailView_Login):
+    permission_required = 'expedientes.view_estante'
+    template_name = 'expedientes/etiqueta.html'
+    model = Caja
+    form_class = GeneraEtiquetasForm()
+
+    def get(self, request, *args, **kwargs):
+        context = {
+            'title': _('Etiqueta'),
+            'object': Estante.objects.get(pk=kwargs['pk'])
+        }
+        arreglo = {}
+        if request.GET.get('posicion'):
+            cajas = list(Caja.objects.filter(posicion__nivel__estante__id=self.kwargs['pk']))
+            for i in range(1, int(request.GET.get('posicion'))):
+                arreglo[i] = 'ocultar'
+            for caja in cajas:
+                arreglo[caja] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+
 
 class Nivel_DetailView(DetailView_Login):
     model = Nivel
@@ -250,6 +274,10 @@ class Nivel_DetailView(DetailView_Login):
         'title': _('Nivel'),
         'sub_titulo': {
             'estructura': _('Estructura'),
+        },
+        'opciones':{
+            'etiqueta':_('Opciones'),
+            'etiquetas':_('Etiquetas'),
         },
     }
 
@@ -265,6 +293,26 @@ class Nivel_DetailView(DetailView_Login):
         }
         return context
 
+class Nivel_Etiqueta(DetailView_Login):
+    permission_required = 'expedientes.view_nivel'
+    template_name = 'expedientes/etiqueta.html'
+    model = Caja
+    form_class = GeneraEtiquetasForm()
+
+    def get(self, request, *args, **kwargs):
+        context = {
+            'title': _('Etiqueta'),
+            'object': Nivel.objects.get(pk=kwargs['pk'])
+        }
+        arreglo = {}
+        if request.GET.get('posicion'):
+            cajas = list(Caja.objects.filter(posicion__nivel__id=self.kwargs['pk']))
+            for i in range(1, int(request.GET.get('posicion'))):
+                arreglo[i] = 'ocultar'
+            for caja in cajas:
+                arreglo[caja] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+
 
 class Posicion_DetailView(DetailView_Login):
     model = Posicion
@@ -273,6 +321,10 @@ class Posicion_DetailView(DetailView_Login):
         'title': _('Posición'),
         'sub_titulo': {
             'estructura': _('Estructura'),
+        },
+        'opciones':{
+            'etiqueta':_('Opciones'),
+            'etiquetas':_('Etiquetas'),
         },
     }
 
@@ -288,6 +340,26 @@ class Posicion_DetailView(DetailView_Login):
         }
         return context
 
+class Posicion_Etiqueta(DetailView_Login):
+    permission_required = 'expedientes.view_posicion'
+    template_name = 'expedientes/etiqueta.html'
+    model = Caja
+    form_class = GeneraEtiquetasForm()
+
+    def get(self, request, *args, **kwargs):
+        context = {
+            'title': _('Etiqueta'),
+            'object': Posicion.objects.get(pk=kwargs['pk'])
+        }
+        arreglo = {}
+        if request.GET.get('posicion'):
+            cajas = list(Caja.objects.filter(posicion__id=self.kwargs['pk']))
+            for i in range(1, int(request.GET.get('posicion'))):
+                arreglo[i] = 'ocultar'
+            for caja in cajas:
+                arreglo[caja] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+
 
 class Caja_DetailView(DetailView_Login):
     model = Caja
@@ -297,10 +369,30 @@ class Caja_DetailView(DetailView_Login):
         'sub_titulo': {
             'estructura': _('Estructura'),
         },
+        'opciones':{
+            'etiqueta':_('Opciones'),
+            'etiquetas':_('Etiquetas'),
+        },
     }
 
-class Caja_UpdateView(UpdateView_Login):
-    pass
+class Caja_Etiqueta(DetailView_Login):
+    permission_required = 'expedientes.view_caja'
+    template_name = 'expedientes/etiqueta.html'
+    model = Caja
+    form_class = GeneraEtiquetasForm()
 
-class Caja_DeleteView(DeleteView_Login):
-    pass
+    def get(self, request, *args, **kwargs):
+        caja = Caja.objects.get(id=self.kwargs['pk'])
+        context = {
+            'title': _('Etiqueta'),
+            'object': caja
+        }
+        arreglo = {}
+        if request.GET.get('posicion'):
+            for i in range(1, int(request.GET.get('posicion'))):
+                arreglo[i] = 'ocultar'
+            arreglo[caja] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+
+
+
