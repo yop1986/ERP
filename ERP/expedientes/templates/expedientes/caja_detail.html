@@ -26,6 +26,7 @@
       {{ object.get_estado }}
     </div>
   </div>
+  {% if perms.estante.label_caja %}
   <div class="row mb-2">
     <div class="col-7">
       <strong>{{ opciones.etiqueta }}</strong>
@@ -34,6 +35,7 @@
       <a href="{{ object.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}"></a>
     </div>
   </div>
+  {% endif %}
 
 </div>
 

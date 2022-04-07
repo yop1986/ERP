@@ -66,6 +66,9 @@ class Estante(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['codigo', 'bodega'], name='unq_codigo_bodega'),
         ]
+        permissions = [
+            ("label_estante", "Can print the labels from estante"),
+        ]
 
     def __str__(self):
         return f"{self.bodega.codigo}-{self.codigo}"
@@ -114,6 +117,9 @@ class Nivel(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['estante', 'numero'], name='unq_estante_numero'),
         ]
+        permissions = [
+            ("label_nivel", "Can print the labels fron nivel"),
+        ]
 
     def __str__(self):
         return f"{self.estante}-{self.numero:02d}"
@@ -157,6 +163,9 @@ class Posicion(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['nivel', 'numero'], name='unq_nivel_numero'),
         ]
+        permissions = [
+            ("label_posicion", "Can print the labels from posicion"),
+        ]
 
     def __str__(self):
         return f"{self.nivel}-{self.numero:02d}"
@@ -199,6 +208,9 @@ class Caja(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['posicion', 'numero'], name='unq_posicion_numero'),
+        ]
+        permissions = [
+            ("label_caja", "Can print the labels from caja"),
         ]
 
     def __str__(self):

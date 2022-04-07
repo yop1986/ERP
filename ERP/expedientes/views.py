@@ -247,7 +247,7 @@ class Estante_DetailView(DetailView_Login):
         return context
 
 class Estante_Etiqueta(DetailView_Login):
-    permission_required = 'expedientes.view_estante'
+    permission_required = 'expedientes.label_estante'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
     form_class = GeneraEtiquetasForm()
@@ -294,7 +294,7 @@ class Nivel_DetailView(DetailView_Login):
         return context
 
 class Nivel_Etiqueta(DetailView_Login):
-    permission_required = 'expedientes.view_nivel'
+    permission_required = 'expedientes.label_nivel'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
     form_class = GeneraEtiquetasForm()
@@ -341,7 +341,7 @@ class Posicion_DetailView(DetailView_Login):
         return context
 
 class Posicion_Etiqueta(DetailView_Login):
-    permission_required = 'expedientes.view_posicion'
+    permission_required = 'expedientes.label_posicion'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
     form_class = GeneraEtiquetasForm()
@@ -376,7 +376,7 @@ class Caja_DetailView(DetailView_Login):
     }
 
 class Caja_Etiqueta(DetailView_Login):
-    permission_required = 'expedientes.view_caja'
+    permission_required = 'expedientes.label_caja'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
     form_class = GeneraEtiquetasForm()
