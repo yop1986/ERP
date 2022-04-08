@@ -25,5 +25,7 @@ urlpatterns = [
     path('cajas/etiquetas/<uuid:pk>/', views.Caja_Etiqueta.as_view(), name='caja_labels'),
 
     path('creditos/carga/', views.CargaMasiva_Form.as_view(), name='carga'),
-    
+    path('creditos/buscar/', views.Credito_Search.as_view(), name='credito_search'),
+    path('creditos/buscar/<uuid:pk>', views.Credito_Search.as_view(), name='credito_search'),
+    path('creditos/etiquetas/<uuid:pk>/', views.Credito_Etiqueta.as_view(), name='credito_labels'),
 ]

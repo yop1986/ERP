@@ -14,7 +14,7 @@ from django.urls import reverse_lazy
 from .models import (Bodega, Estante, Nivel, Posicion, Caja, Cliente, Moneda,
     Producto, Oficina, Credito, Folio)
 from .forms import (Busqueda, GeneraEstructura, GeneraEtiquetas_Form, CargaCreditos_Form)
-from usuarios.views_base import (ListView_Login, DetailView_Login, 
+from usuarios.views_base import (ListView_Login, DetailView_Login, TemplateView_Login, 
     CreateView_Login, UpdateView_Login, DeleteView_Login, FormView_Login)
 
 # Create your views here.
@@ -26,8 +26,8 @@ class Inicio_Template(TemplateView):
 
 
 class Bodega_ListView(ListView_Login):
-    model = Bodega
     permission_required = 'expedientes.view_bodega'
+    model = Bodega
     paginate_by = 15
     ordering = ['-vigente', 'nombre']
     extra_context = {
@@ -60,8 +60,8 @@ class Bodega_ListView(ListView_Login):
         return context
 
 class Bodega_DetailView(FormMixin, DetailView_Login):
-    model = Bodega
     permission_required = 'expedientes.view_bodega'
+    model = Bodega
     form_class = GeneraEstructura
     extra_context = {
         'title': _('Bodega'),
@@ -224,8 +224,8 @@ class Bodega_DeleteView(DeleteView_Login):
 
 
 class Estante_DetailView(DetailView_Login):
-    model = Estante
     permission_required = 'expedientes.view_estante'
+    model = Estante
     extra_context = {
         'title': _('Estante'),
         'sub_titulo': {
@@ -272,8 +272,8 @@ class Estante_Etiqueta(DetailView_Login):
 
 
 class Nivel_DetailView(DetailView_Login):
-    model = Nivel
     permission_required = 'expedientes.view_nivel'
+    model = Nivel
     extra_context = {
         'title': _('Nivel'),
         'sub_titulo': {
@@ -320,8 +320,8 @@ class Nivel_Etiqueta(DetailView_Login):
 
 
 class Posicion_DetailView(DetailView_Login):
-    model = Posicion
     permission_required = 'expedientes.view_posicion'
+    model = Posicion
     extra_context = {
         'title': _('Posición'),
         'sub_titulo': {
@@ -368,8 +368,8 @@ class Posicion_Etiqueta(DetailView_Login):
 
 
 class Caja_DetailView(DetailView_Login):
-    model = Caja
     permission_required = 'expedientes.view_caja'
+    model = Caja
     extra_context = {
         'title': _('Caja'),
         'sub_titulo': {
@@ -401,10 +401,59 @@ class Caja_Etiqueta(DetailView_Login):
         return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
 
 
+class Credito_Search(TemplateView_Login):
+    permission_required = 'expedientes.view_credito'
+    form_class = Busqueda
+    template_name = 'expedientes/credito_search.html'
+    extra_context = {
+        'title': _('Busqueda de Créditos'),
+        'sub_titulo': {
+            'estructura': _('Folios'),
+        },
+        'opciones':{
+            'etiqueta':_('Opciones'),
+            'etiquetas':_('Etiquetas'),
+        },
+        'botones': {
+            'buscar': _('Buscar'),
+            'limpiar': _('Limpiar'),
+        },
+        'url_buscar': reverse_lazy('expedientes:credito_search')
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['form'] = Busqueda(self.request.GET or None)
+        if 'Buscar' in self.request.GET:
+            credito = Credito.objects.get(numero=self.request.GET.get('valor'))
+            context['credito']  = credito
+            context['folios']  = Folio.objects.filter(credito=credito)
+        return context
+
+class Credito_Etiqueta(DetailView_Login):
+    permission_required = 'expedientes.label_credito'
+    template_name = 'expedientes/etiqueta.html'
+    model = Folio
+    form_class = GeneraEtiquetas_Form()
+
+    def get(self, request, *args, **kwargs):
+        context = {
+            'title': _('Etiqueta'),
+            'object': Credito.objects.get(pk=kwargs['pk'])
+        }
+        arreglo = {}
+        if request.GET.get('posicion'):
+            folios = list(Folio.objects.filter(credito__id=self.kwargs['pk']))
+            for i in range(1, int(request.GET.get('posicion'))):
+                arreglo[i] = 'ocultar'
+            for caja in folios:
+                arreglo[caja] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+
 class CargaMasiva_Form(FormView_Login):
+    permission_required = 'expedientes.load_credito'
     form_class = CargaCreditos_Form
     template_name = 'expedientes/form_loadfile.html'
-    permission_required = 'expedientes.load_credito'
     success_message = _('Se cargaron los registros exitosamente')
     extra_context = {
         'title': _('Carga de Créditos'),

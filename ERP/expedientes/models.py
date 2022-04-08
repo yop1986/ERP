@@ -67,7 +67,7 @@ class Estante(models.Model):
             models.UniqueConstraint(fields=['codigo', 'bodega'], name='unq_codigo_bodega'),
         ]
         permissions = [
-            ("label_estante", "Can print the labels from estante"),
+            ("label_estante", "Permite la impresión de todas las etiquetas del estante"),
         ]
 
     def __str__(self):
@@ -118,7 +118,7 @@ class Nivel(models.Model):
             models.UniqueConstraint(fields=['estante', 'numero'], name='unq_estante_numero'),
         ]
         permissions = [
-            ("label_nivel", "Can print the labels fron nivel"),
+            ("label_nivel", "Permite la impresión de todas las etiquetas del nivel"),
         ]
 
     def __str__(self):
@@ -164,7 +164,7 @@ class Posicion(models.Model):
             models.UniqueConstraint(fields=['nivel', 'numero'], name='unq_nivel_numero'),
         ]
         permissions = [
-            ("label_posicion", "Can print the labels from posicion"),
+            ("label_posicion", "Permite la impresión de todas las etiquetas de la posición"),
         ]
 
     def __str__(self):
@@ -210,7 +210,7 @@ class Caja(models.Model):
             models.UniqueConstraint(fields=['posicion', 'numero'], name='unq_posicion_numero'),
         ]
         permissions = [
-            ("label_caja", "Can print the labels from caja"),
+            ("label_caja", "Permite la impresión de la etiqueta de la caja"),
         ]
 
     def __str__(self):
@@ -396,7 +396,8 @@ class Credito(models.Model):
     
     class Meta:
         permissions = [
-            ("load_credito", "Masive load of credits"),
+            ("load_credito", "Carga masiva de créditos"),
+            ("label_credito", "Permite imprimir etiquetas de los folios"),
         ]
 
     def __str__(self):
@@ -413,6 +414,9 @@ class Credito(models.Model):
 
     def delete_url(self):
         return reverse('expedientes:credito_delete', kwargs={'pk': self.id})
+
+    def labels_url(self):
+        return reverse('expedientes:credito_labels', kwargs={'pk': self.id})
 
     def get_tiene_hijos(self):
         return True if self.folio_set.count()>0 else False
