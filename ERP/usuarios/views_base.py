@@ -2,7 +2,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMix
 from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse_lazy
 from django.utils.translation import gettext as _
-from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
 
 
 class TemplateView_Login(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
@@ -37,3 +37,7 @@ class DeleteView_Login(LoginRequiredMixin, PermissionRequiredMixin, SuccessMessa
             return self.object.list_url()
         else:
             return self.object.detail_url()
+
+class FormView_Login(LoginRequiredMixin, PermissionRequiredMixin, SuccessMessageMixin, FormView):
+    login_url = reverse_lazy('login')
+    success_message = _('Registro actualizado correctamente')
