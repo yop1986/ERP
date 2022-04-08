@@ -23,4 +23,7 @@ urlpatterns = [
 
     path('cajas/<uuid:pk>/', views.Caja_DetailView.as_view(), name='caja_view'),
     path('cajas/etiquetas/<uuid:pk>/', views.Caja_Etiqueta.as_view(), name='caja_labels'),
+
+    path('creditos/carga/', views.CargaMasiva_Form.as_view(), name='carga'),
+    
 ]

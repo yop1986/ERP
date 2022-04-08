@@ -51,14 +51,14 @@
           <thead>
             <tr>
               {% for caja in estructura.cajas %}
-              <th scope="col"><a href="{{ caja.detail_url }}">{{ caja.numero }}</a></th>
+              <th scope="col" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_head }}:{{ caja }}"><a href="{{ caja.detail_url }}">{{ caja.numero }}</a></th>
               {% endfor %}
             </tr>
           </thead>
           <tbody>
           {% for folio in estructura.folios %}
             {% if forloop.counter|modulo:estructura.no_columnas == 1 %}<tr>{% endif %}
-            <td class='table-success' data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip }}:{{ folio.credito }}">
+            <td class='table-success' data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_body }}:{{ folio.credito }}">
               <a href="{{ folio.detail_url }}">{{ folio }}</a>
             </td>
             {% if forloop.counter|modulo:estructura.no_columnas == 0 %}</tr>{% endif %}

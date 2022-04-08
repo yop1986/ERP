@@ -52,14 +52,14 @@
           <thead>
             <tr>
               {% for nivel in estructura.niveles %}
-              <th scope="col"><a href="{{ nivel.detail_url }}">{{ nivel.numero }}</a></th>
+              <th scope="col" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_head }}:{{ nivel }}"><a href="{{ nivel.detail_url }}">{{ nivel.numero }}</a></th>
               {% endfor %}
             </tr>
           </thead>
           <tbody>
           {% for posicion in estructura.posiciones %}
             {% if forloop.counter|modulo:estructura.no_columnas == 1 %}<tr>{% endif %}
-            <td class='table-success' data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip }}:{{ posicion }}">
+            <td class='table-success' data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_body }}:{{ posicion }}">
               <a href="{{ posicion.detail_url }}">{{ posicion.numero }}</a>
             </td>
             {% if forloop.counter|modulo:estructura.no_columnas == 0 %}</tr>{% endif %}

@@ -249,7 +249,7 @@ class Cliente(models.Model):
     codigo = models.PositiveIntegerField(db_index=True, unique=True)
     nombre = models.CharField(max_length=90)
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
-    
+
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
 
@@ -394,6 +394,11 @@ class Credito(models.Model):
     producto= models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='credito_producto')
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
+    class Meta:
+        permissions = [
+            ("load_credito", "Masive load of credits"),
+        ]
+
     def __str__(self):
         return f"{self.numero} - {self.cliente.nombre}"
 

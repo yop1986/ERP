@@ -82,14 +82,14 @@
           <thead>
             <tr>
               {% for estante in estructura.estantes %}
-              <th scope="col"><a href="{{ estante.detail_url }}">{{ estante.codigo }}</a></th>
+              <th scope="col" data-bs-placement="top" title="{{ estructura.tooltip_head }}: {{ estante }}"><a href="{{ estante.detail_url }}">{{ estante.codigo }}</a></th>
               {% endfor %}
             </tr>
           </thead>
           <tbody>
           {% for nivel in estructura.niveles %}
             {% if forloop.counter|modulo:estructura.no_columnas == 1 %}<tr>{% endif %}
-            <td class='table-success' data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip }}: {{ nivel }}">
+            <td class='table-success' data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_body }}: {{ nivel }}">
               <a href="{{ nivel.detail_url }}">{{ nivel.numero }}</a>
             </td>
             {% if forloop.counter|modulo:estructura.no_columnas == 0 %}</tr>{% endif %}

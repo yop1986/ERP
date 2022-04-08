@@ -24,5 +24,8 @@ class GeneraEstructura(forms.Form):
     cajas = forms.IntegerField(required=True, min_value=1)
 
 
-class GeneraEtiquetasForm(forms.Form):
+class GeneraEtiquetas_Form(forms.Form):
     posicion = forms.IntegerField(min_value=1, max_value=26)
+
+class CargaCreditos_Form(forms.Form):
+    archivo = forms.FileField(label='Archivo')

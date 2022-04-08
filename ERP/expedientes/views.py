@@ -1,3 +1,5 @@
+import openpyxl
+from datetime import datetime
 from itertools import product
 from string import ascii_uppercase
 
@@ -9,9 +11,11 @@ from django.views.generic import TemplateView
 from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
 
-from .models import Bodega, Estante, Nivel, Posicion, Caja, Folio
-from .forms import Busqueda, GeneraEstructura, GeneraEtiquetasForm
-from usuarios.views_base import ListView_Login, DetailView_Login, CreateView_Login, UpdateView_Login, DeleteView_Login
+from .models import (Bodega, Estante, Nivel, Posicion, Caja, Cliente, Moneda,
+    Producto, Oficina, Credito, Folio)
+from .forms import (Busqueda, GeneraEstructura, GeneraEtiquetas_Form, CargaCreditos_Form)
+from usuarios.views_base import (ListView_Login, DetailView_Login, 
+    CreateView_Login, UpdateView_Login, DeleteView_Login, FormView_Login)
 
 # Create your views here.
 class Inicio_Template(TemplateView):
@@ -82,7 +86,8 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
         context['estructura']={
             'estantes': queryset,
             'no_columnas': queryset.count(),
-            'tooltip': _('Nivel'),
+            'tooltip_head': _('Estante'),
+            'tooltip_body': _('Nivel'),
             'niveles': Nivel.objects.filter(estante__bodega=self.object).order_by('numero', Length('estante__codigo'), 'estante__codigo')
         }
         return context
@@ -105,7 +110,6 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
         n = form.cleaned_data['niveles']
         p = form.cleaned_data['posiciones']
         c = form.cleaned_data['cajas']
-        print(f">>>>>>>>>>>>>>>>>{e}, {n}, {p}, {c}")
         self._genera_estructura(e, n, p, c)
 
         return super().form_valid(form)
@@ -141,7 +145,6 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
         niveles = Nivel.objects.filter(estante__bodega=self.object)
         for estante in Estante.objects.filter(bodega=self.object, vigente=True):
             for i in range(1, pNiveles+1):
-                print(f"{estante}------{i}")
                 if not niveles.filter(numero=i, estante=estante):
                     inserts.append(Nivel(numero=i, estante=estante))
 
@@ -241,7 +244,8 @@ class Estante_DetailView(DetailView_Login):
         context['estructura']={
             'niveles': queryset,
             'no_columnas': queryset.count(),
-            'tooltip': _('Posición'),
+            'tooltip_head': _('Nivel'),
+            'tooltip_body': _('Posición'),
             'posiciones': Posicion.objects.filter(nivel__estante=self.object).order_by('numero', 'nivel__numero')
         }
         return context
@@ -250,7 +254,7 @@ class Estante_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_estante'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
-    form_class = GeneraEtiquetasForm()
+    form_class = GeneraEtiquetas_Form()
 
     def get(self, request, *args, **kwargs):
         context = {
@@ -288,7 +292,8 @@ class Nivel_DetailView(DetailView_Login):
         context['estructura']={
             'posiciones': queryset,
             'no_columnas': queryset.count(),
-            'tooltip': _('Caja'),
+            'tooltip_head': _('Posicion'),
+            'tooltip_body': _('Caja'),
             'cajas': Caja.objects.filter(posicion__nivel=self.object).order_by('numero', 'posicion__numero')
         }
         return context
@@ -297,7 +302,7 @@ class Nivel_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_nivel'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
-    form_class = GeneraEtiquetasForm()
+    form_class = GeneraEtiquetas_Form()
 
     def get(self, request, *args, **kwargs):
         context = {
@@ -335,7 +340,8 @@ class Posicion_DetailView(DetailView_Login):
         context['estructura']={
             'cajas': queryset,
             'no_columnas': queryset.count(),
-            'tooltip': _('Folio'),
+            'tooltip_head': _('Caja'),
+            'tooltip_body': _('Folio'),
             'folios': Folio.objects.filter(caja__posicion=self.object).order_by('credito__numero', 'numero')
         }
         return context
@@ -344,7 +350,7 @@ class Posicion_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_posicion'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
-    form_class = GeneraEtiquetasForm()
+    form_class = GeneraEtiquetas_Form()
 
     def get(self, request, *args, **kwargs):
         context = {
@@ -379,7 +385,7 @@ class Caja_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_caja'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
-    form_class = GeneraEtiquetasForm()
+    form_class = GeneraEtiquetas_Form()
 
     def get(self, request, *args, **kwargs):
         caja = Caja.objects.get(id=self.kwargs['pk'])
@@ -395,4 +401,134 @@ class Caja_Etiqueta(DetailView_Login):
         return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
 
 
+class CargaMasiva_Form(FormView_Login):
+    form_class = CargaCreditos_Form
+    template_name = 'expedientes/form_loadfile.html'
+    permission_required = 'expedientes.load_credito'
+    success_message = _('Se cargaron los registros exitosamente')
+    extra_context = {
+        'title': _('Carga de Créditos'),
+        'botones': {
+            'guardar': _('Cargar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
 
+    def get_success_url(self):
+        return reverse_lazy('expedientes:index')
+
+    def post(self, request, *args, **kwargs):
+        if 'Cargar' in request.POST:
+            form = self.get_form()
+            if form.is_valid():
+                return self.form_valid(form)
+            else: 
+                return self.form_invalid(form)
+
+    def form_valid(self, form):
+        archivo = form.cleaned_data['archivo']
+        libro = openpyxl.load_workbook(archivo)
+        insert_datos(datos_excel(libro[libro.sheetnames[0]]))
+        return super().form_valid(form)
+
+
+
+
+
+##########################################################################
+#
+##########################################################################
+def datos_excel(hoja):    
+    orden = {}
+    for i in range(len(hoja[1])):
+        orden[hoja[1][i].value]=i
+
+    clientes = []
+    oficinas = []
+    monedas = []
+    productos = []
+    creditos = []
+    for fila in hoja.iter_rows(min_row=2):
+        mis     = fila[orden['Cod_Cliente']].value
+        cliente = fila[orden['Cliente']].value
+        if not any(mis in sublist for sublist in clientes):
+            clientes.append([mis, cliente])
+
+        cod_ofi = fila[orden['Cod_ofi']].value
+        oficina = fila[orden['Oficina']].value 
+        if not any(cod_ofi in sublist for sublist in oficinas):
+            oficinas.append([cod_ofi, oficina])
+
+        moneda  = fila[orden['Moneda']].value
+        if not moneda in monedas:
+            monedas.append(moneda)
+
+        producto = fila[orden['Producto']].value
+        if not producto in productos:
+            productos.append(producto)
+
+        credito = fila[orden['Credito']].value
+        fecha   = datetime.strptime(fila[orden['Fecha_Ini']].value, "%d/%m/%Y").strftime("%Y-%m-%d")
+        monto   = fila[orden['Monto']].value
+        if not any(credito in sublist for sublist in creditos):
+            creditos.append([credito, fecha, monto, mis, cod_ofi, moneda, producto])
+        
+    return {'clientes': clientes, 'oficinas': oficinas, 'monedas': monedas, 
+        'productos': productos,'creditos': creditos}
+
+def insert_datos(datos):
+    clientes = insert_clientes(datos['clientes'])
+    oficinas = insert_oficinas(datos['oficinas'])
+    monedas = insert_monedas(datos['monedas'])
+    productos = insert_productos(datos['productos'])
+    creditos = insert_creditos(datos['creditos'])
+
+def insert_clientes(datos):
+    clientes = []
+    queryset = Cliente.objects.filter(codigo__in=[int(dato[0]) for dato in datos])
+    for dato in datos:
+        if not queryset.filter(codigo=int(dato[0])):
+            clientes.append(Cliente(codigo=int(dato[0]), nombre=dato[1]))
+    Cliente.objects.bulk_create(clientes)
+
+def insert_oficinas(datos):
+    oficinas = []
+    queryset = Oficina.objects.filter(numero__in=[int(dato[0]) for dato in datos])
+    for dato in datos:
+        if not queryset.filter(numero=int(dato[0])):
+            oficinas.append(Oficina(numero=int(dato[0]), descripcion=dato[1]))
+    Oficina.objects.bulk_create(oficinas)
+
+def insert_monedas(datos):
+    monedas = []
+    queryset = Moneda.objects.filter(descripcion__in=datos)
+    for dato in datos:
+        if not queryset.filter(descripcion=dato):
+            monedas.append(Moneda(descripcion=dato))
+    Moneda.objects.bulk_create(monedas)
+
+def insert_productos(datos):
+    productos = []
+    queryset = Producto.objects.filter(descripcion__in=datos)
+    for dato in datos:
+        if not queryset.filter(descripcion=dato):
+            productos.append(Producto(descripcion=dato))
+    Producto.objects.bulk_create(productos)
+
+def insert_creditos(datos):
+    #creditos.append([credito, fecha, monto, mis, cod_ofi, moneda, producto])
+    queryset = Credito.objects.filter(numero__in=[dato[0] for dato in datos])
+    clientes = Cliente.objects.filter(codigo__in=[int(dato[3]) for dato in datos])
+    oficinas = Oficina.objects.filter(numero__in=[int(dato[4]) for dato in datos])
+    monedas = Moneda.objects.filter(descripcion__in=[dato[5] for dato in datos])
+    productos = Producto.objects.filter(descripcion__in=[dato[6] for dato in datos])
+
+    creditos = []
+    for dato in datos:
+        if not queryset.filter(numero=dato[0]):
+            creditos.append(Credito(numero=dato[0], fecha_concesion=dato[1], 
+                monto=dato[2], cliente=clientes.get(codigo=int(dato[3])), 
+                moneda=monedas.get(descripcion=dato[5]), 
+                oficina=oficinas.get(numero=int(dato[4])), 
+                producto=productos.get(descripcion=dato[6])))
+    Credito.objects.bulk_create(creditos)
