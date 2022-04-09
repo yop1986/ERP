@@ -12,7 +12,7 @@ from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
 
 from .models import (Bodega, Estante, Nivel, Posicion, Caja, Cliente, Moneda,
-    Producto, Oficina, Credito, Folio)
+    Producto, Oficina, Credito, Tomo)
 from .forms import (Busqueda, GeneraEstructura, GeneraEtiquetas_Form, CargaCreditos_Form)
 from usuarios.views_base import (ListView_Login, DetailView_Login, TemplateView_Login, 
     CreateView_Login, UpdateView_Login, DeleteView_Login, FormView_Login)
@@ -93,7 +93,7 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
         return context
 
     def get_success_url(self, *args, **kwargs):
-        return self.object.detail_url()
+        return self.object.view_url()
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -341,8 +341,8 @@ class Posicion_DetailView(DetailView_Login):
             'cajas': queryset,
             'no_columnas': queryset.count(),
             'tooltip_head': _('Caja'),
-            'tooltip_body': _('Folio'),
-            'folios': Folio.objects.filter(caja__posicion=self.object).order_by('credito__numero', 'numero')
+            'tooltip_body': _('Tomo'),
+            'tomos': Tomo.objects.filter(caja__posicion=self.object).order_by('credito__numero', 'numero')
         }
         return context
 
@@ -408,7 +408,7 @@ class Credito_Search(TemplateView_Login):
     extra_context = {
         'title': _('Busqueda de Créditos'),
         'sub_titulo': {
-            'estructura': _('Folios'),
+            'estructura': _('Tomos'),
         },
         'opciones':{
             'etiqueta':_('Opciones'),
@@ -427,13 +427,13 @@ class Credito_Search(TemplateView_Login):
         if 'Buscar' in self.request.GET:
             credito = Credito.objects.get(numero=self.request.GET.get('valor'))
             context['credito']  = credito
-            context['folios']  = Folio.objects.filter(credito=credito)
+            context['tomos']  = Tomo.objects.filter(credito=credito)
         return context
 
 class Credito_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_credito'
     template_name = 'expedientes/etiqueta.html'
-    model = Folio
+    model = Tomo
     form_class = GeneraEtiquetas_Form()
 
     def get(self, request, *args, **kwargs):
@@ -443,10 +443,10 @@ class Credito_Etiqueta(DetailView_Login):
         }
         arreglo = {}
         if request.GET.get('posicion'):
-            folios = list(Folio.objects.filter(credito__id=self.kwargs['pk']))
+            tomos = list(Tomo.objects.filter(credito__id=self.kwargs['pk']))
             for i in range(1, int(request.GET.get('posicion'))):
                 arreglo[i] = 'ocultar'
-            for caja in folios:
+            for caja in tomos:
                 arreglo[caja] = 'mostrar'
         return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
 

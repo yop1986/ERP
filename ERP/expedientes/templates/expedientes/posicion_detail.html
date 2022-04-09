@@ -7,7 +7,7 @@
       <strong>{% get_verbose_field_name object "nivel" %}</strong>
     </div>
     <div class="col-5">
-      <a href="{{ object.nivel.detail_url }}">{{ object.nivel }}</a>
+      <a href="{{ object.nivel.view_url }}">{{ object.nivel }}</a>
     </div>
   </div>
   <div class="row mb-2">
@@ -51,7 +51,7 @@
           <thead>
             <tr>
               {% for caja in estructura.cajas %}
-              <th scope="col" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_head }}:{{ caja }}"><a href="{{ caja.detail_url }}">{{ caja.numero }}</a></th>
+              <th scope="col" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_head }}:{{ caja }}"><a href="{{ caja.view_url }}">{{ caja.numero }}</a></th>
               {% endfor %}
             </tr>
           </thead>
@@ -59,7 +59,7 @@
           {% for folio in estructura.folios %}
             {% if forloop.counter|modulo:estructura.no_columnas == 1 %}<tr>{% endif %}
             <td class='table-success' data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_body }}:{{ folio.credito }}">
-              <a href="{{ folio.detail_url }}">{{ folio }}</a>
+              <a href="{{ folio.view_url }}">{{ folio }}</a>
             </td>
             {% if forloop.counter|modulo:estructura.no_columnas == 0 %}</tr>{% endif %}
           {% endfor %}

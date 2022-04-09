@@ -42,7 +42,7 @@ class Bodega(models.Model):
     def list_url(self=None):
         return reverse('expedientes:bodega_list')
 
-    def detail_url(self):
+    def view_url(self):
         return reverse('expedientes:bodega_view', kwargs={'pk': self.id})
 
     def update_url(self):
@@ -57,9 +57,9 @@ class Bodega(models.Model):
 
 class Estante(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    codigo  = models.CharField(max_length=2, db_index=True, help_text=_('Código máximo de 2 caracteres'))
-    vigente = models.BooleanField(default=True) # para eliminación lógica
-    bodega  = models.ForeignKey(Bodega, on_delete=models.PROTECT, related_name='estante_bodega')
+    codigo  = models.CharField(_('Código'), max_length=2, db_index=True, help_text=_('Código máximo de 2 caracteres'))
+    vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
+    bodega  = models.ForeignKey(Bodega, on_delete=models.PROTECT, related_name='estante_bodega', verbose_name=_('Bodega'))
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
@@ -90,7 +90,7 @@ class Estante(models.Model):
     def list_url():
         return reverse('expedientes:estante_list')
 
-    def detail_url(self):
+    def view_url(self):
         return reverse('expedientes:estante_view', kwargs={'pk': self.id})
 
     def update_url(self):
@@ -108,9 +108,9 @@ class Estante(models.Model):
 
 class Nivel(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    numero  = models.PositiveSmallIntegerField(help_text=_('Número del nivel a registrar'))
-    vigente = models.BooleanField(default=True) # para eliminación lógica
-    estante = models.ForeignKey(Estante, on_delete=models.PROTECT, related_name='nivel_estante')
+    numero  = models.PositiveSmallIntegerField(_('Peldaño'), help_text=_('Número del nivel a registrar'))
+    vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
+    estante = models.ForeignKey(Estante, on_delete=models.PROTECT, related_name='nivel_estante', verbose_name=_('Estante'))
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
@@ -124,19 +124,10 @@ class Nivel(models.Model):
     def __str__(self):
         return f"{self.estante}-{self.numero:02d}"
 
-    def validate_fields(self, exclude=None):
-        qs = Nivel.objects.filter(numero=self.numero, estante=self.estante).exclude(pk=self.pk)
-        if qs.exists():
-            raise ValidationError(_('Nivel y estante repetido.'))
-
-    def save(self, *args, **kwargs):
-        self.validate_fields()
-        super().save(*args, **kwargs)
-
     def list_url():
         return reverse('expedientes:nivel_list')
 
-    def detail_url(self):
+    def view_url(self):
         return reverse('expedientes:nivel_view', kwargs={'pk': self.id})
 
     def update_url(self):
@@ -154,9 +145,9 @@ class Nivel(models.Model):
 
 class Posicion(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    numero = models.PositiveSmallIntegerField()
-    vigente = models.BooleanField(default=True) # para eliminación lógica
-    nivel = models.ForeignKey(Nivel, on_delete=models.PROTECT, related_name='posicion_nivel')
+    numero = models.PositiveSmallIntegerField(_('Posición'))
+    vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
+    nivel = models.ForeignKey(Nivel, on_delete=models.PROTECT, related_name='posicion_nivel', verbose_name=_('Nivel'))
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
@@ -170,19 +161,10 @@ class Posicion(models.Model):
     def __str__(self):
         return f"{self.nivel}-{self.numero:02d}"
 
-    def validate_fields(self, exclude=None):
-        qs = Posicion.objects.filter(numero=self.numero, nivel=self.nivel).exclude(pk=self.pk)
-        if qs.exists():
-            raise ValidationError(_('Nivel y posición repetida.'))
-
-    def save(self, *args, **kwargs):
-        self.validate_fields()
-        super().save(*args, **kwargs)
-
     def list_url():
         return reverse('expedientes:posicion_list')
 
-    def detail_url(self):
+    def view_url(self):
         return reverse('expedientes:posicion_view', kwargs={'pk': self.id})
 
     def update_url(self):
@@ -200,9 +182,9 @@ class Posicion(models.Model):
 
 class Caja(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    numero = models.PositiveSmallIntegerField()
-    vigente = models.BooleanField(default=True) # para eliminación lógica
-    posicion = models.ForeignKey(Posicion, on_delete=models.PROTECT, related_name='caja_posicion')
+    numero = models.PositiveSmallIntegerField(_('Numero'))
+    vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
+    posicion = models.ForeignKey(Posicion, on_delete=models.PROTECT, related_name='caja_posicion', verbose_name=_('Posición'))
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
@@ -228,7 +210,7 @@ class Caja(models.Model):
     def list_url():
         return reverse('expedientes:caja_list')
 
-    def detail_url(self):
+    def view_url(self):
         return reverse('expedientes:caja_view', kwargs={'pk': self.id})
 
     def update_url(self):
@@ -267,7 +249,7 @@ class Cliente(models.Model):
     def list_url():
         return reverse('expedientes:cliente_list')
 
-    def detail_url(self):
+    def view_url(self):
         return reverse('expedientes:cliente_view', kwargs={'pk': self.id})
 
     def update_url(self):
@@ -307,7 +289,7 @@ class Moneda(models.Model):
     def list_url():
         return reverse('expedientes:moneda_list')
 
-    def detail_url(self):
+    def view_url(self):
         return reverse('expedientes:moneda_view', kwargs={'pk': self.id})
 
     def update_url(self):
@@ -339,7 +321,7 @@ class Producto(models.Model):
     def list_url():
         return reverse('expedientes:producto_list')
 
-    def detail_url(self):
+    def view_url(self):
         return reverse('expedientes:producto_view', kwargs={'pk': self.id})
 
     def update_url(self):
@@ -372,7 +354,7 @@ class Oficina(models.Model):
     def list_url():
         return reverse('expedientes:oficina_list')
 
-    def detail_url(self):
+    def view_url(self):
         return reverse('expedientes:oficina_view', kwargs={'pk': self.id})
 
     def update_url(self):
@@ -397,7 +379,7 @@ class Credito(models.Model):
     class Meta:
         permissions = [
             ("load_credito", "Carga masiva de créditos"),
-            ("label_credito", "Permite imprimir etiquetas de los folios"),
+            ("label_credito", "Permite imprimir etiquetas de los tomos"),
         ]
 
     def __str__(self):
@@ -406,7 +388,7 @@ class Credito(models.Model):
     def list_url():
         return reverse('expedientes:credito_list')
 
-    def detail_url(self):
+    def view_url(self):
         return reverse('expedientes:credito_view', kwargs={'pk': self.id})
 
     def update_url(self):
@@ -425,7 +407,7 @@ class Credito(models.Model):
         return self.folio_credito.filter(vigente=True)
 
 
-class Folio(models.Model):
+class Tomo(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     numero  = models.PositiveSmallIntegerField()
     vigente = models.BooleanField(default=True)
@@ -452,7 +434,7 @@ class Folio(models.Model):
     def list_url():
         return reverse('expedientes:folio_list')
 
-    def detail_url(self):
+    def view_url(self):
         return reverse('expedientes:folio_view', kwargs={'pk': self.id})
 
     def update_url(self):
@@ -469,4 +451,4 @@ class Folio(models.Model):
 
     def delete(self):
         self.vigente = False
-        super(Folio, self).delete()
+        super(Tomo, self).delete()

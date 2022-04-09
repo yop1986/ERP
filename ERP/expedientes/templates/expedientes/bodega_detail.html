@@ -82,7 +82,7 @@
           <thead>
             <tr>
               {% for estante in estructura.estantes %}
-              <th scope="col" data-bs-placement="top" title="{{ estructura.tooltip_head }}: {{ estante }}"><a href="{{ estante.detail_url }}">{{ estante.codigo }}</a></th>
+              <th scope="col" data-bs-placement="top" title="{{ estructura.tooltip_head }}: {{ estante }}"><a href="{{ estante.view_url }}">{{ estante.codigo }}</a></th>
               {% endfor %}
             </tr>
           </thead>
@@ -90,7 +90,7 @@
           {% for nivel in estructura.niveles %}
             {% if forloop.counter|modulo:estructura.no_columnas == 1 %}<tr>{% endif %}
             <td class='table-success' data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_body }}: {{ nivel }}">
-              <a href="{{ nivel.detail_url }}">{{ nivel.numero }}</a>
+              <a href="{{ nivel.view_url }}">{{ nivel.numero }}</a>
             </td>
             {% if forloop.counter|modulo:estructura.no_columnas == 0 %}</tr>{% endif %}
           {% endfor %}    

@@ -27,7 +27,7 @@
           <td>{{ object }}</td>
           <td>{{ object.get_estado }}</td>
           <td>
-            <a href="{{ object.detail_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
+            <a href="{{ object.view_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
             {% if perms.expedientes.change_bodega %}
             <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
             {% endif %}
