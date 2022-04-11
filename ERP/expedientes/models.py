@@ -320,7 +320,7 @@ class Tomo(models.Model):
 
     class Meta:
         permissions = [
-            ("label_credito", "Permite imprimir etiquetas de los tomos"),
+            ("label_tomo", "Permite imprimir etiquetas de los tomos"),
         ]
         constraints = [
             models.UniqueConstraint(fields=['credito', 'numero'], name='unq_credito_numero'),

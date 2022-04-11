@@ -9,9 +9,9 @@
           Creditos
         </a>
         <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+          {% if perms.expedientes.load_credito %}
           <li><a class="dropdown-item" href="{% url 'expedientes:carga' %}">Carga de Créditos</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="{% url 'expedientes:credito_search' %}">Busqueda</a></li>
+          {% endif %}
         </ul>
       </li>
     </ul>

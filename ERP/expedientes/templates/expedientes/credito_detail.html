@@ -53,7 +53,7 @@
     </div>
   </div>
   
-  {% if perms.estante.label_credito %}
+  {% if perms.expedientes.label_credito or perms.expedientes.add_tomo or perms.expedientes.delete_tomo %}
   <div class="row mb-2">
     <div class="col-7">
       <strong>{{ opciones.etiqueta }}</strong>
@@ -62,9 +62,15 @@
       <form method="post" action="{% url 'expedientes:opera_tomo' %}">
         {% csrf_token %}
         <input type="hidden" name="credito" value="{{ credito.id }}">
+        {% if perms.expedientes.add_tomo %}
         <input type="image" src="{% static 'images/expedientes_add.png' %}" name="agregar" width="60" class="btn btn-success">
+        {% endif %}
+        {% if perms.expedientes.delete_tomo %}
         <input type="image" src="{% static 'images/expedientes_remove.png' %}" name="remover" width="60" class="btn btn-danger">
+        {% endif %}
+        {% if perms.expedientes.label_credito %}
         <a href="{{ credito.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}"></a>
+        {% endif %}
       </form>
     </div>
   </div>
@@ -89,7 +95,9 @@
           <td>{{ tomo.comentario }}</td>
           <td>{% if tomo.caja %}{{ tomo.caja }}{% else %}-{% endif %}</td>
           <td>
+            {% if perms.expedientes.label_tomo %}
             <a href="{{ tomo.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}"></a>
+            {% endif %}
             <a href="">ingresar</a>
             <a href="">extraer</a>
             <a href="">trasladar</a>
