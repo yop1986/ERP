@@ -17,6 +17,12 @@ class Bodega(models.Model):
     vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
+    class Meta:
+        permissions = [
+            ("genera_estructura", "Permite generar estructura de la bodega"),
+            ("view_estructura", "Permite visualizar la estructura de la bodega"),
+        ]
+
     def __str__(self):
         return self.nombre
 
@@ -63,11 +69,11 @@ class Estante(models.Model):
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['codigo', 'bodega'], name='unq_codigo_bodega'),
-        ]
         permissions = [
             ("label_estante", "Permite la impresión de todas las etiquetas del estante"),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['codigo', 'bodega'], name='unq_codigo_bodega'),
         ]
 
     def __str__(self):
@@ -114,11 +120,11 @@ class Nivel(models.Model):
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['estante', 'numero'], name='unq_estante_numero'),
-        ]
         permissions = [
             ("label_nivel", "Permite la impresión de todas las etiquetas del nivel"),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['estante', 'numero'], name='unq_estante_numero'),
         ]
 
     def __str__(self):
@@ -151,11 +157,11 @@ class Posicion(models.Model):
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['nivel', 'numero'], name='unq_nivel_numero'),
-        ]
         permissions = [
             ("label_posicion", "Permite la impresión de todas las etiquetas de la posición"),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['nivel', 'numero'], name='unq_nivel_numero'),
         ]
 
     def __str__(self):
@@ -188,11 +194,11 @@ class Caja(models.Model):
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['posicion', 'numero'], name='unq_posicion_numero'),
-        ]
         permissions = [
             ("label_caja", "Permite la impresión de la etiqueta de la caja"),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['posicion', 'numero'], name='unq_posicion_numero'),
         ]
 
     def __str__(self):
@@ -235,35 +241,6 @@ class Cliente(models.Model):
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
 
-    def validate_fields(self, exclude=None):
-        qs = Cliente.objects.filter(codigo=self.codigo).exclude(pk=self.pk)
-        if qs.exists():
-            raise ValidationError(_('Código ya existe.'))
-
-    def save(self, *args, **kwargs):
-        self.nombre = self.nombre.upper()
-
-        self.validate_fields()
-        super().save(*args, **kwargs)
-
-    def list_url():
-        return reverse('expedientes:cliente_list')
-
-    def view_url(self):
-        return reverse('expedientes:cliente_view', kwargs={'pk': self.id})
-
-    def update_url(self):
-        return reverse('expedientes:cliente_update', kwargs={'pk': self.id})
-
-    def delete_url(self):
-        return reverse('expedientes:cliente_delete', kwargs={'pk': self.id})
-
-    def get_tiene_hijos(self):
-        return True if self.credito_cliente.count()>0 else False
-
-    def get_hijos(self):
-        return self.credito_cliente.all()
-
 
 class Moneda(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -274,31 +251,7 @@ class Moneda(models.Model):
     def __str__(self):
         return f"{self.descripcion} ({self.simbolo})"
 
-    def validate_fields(self, exclude=None):
-        qs = Moneda.objects.filter(models.Q(descripcion=self.descripcion) | models.Q(simbolo=self.simbolo)).exclude(pk=self.pk)
-        if qs.exists():
-            raise ValidationError(_('Descripción o simbolo ya existe.'))
-
-    def save(self, *args, **kwargs):
-        self.descripcion = self.descripcion.upper()
-        self.simbolo = self.simbolo.upper() if self.simbolo else ''
-
-        self.validate_fields()
-        super().save(*args, **kwargs)
-
-    def list_url():
-        return reverse('expedientes:moneda_list')
-
-    def view_url(self):
-        return reverse('expedientes:moneda_view', kwargs={'pk': self.id})
-
-    def update_url(self):
-        return reverse('expedientes:moneda_update', kwargs={'pk': self.id})
-
-    def delete_url(self):
-        return reverse('expedientes:moneda_delete', kwargs={'pk': self.id})
-
-
+    
 class Producto(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = models.CharField(max_length=12, unique=True)
@@ -307,30 +260,7 @@ class Producto(models.Model):
     def __str__(self):
         return self.descripcion
 
-    def validate_fields(self, exclude=None):
-        qs = Moneda.objects.filter(descripcion=self.descripcion).exclude(pk=self.pk)
-        if qs.exists():
-            raise ValidationError(_('Producto ya existe.'))
-
-    def save(self, *args, **kwargs):
-        self.descripcion = self.descripcion.upper()
-        
-        self.validate_fields()
-        super().save(*args, **kwargs)
-
-    def list_url():
-        return reverse('expedientes:producto_list')
-
-    def view_url(self):
-        return reverse('expedientes:producto_view', kwargs={'pk': self.id})
-
-    def update_url(self):
-        return reverse('expedientes:producto_update', kwargs={'pk': self.id})
-
-    def delete_url(self):
-        return reverse('expedientes:producto_delete', kwargs={'pk': self.id})
-
-
+    
 class Oficina(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     numero = models.PositiveIntegerField(db_index=True, unique=True)
@@ -340,30 +270,7 @@ class Oficina(models.Model):
     def __str__(self):
         return f"{str(self.numero).zfill(4)} - {self.descripcion}"
 
-    def validate_fields(self, exclude=None):
-        qs = Oficina.objects.filter(models.Q(descripcion=self.descripcion) | models.Q(numero=self.numero)).exclude(pk=self.pk)
-        if qs.exists():
-            raise ValidationError(_('Número u oficina ya existe.'))
-
-    def save(self, *args, **kwargs):
-        self.descripcion = self.descripcion.upper()
-        
-        self.validate_fields()
-        super().save(*args, **kwargs)
-
-    def list_url():
-        return reverse('expedientes:oficina_list')
-
-    def view_url(self):
-        return reverse('expedientes:oficina_view', kwargs={'pk': self.id})
-
-    def update_url(self):
-        return reverse('expedientes:oficina_update', kwargs={'pk': self.id})
-
-    def delete_url(self):
-        return reverse('expedientes:oficina_delete', kwargs={'pk': self.id})
-
-
+    
 class Credito(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     numero  = models.CharField(max_length=18, db_index=True, unique=True)
@@ -385,26 +292,14 @@ class Credito(models.Model):
     def __str__(self):
         return f"{self.numero} - {self.cliente.nombre}"
 
-    def list_url():
-        return reverse('expedientes:credito_list')
-
     def view_url(self):
         return reverse('expedientes:credito_view', kwargs={'pk': self.id})
-
-    def update_url(self):
-        return reverse('expedientes:credito_update', kwargs={'pk': self.id})
-
-    def delete_url(self):
-        return reverse('expedientes:credito_delete', kwargs={'pk': self.id})
 
     def labels_url(self):
         return reverse('expedientes:credito_labels', kwargs={'pk': self.id})
 
-    def get_tiene_hijos(self):
-        return True if self.folio_set.count()>0 else False
-
-    def get_hijos(self):
-        return self.folio_credito.filter(vigente=True)
+    def cant_tomos(self):
+        return Tomo.objects.filter(credito=self, vigente=True).count()
 
 
 class Tomo(models.Model):
@@ -418,12 +313,15 @@ class Tomo(models.Model):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_('Usuario'), related_name='folio_usuario')
     history = HistoricalRecords(
         history_id_field = models.BigAutoField(),
-        excluded_fields=['numero', 'credito', 'comentario', 'fecha_modificacion', 'usuario'],
+        excluded_fields=['numero', 'credito'],
         user_model=settings.AUTH_USER_MODEL,
-        history_change_reason_field=models.TextField(null=True)
+        #history_change_reason_field=models.TextField(null=True)
         )
 
     class Meta:
+        permissions = [
+            ("label_credito", "Permite imprimir etiquetas de los tomos"),
+        ]
         constraints = [
             models.UniqueConstraint(fields=['credito', 'numero'], name='unq_credito_numero'),
         ]
@@ -431,17 +329,8 @@ class Tomo(models.Model):
     def __str__(self):
         return "{}-{}".format(self.credito.numero, self.numero)
 
-    def list_url():
-        return reverse('expedientes:folio_list')
-
-    def view_url(self):
-        return reverse('expedientes:folio_view', kwargs={'pk': self.id})
-
-    def update_url(self):
-        return reverse('expedientes:folio_update', kwargs={'pk': self.id})
-
-    def delete_url(self):
-        return reverse('expedientes:folio_delete', kwargs={'pk': self.id})
+    def labels_url(self):
+        return reverse('expedientes:tomo_labels', kwargs={'pk': self.id})
 
     def get_ubicacion(self):
         return self.caja if self.caja else self.comentario if self.comentario else ''

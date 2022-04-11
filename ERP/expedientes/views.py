@@ -3,11 +3,12 @@ from datetime import datetime
 from itertools import product
 from string import ascii_uppercase
 
-from django.db.models import Count
+from django.contrib import messages
+from django.db.models import Count, Max, Min
 from django.db.models.functions import Length
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.utils.translation import gettext as _
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
 
@@ -103,7 +104,6 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
                 return self.form_valid(form)
             else: 
                 return self.form_invalid(form)
-            #messages.warning(self.request, f'Ya esta registrado el origen "{od}" a este modelo');modelo');
     
     def form_valid(self, form, *args, **kwargs):
         e = form.cleaned_data['estantes']
@@ -198,7 +198,7 @@ class Bodega_UpdateView(UpdateView_Login):
     }
 
 class Bodega_DeleteView(DeleteView_Login):
-    permission_required = 'expedientes.change_bodega'
+    permission_required = 'expedientes.delete_bodega'
     model = Bodega
     template_name = 'expedientes/confirmation_form.html'
     extra_context = {
@@ -401,55 +401,6 @@ class Caja_Etiqueta(DetailView_Login):
         return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
 
 
-class Credito_Search(TemplateView_Login):
-    permission_required = 'expedientes.view_credito'
-    form_class = Busqueda
-    template_name = 'expedientes/credito_search.html'
-    extra_context = {
-        'title': _('Busqueda de Créditos'),
-        'sub_titulo': {
-            'estructura': _('Tomos'),
-        },
-        'opciones':{
-            'etiqueta':_('Opciones'),
-            'etiquetas':_('Etiquetas'),
-        },
-        'botones': {
-            'buscar': _('Buscar'),
-            'limpiar': _('Limpiar'),
-        },
-        'url_buscar': reverse_lazy('expedientes:credito_search')
-    }
-
-    def get_context_data(self, *args, **kwargs):
-        context = super().get_context_data(*args, **kwargs)
-        context['form'] = Busqueda(self.request.GET or None)
-        if 'Buscar' in self.request.GET:
-            credito = Credito.objects.get(numero=self.request.GET.get('valor'))
-            context['credito']  = credito
-            context['tomos']  = Tomo.objects.filter(credito=credito)
-        return context
-
-class Credito_Etiqueta(DetailView_Login):
-    permission_required = 'expedientes.label_credito'
-    template_name = 'expedientes/etiqueta.html'
-    model = Tomo
-    form_class = GeneraEtiquetas_Form()
-
-    def get(self, request, *args, **kwargs):
-        context = {
-            'title': _('Etiqueta'),
-            'object': Credito.objects.get(pk=kwargs['pk'])
-        }
-        arreglo = {}
-        if request.GET.get('posicion'):
-            tomos = list(Tomo.objects.filter(credito__id=self.kwargs['pk']))
-            for i in range(1, int(request.GET.get('posicion'))):
-                arreglo[i] = 'ocultar'
-            for caja in tomos:
-                arreglo[caja] = 'mostrar'
-        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
-
 class CargaMasiva_Form(FormView_Login):
     permission_required = 'expedientes.load_credito'
     form_class = CargaCreditos_Form
@@ -480,9 +431,110 @@ class CargaMasiva_Form(FormView_Login):
         insert_datos(datos_excel(libro[libro.sheetnames[0]]))
         return super().form_valid(form)
 
+class Credito_DetailView(DetailView_Login):
+    permission_required = 'expedientes.view_credito'
+    model = Credito
+    extra_context = {
+        'title': _('Credito'),
+        'sub_titulo': {
+            'tomos': _('Tomos'),
+        },
+        'etiquetas':{
+            'tomo':_('Tomo'),
+        },
+        'opciones':{
+            'etiqueta':_('Opciones'),
+            'etiquetas':_('Etiquetas'),
+        },
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['tomos'] = Tomo.objects.filter(credito=self.object, vigente=True).order_by('numero')
+        return context
+
+class Credito_Etiqueta(DetailView_Login):
+    permission_required = 'expedientes.label_credito'
+    template_name = 'expedientes/etiqueta.html'
+    model = Tomo
+    form_class = GeneraEtiquetas_Form()
+
+    def get(self, request, *args, **kwargs):
+        context = {
+            'title': _('Etiqueta'),
+            'object': Credito.objects.get(pk=kwargs['pk'])
+        }
+        arreglo = {}
+        if request.GET.get('posicion'):
+            tomos = list(Tomo.objects.filter(credito__id=self.kwargs['pk'], vigente=True))
+            for i in range(1, int(request.GET.get('posicion'))):
+                arreglo[i] = 'ocultar'
+            for tomo in tomos:
+                arreglo[tomo] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
 
 
+class Tomo_Etiqueta(DetailView_Login):
+    permission_required = 'expedientes.label_tomo'
+    template_name = 'expedientes/etiqueta.html'
+    model = Tomo
+    form_class = GeneraEtiquetas_Form()
 
+    def get(self, request, *args, **kwargs):
+        context = {
+            'title': _('Etiqueta'),
+            'object': Tomo.objects.get(pk=kwargs['pk'])
+        }
+        arreglo = {}
+        if request.GET.get('posicion'):
+            tomos = list(Tomo.objects.filter(id=self.kwargs['pk']))
+            for i in range(1, int(request.GET.get('posicion'))):
+                arreglo[i] = 'ocultar'
+            for tomo in tomos:
+                arreglo[tomo] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+
+
+def Credito_Search(request):
+    numero = request.GET['numero']
+    credito = Credito.objects.filter(numero=numero)
+    if credito:
+        return redirect(credito[0].view_url())
+    elif len(numero)>0:
+        messages.warning(request, 'No se encontró el crédito: '+numero)
+
+    #return render(request, 'expedientes/index.html')
+    return redirect(reverse_lazy('expedientes:index'))
+    
+def Tomo_Opera(request):
+    credito = Credito.objects.get(id=request.POST['credito'])
+    tomos = Tomo.objects.filter(credito=credito)
+    if 'agregar.x' in request.POST:
+        if not tomos:
+            Tomo(numero=1, credito=credito, comentario='Tomo habilitado', 
+                usuario=request.user).save()
+        elif tomos.filter(vigente=False):
+            #tomo minimo inhabilitado
+            tomo = tomos.filter(vigente=False).order_by('numero')[0]
+            tomo.usuario=request.user
+            tomo.vigente=True
+            tomo.comentario='Tomo habilitado'
+            tomo.save()
+        else:
+            num = tomos.aggregate(Max('numero'))['numero__max']+1
+            Tomo(numero=num, credito=credito, comentario='Tomo habilitado', 
+                usuario=request.user).save()
+    else: #elif 'remover.x' in request.POST:
+        if not tomos or not tomos.filter(vigente=True):
+            messages.warning(request, 'No hay tomos para deshabilitar en el crédito '+ credito.numero)
+        else:
+            #tomo máximo habilitado
+            tomo = tomos.filter(vigente=True).order_by('-numero')[0]
+            tomo.usuario=request.user
+            tomo.vigente=False
+            tomo.comentario='Tomo inhabilitado'
+            tomo.save()
+    return redirect(credito.view_url())
 
 ##########################################################################
 #

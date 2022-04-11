@@ -1,0 +1,106 @@
+{% extends "base_expedientes.html" %}
+{% load static humanize verbose_names crispy_forms_tags %}
+
+{% block inner_content %}
+
+{% if credito %}
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name credito "numero" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ credito.numero }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name credito "cliente" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ credito.cliente }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name credito "producto" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ credito.producto }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name credito "oficina" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ credito.oficina }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name credito "monto" %}</strong>
+    </div>
+    <div class="col-5">
+      {%if credito.moneda.simbolo%}{{ credito.moneda.simbolo }}{% endif %} {{ credito.monto|intcomma  }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{{ etiquetas.tomo }}</strong>
+    </div>
+    <div class="col-5">
+      {{ credito.cant_tomos }}
+    </div>
+  </div>
+  
+  {% if perms.estante.label_credito %}
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{{ opciones.etiqueta }}</strong>
+    </div>
+    <div class="col-5">
+      <form method="post" action="{% url 'expedientes:opera_tomo' %}">
+        {% csrf_token %}
+        <input type="hidden" name="credito" value="{{ credito.id }}">
+        <input type="image" src="{% static 'images/expedientes_add.png' %}" name="agregar" width="60" class="btn btn-success">
+        <input type="image" src="{% static 'images/expedientes_remove.png' %}" name="remover" width="60" class="btn btn-danger">
+        <a href="{{ credito.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}"></a>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+{% endif %}
+
+  {% if tomos %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">{% get_verbose_field_name tomos.0 "comentario" %}</th>
+          <th scope="col">{% get_verbose_field_name tomos.0 "caja" %}</th>
+          <th scope="col">{{ opciones.etiqueta }}</th>
+        </tr>
+      </thead>
+      <tbody>
+    {% for tomo in tomos %}
+        <tr>
+          <td>{{ tomo.numero }}</td>
+          <td>{{ tomo.comentario }}</td>
+          <td>{% if tomo.caja %}{{ tomo.caja }}{% else %}-{% endif %}</td>
+          <td>
+            <a href="{{ tomo.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}"></a>
+            <a href="">ingresar</a>
+            <a href="">extraer</a>
+            <a href="">trasladar</a>
+          </td>
+        </tr>
+    {% endfor %}
+      </tbody>
+    </table>
+{% endif %}
+{% endblock %}
+
+{% block pagination %}
+  {% include 'base_pagination.html' %}
+{% endblock %}

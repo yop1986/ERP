@@ -25,7 +25,10 @@ urlpatterns = [
     path('cajas/etiquetas/<uuid:pk>/', views.Caja_Etiqueta.as_view(), name='caja_labels'),
 
     path('creditos/carga/', views.CargaMasiva_Form.as_view(), name='carga'),
-    path('creditos/buscar/', views.Credito_Search.as_view(), name='credito_search'),
-    path('creditos/buscar/<uuid:pk>', views.Credito_Search.as_view(), name='credito_search'),
+    path('creditos/buscar/', views.Credito_Search, name='credito_search'),
+    path('creditos/<uuid:pk>/', views.Credito_DetailView.as_view(), name='credito_view'),
     path('creditos/etiquetas/<uuid:pk>/', views.Credito_Etiqueta.as_view(), name='credito_labels'),
+
+    path('tomos/opera/', views.Tomo_Opera, name='opera_tomo'),
+    path('tomos/etiquetas/<uuid:pk>/', views.Tomo_Etiqueta.as_view(), name='tomo_labels'),
 ]
