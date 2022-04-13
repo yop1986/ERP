@@ -14,7 +14,8 @@ from django.urls import reverse_lazy
 
 from .models import (Bodega, Estante, Nivel, Posicion, Caja, Cliente, Moneda,
     Producto, Oficina, Credito, Tomo)
-from .forms import (Busqueda, GeneraEstructura, GeneraEtiquetas_Form, CargaCreditos_Form)
+from .forms import (Busqueda, GeneraEstructura, GeneraEtiquetas_Form, 
+    CargaCreditos_Form, IngresoTomo_Form, EgresoTomo_Form)
 from usuarios.views_base import (ListView_Login, DetailView_Login, TemplateView_Login, 
     CreateView_Login, UpdateView_Login, DeleteView_Login, FormView_Login)
 
@@ -440,16 +441,21 @@ class Credito_DetailView(DetailView_Login):
             'tomos': _('Tomos'),
         },
         'etiquetas':{
-            'tomo':_('Tomo'),
+            'tomo':_('Cant. de Tomos'),
         },
         'opciones':{
             'etiqueta':_('Opciones'),
             'etiquetas':_('Etiquetas'),
+            'agregar_tomo':_('Agregar tomo'),
+            'remover_tomo':_('Remover tomo'),
+            'extraer':_('Extraer'),
+            'guardar':_('Guardar'),
         },
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
+        context['egreso_form']=EgresoTomo_Form()
         context['tomos'] = Tomo.objects.filter(credito=self.object, vigente=True).order_by('numero')
         return context
 
@@ -474,6 +480,56 @@ class Credito_Etiqueta(DetailView_Login):
         return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
 
 
+class Tomo_Ingreso(FormView_Login):
+    permission_required = 'expedientes.change_tomo'
+    form_class = IngresoTomo_Form
+    template_name = 'expedientes/form.html'
+    extra_context = {
+        'title': _('Ingreso a Bodega'),
+        'botones': {
+            'guardar': _('Guardar'),
+            'cancelar': _('Cancelar'),
+        },
+        'list_url': reverse_lazy('expedientes:index'),
+    }
+    success_url = reverse_lazy('expedientes:index')
+    success_message =''
+
+    def post(self, request, *args, **kwargs):
+        if 'Guardar' in request.POST:
+            form = self.get_form()
+            if form.is_valid():
+                return self.form_valid(form)
+            else: 
+                return self.form_invalid(form)
+    
+    def form_valid(self, form, *args, **kwargs):
+        tomo = form.cleaned_data['tomo']
+        caja = form.cleaned_data['caja']
+        comentario = form.cleaned_data['comentario']
+
+        try:
+            tomo_qs = Tomo.objects.get(credito__numero=tomo[0], numero=tomo[1])
+            caja_qs = Caja.objects.get(posicion__nivel__estante__bodega__codigo=caja[0], 
+                posicion__nivel__estante__codigo=caja[1], posicion__nivel__numero=caja[2], 
+                posicion__numero=caja[3], numero=caja[4])
+
+            if not tomo_qs.caja:
+                tomo_qs.comentario = comentario
+                tomo_qs.vigente = True
+                tomo_qs.caja = caja_qs
+                tomo_qs.usuario = self.request.user
+                tomo_qs.save()
+                messages.success(self.request, _('Se guardo el tomo ')+f'{tomo[0]}-{tomo[1]}')
+
+                return redirect(tomo_qs.credito.view_url())
+            else:
+                messages.warning(self.request, _('El tomo se encuentra en ')+f'{tomo_qs.caja}')
+        except:
+            messages.warning(self.request, _('Tomo no encontrado ')+f'{tomo[0]}-{tomo[1]}')
+        
+        return super().form_valid(form)
+
 class Tomo_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_tomo'
     template_name = 'expedientes/etiqueta.html'
@@ -494,14 +550,17 @@ class Tomo_Etiqueta(DetailView_Login):
                 arreglo[tomo] = 'mostrar'
         return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
 
+class ProcesaEgresos(TemplateView_Login):
+    pass
+
 
 def Credito_Search(request):
-    numero = request.GET['numero']
-    credito = Credito.objects.filter(numero=numero)
+    numero = request.GET['numero'].replace(' ','').split('-')
+    credito = Credito.objects.filter(numero=numero[0])
     if credito:
         return redirect(credito[0].view_url())
     elif len(numero)>0:
-        messages.warning(request, 'No se encontró el crédito: '+numero)
+        messages.warning(request, _('No se encontró el crédito: ')+numero[0])
 
     #return render(request, 'expedientes/index.html')
     return redirect(reverse_lazy('expedientes:index'))
@@ -526,7 +585,7 @@ def Tomo_Opera(request):
                 usuario=request.user).save()
     else: #elif 'remover.x' in request.POST:
         if not tomos or not tomos.filter(vigente=True):
-            messages.warning(request, 'No hay tomos para deshabilitar en el crédito '+ credito.numero)
+            messages.warning(request, _('No hay tomos para deshabilitar en el crédito ')+ credito.numero)
         else:
             #tomo máximo habilitado
             tomo = tomos.filter(vigente=True).order_by('-numero')[0]
@@ -535,6 +594,33 @@ def Tomo_Opera(request):
             tomo.comentario='Tomo inhabilitado'
             tomo.save()
     return redirect(credito.view_url())
+
+def Tomo_Egreso(request):
+    #del request.session['extraer_tomos']
+    if 'Guardar' in request.POST:
+        extraer_tomos=request.session['extraer_tomos'] if 'extraer_tomos' in request.session else []            
+        tomoid = request.POST['tomo-id']
+        tomo = request.POST['tomo'].replace(' ', '').split('-')
+        try: 
+            if len(tomo)==2:
+                t = Tomo.objects.get(credito__numero=tomo[0], numero=int(tomo[1]))
+                if t and str(t.id)==tomoid:
+                    if not tomoid in extraer_tomos:
+                        extraer_tomos.append(tomoid)
+                        request.session['extraer_tomos']=extraer_tomos
+                        messages.success(request, _('Tomo agregado a la lista'))
+                    else:
+                        messages.warning(request, _('Tomo agregado previamente'))
+                else:
+                    messages.warning(request, _('Tomo no corresponde al seleccionado'))
+            else:
+                messages.warning(request, _('Tomo mal ingresado (longitud)'))
+        except:
+            messages.warning(request, _('Tomo mal ingresado o no existe'))
+            t = Tomo.objects.get(id=tomoid)
+        finally:
+            return redirect(Tomo.objects.get(id=tomoid).credito.view_url())
+
 
 ##########################################################################
 #

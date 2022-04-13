@@ -329,15 +329,11 @@ class Tomo(models.Model):
     def __str__(self):
         return "{}-{}".format(self.credito.numero, self.numero)
 
+    def egreso_url(self):
+        return reverse('expedientes:egreso_tomo', kwargs={'pk': self.id})
+        
     def labels_url(self):
         return reverse('expedientes:tomo_labels', kwargs={'pk': self.id})
 
     def get_ubicacion(self):
         return self.caja if self.caja else self.comentario if self.comentario else ''
-
-    def get_fecha_modificacion(self):
-        return self.fecha_modificacion if self.fecha_modificacion else None
-
-    def delete(self):
-        self.vigente = False
-        super(Tomo, self).delete()

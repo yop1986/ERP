@@ -1,9 +1,5 @@
 <div class="collapse navbar-collapse" id="navbarNavDropdown">
     <ul class="navbar-nav">
-      <li class="nav-item">
-        <a class="nav-link" href="{% url 'expedientes:bodega_list' %}">Bodega</a>
-      </li>
-
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Creditos
@@ -14,10 +10,18 @@
           {% endif %}
         </ul>
       </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'expedientes:bodega_list' %}">Bodega</a>
+      </li>
+      {% if perms.expedientes.change_tomo %}
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'expedientes:ingreso_tomo' %}">Ingreso Tomo</a>
+      </li>
+      {% endif %}
     </ul>
-
-    <form class="d-flex" method="get" action="{% url 'expedientes:credito_search' %}">
-      <input class="form-control me-2" type="search" placeholder="Crédito" aria-label="Search" name="numero">
-      <button class="btn btn-outline-success" type="submit">Buscar</button>
-    </form>
   </div>
+
+  <form class="d-flex" method="get" action="{% url 'expedientes:credito_search' %}">
+    <input class="form-control me-2" type="search" placeholder="Crédito" aria-label="Search" name="numero">
+    <button class="btn btn-outline-success" type="submit">Buscar</button>
+  </form>

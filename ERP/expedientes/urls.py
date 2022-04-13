@@ -29,6 +29,11 @@ urlpatterns = [
     path('creditos/<uuid:pk>/', views.Credito_DetailView.as_view(), name='credito_view'),
     path('creditos/etiquetas/<uuid:pk>/', views.Credito_Etiqueta.as_view(), name='credito_labels'),
 
-    path('tomos/opera/', views.Tomo_Opera, name='opera_tomo'),
+    path('tomos/opera/', views.Tomo_Opera, name='opera_tomo'), #agrega/habilita o deshabilita tomo
+    path('tomos/ingreso/', views.Tomo_Ingreso.as_view(), name='ingreso_tomo'), 
+    path('tomos/egreso/', views.Tomo_Egreso, name='egreso_tomo'), #carga un tomo a la lista de envío
+    path('tomos/envío/', views.ProcesaEgresos.as_view(), name='egreso_tomo'), #procesa el envío
     path('tomos/etiquetas/<uuid:pk>/', views.Tomo_Etiqueta.as_view(), name='tomo_labels'),
+
+
 ]
