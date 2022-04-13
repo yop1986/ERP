@@ -48,6 +48,11 @@ Se ejecutan las migraciones y creacion de usuario administrador
     python -manage.py migrate
     python -manage.py createsuperuser
 
+Se cargan librerías adicionales: 
+    
+- jquery
+- bootstrap
+
 ### Desarrollo
 
     python -manage.py runserver
