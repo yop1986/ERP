@@ -22,6 +22,7 @@ urlpatterns = [
     path('posiciones/etiquetas/<uuid:pk>/', views.Posicion_Etiqueta.as_view(), name='posicion_labels'),
 
     path('cajas/<uuid:pk>/', views.Caja_DetailView.as_view(), name='caja_view'),
+    path('cajas/delete/<uuid:pk>', views.Caja_DeleteView.as_view(), name='caja_delete'),
     path('cajas/etiquetas/<uuid:pk>/', views.Caja_Etiqueta.as_view(), name='caja_labels'),
 
     path('creditos/carga/', views.CargaMasiva_Form.as_view(), name='carga'),
@@ -31,8 +32,11 @@ urlpatterns = [
 
     path('tomos/opera/', views.Tomo_Opera, name='opera_tomo'), #agrega/habilita o deshabilita tomo
     path('tomos/ingreso/', views.Tomo_Ingreso.as_view(), name='ingreso_tomo'), 
-    path('tomos/egreso/', views.Tomo_Egreso, name='egreso_tomo'), #carga un tomo a la lista de envío
-    path('tomos/envío/', views.ProcesaEgresos.as_view(), name='egreso_tomo'), #procesa el envío
+    path('tomos/cargaregreso/', views.Tomo_CargarEgreso, name='cargaregreso_tomo'), #carga un tomo a la lista de envío
+    path('tomos/remover/<uuid:pk>/', views.Tomo_EgresoRemover, name='remover_tomo'), #quita un elemento de la lista
+    path('tomos/envio/', views.ProcesaEgresos.as_view(), name='envio_tomo'), # visualiza el ilstado de tomos a procesar
+    path('tomos/trasladar/', views.Tomo_Trasladar, name='trasladar_tomo'), # realiza traslado de una bodega a otra
+    path('tomos/egresar/', views.Tomo_Egresar, name='egresar_tomo'), # realiza el egreso ofical de la bodega
     path('tomos/etiquetas/<uuid:pk>/', views.Tomo_Etiqueta.as_view(), name='tomo_labels'),
 
 

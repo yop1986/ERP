@@ -92,7 +92,7 @@
     {% for tomo in tomos %}
         <tr>
           <td>{{ tomo.numero }}</td>
-          <td>{{ tomo.comentario }}</td>
+          <td><pre>{{ tomo.comentario }}</pre></td>
           <td>{% if tomo.caja %}{{ tomo.caja }}{% else %}-{% endif %}</td>
           <td>
             {% if perms.expedientes.label_tomo %}
@@ -101,7 +101,6 @@
             {% if perms.expedientes.change_tomo %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#extraerForm" data-bs-whatever="{{ tomo.id }}"><img src="{% static 'images/expedientes_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
             {% endif %}
-            <a href="">trasladar</a>
           </td>
         </tr>
     {% endfor %}
@@ -119,7 +118,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form method="post" action="{% url 'expedientes:egreso_tomo' %}" autocomplete="off">
+        <form method="post" action="{% url 'expedientes:cargaregreso_tomo' %}" autocomplete="off">
           <input type="hidden" class="form-control" id="tomo-id" name="tomo-id">
           <div class="mb-3">
             {{ egreso_form|crispy }}

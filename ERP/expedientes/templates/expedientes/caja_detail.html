@@ -7,7 +7,7 @@
       <strong>{% get_verbose_field_name object "posicion" %}</strong>
     </div>
     <div class="col-5">
-      <a href="{{ object.posicion.detail_url }}">{{ object.posicion }}</a>
+      <a href="{{ object.posicion.view_url }}">{{ object.posicion }}</a>
     </div>
   </div>
   <div class="row mb-2">
@@ -26,13 +26,18 @@
       {{ object.get_estado }}
     </div>
   </div>
-  {% if perms.expedientes.label_caja %}
+  {% if perms.expedientes.label_caja or perms.expedientes.delete_caja %}
   <div class="row mb-2">
     <div class="col-7">
       <strong>{{ opciones.etiqueta }}</strong>
     </div>
     <div class="col-5">
-      <a href="{{ object.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}"></a>
+      {% if perms.expedientes.label_caja %}
+      <a href="{{ object.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
+      {% endif %}
+      {% if perms.expedientes.delete_caja %}
+      <a href="{{ object.delete_url }}" class="btn btn-lg btn-{{ opciones.accion_tag }}">{{ opciones.accion }}</a>
+      {% endif %}
     </div>
   </div>
   {% endif %}

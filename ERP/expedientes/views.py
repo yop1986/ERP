@@ -15,7 +15,8 @@ from django.urls import reverse_lazy
 from .models import (Bodega, Estante, Nivel, Posicion, Caja, Cliente, Moneda,
     Producto, Oficina, Credito, Tomo)
 from .forms import (Busqueda, GeneraEstructura, GeneraEtiquetas_Form, 
-    CargaCreditos_Form, IngresoTomo_Form, EgresoTomo_Form)
+    CargaCreditos_Form, IngresoTomo_Form, EgresoTomo_Form, Bodega_From, 
+    TrasladoTomos_Form, SalidaTomos_Form)
 from usuarios.views_base import (ListView_Login, DetailView_Login, TemplateView_Login, 
     CreateView_Login, UpdateView_Login, DeleteView_Login, FormView_Login)
 
@@ -173,7 +174,7 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
 class Bodega_CreateView(CreateView_Login):
     permission_required = 'expedientes.add_bodega'
     model = Bodega
-    fields = ['codigo', 'nombre', 'direccion']
+    form_class = Bodega_From
     template_name = 'expedientes/form.html'
     extra_context = {
         'title': _('Nueva Bodega'),
@@ -187,7 +188,7 @@ class Bodega_CreateView(CreateView_Login):
 class Bodega_UpdateView(UpdateView_Login):
     permission_required = 'expedientes.change_bodega'
     model = Bodega
-    fields = ['codigo', 'nombre', 'direccion']
+    form_class = Bodega_From
     template_name = 'expedientes/form.html'
     extra_context = {
         'title': _('Modificar Bodega'),
@@ -373,14 +374,43 @@ class Caja_DetailView(DetailView_Login):
     model = Caja
     extra_context = {
         'title': _('Caja'),
-        'sub_titulo': {
-            'estructura': _('Estructura'),
-        },
-        'opciones':{
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['opciones'] = {
             'etiqueta':_('Opciones'),
             'etiquetas':_('Etiquetas'),
-        },
+            'accion': _('Inhabilitar') if self.object.vigente else _('Habilitar'),
+            'accion_tag': 'danger' if self.object.vigente else 'success',
+        }
+        return context
+
+class Caja_DeleteView(DeleteView_Login):
+    permission_required = 'expedientes.delete_caja'
+    model = Caja
+    template_name = 'expedientes/confirmation_form.html'
+    extra_context = {
+        'title': _('Cambiar Estado de Caja'),
+        'list_url': reverse_lazy('expedientes:index'),
     }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['botones']={
+            'guardar':_('Inhabilitar') if self.object.vigente else _('Habilitar'),
+            'cancelar': _('Cancelar'),
+            'tag': _('danger') if self.object.vigente else _('success'),
+        }
+        accion = context['botones']['guardar'].lower()
+        context['mensajes']={
+            'confirmacion': _(f'¿Quiere {accion} el elemento indicado?'),
+        }
+        return context
+
+    def get_success_url(self, *args, **kwargs):
+        return self.object.view_url()
+
 
 class Caja_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_caja'
@@ -514,7 +544,9 @@ class Tomo_Ingreso(FormView_Login):
                 posicion__nivel__estante__codigo=caja[1], posicion__nivel__numero=caja[2], 
                 posicion__numero=caja[3], numero=caja[4])
 
-            if not tomo_qs.caja:
+            if not caja_qs.vigente:
+                messages.warning(self.request, _('La caja no se encuentra habilitada'))
+            elif not tomo_qs.caja:
                 tomo_qs.comentario = comentario
                 tomo_qs.vigente = True
                 tomo_qs.caja = caja_qs
@@ -524,9 +556,9 @@ class Tomo_Ingreso(FormView_Login):
 
                 return redirect(tomo_qs.credito.view_url())
             else:
-                messages.warning(self.request, _('El tomo se encuentra en ')+f'{tomo_qs.caja}')
+                messages.warning(self.request, _('El tomo se encuentra asignado a: ')+f'{tomo_qs.caja}')
         except:
-            messages.warning(self.request, _('Tomo no encontrado ')+f'{tomo[0]}-{tomo[1]}')
+            messages.warning(self.request, _('Tomo o caja no encontrado ')+f'{tomo[0]}-{tomo[1]}')
         
         return super().form_valid(form)
 
@@ -551,7 +583,31 @@ class Tomo_Etiqueta(DetailView_Login):
         return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
 
 class ProcesaEgresos(TemplateView_Login):
-    pass
+    permission_required = 'expedientes.change_tomo'
+    template_name = 'expedientes/tomo_list.html'
+    extra_context = {
+        'title': 'Salida de Tomos',
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'eliminar': _('Eliminar'),
+            'trasladar': _('Trasladar'),
+            'egresar': _('Egresar'),
+        },
+        'sub_titulo': {
+            'traslado':_('Traslado de bodega'),
+            'egreso': _('Egreso de bodega'),
+        },
+        'mensaje_vacio':_('No hay tomos para enviar')
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        tomos = self.request.session.get('extraer_tomos', [])
+        tomo_qs = Tomo.objects.filter(id__in=tomos).order_by('credito__numero', 'numero')
+        context['object_list'] = tomo_qs
+        context['traslado_form'] = TrasladoTomos_Form()
+        context['egreso_form'] = SalidaTomos_Form()
+        return context
 
 
 def Credito_Search(request):
@@ -595,7 +651,10 @@ def Tomo_Opera(request):
             tomo.save()
     return redirect(credito.view_url())
 
-def Tomo_Egreso(request):
+def Tomo_CargarEgreso(request):
+    '''
+        Agrega tomos a a lista que se extraera de la bodega.
+    '''
     #del request.session['extraer_tomos']
     if 'Guardar' in request.POST:
         extraer_tomos=request.session['extraer_tomos'] if 'extraer_tomos' in request.session else []            
@@ -617,10 +676,53 @@ def Tomo_Egreso(request):
                 messages.warning(request, _('Tomo mal ingresado (longitud)'))
         except:
             messages.warning(request, _('Tomo mal ingresado o no existe'))
-            t = Tomo.objects.get(id=tomoid)
         finally:
             return redirect(Tomo.objects.get(id=tomoid).credito.view_url())
 
+def Tomo_EgresoRemover(request, pk):
+    '''
+        Elimina tomos del listado a trasladar/egresar
+    '''
+    try: 
+        extraer_tomos = request.session['extraer_tomos']
+        extraer_tomos.remove(str(pk))
+        request.session['extraer_tomos'] = extraer_tomos
+    finally:
+        return redirect(Tomo.envio_url())
+    
+def Tomo_Trasladar(request):
+    if request.method=='POST':
+        try:
+            form = TrasladoTomos_Form(request.POST)
+            if form.is_valid():
+                bodega = form.cleaned_data['bodega_envio']
+                comentario = f'Traslado a {bodega}\n{form.cleaned_data["comentario"]}'
+                Tomo.objects.filter(id__in=request.session['extraer_tomos']).\
+                    update(comentario=comentario, caja=None)
+                del request.session['extraer_tomos']
+                messages.success(request, _('Tomos egresados por traslado'))
+        finally:
+            return redirect(Tomo.envio_url())
+
+def Tomo_Egresar(request):
+    if request.method=='POST':
+        try:
+            form = SalidaTomos_Form(request.POST)
+            if form.is_valid():
+                comentario_final = f'Fecha: \t\t{datetime.today().strftime("%d-%m-%Y")}\n'
+                comentario_final += f'Codigo: \t{form.cleaned_data["codigo"]}\n'
+                comentario_final += f'Nombre: \t{form.cleaned_data["nombre"]}\n'
+                comentario_final += f'Extension: \t{form.cleaned_data["extension"]}\n'
+                comentario_final += f'Correo: \t{form.cleaned_data["correo"]}\n'
+                comentario_final += f'Gerencia: \t{form.cleaned_data["gerencia"]}\n'
+                comentario_final += f'Comentario: \t{form.cleaned_data["comentario"]}'
+
+                Tomo.objects.filter(id__in=request.session['extraer_tomos']).\
+                update(comentario=comentario_final, caja=None)
+            del request.session['extraer_tomos']
+            messages.success(request, _('Tomos egresados por solicitud'))
+        finally:
+            return redirect(Tomo.envio_url())
 
 ##########################################################################
 #

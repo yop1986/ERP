@@ -2,6 +2,8 @@ from django import forms
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.utils.translation import gettext as _
 
+from .models import Bodega
+from usuarios.models import Usuario
 
 class Busqueda(forms.Form):
     valor = forms.CharField(required=True)
@@ -57,6 +59,28 @@ class EgresoTomo_Form(forms.Form):
     tomo = forms.CharField(required=True)
 
 
+class TrasladoTomos_Form(forms.Form):
+    bodega_envio = forms.ModelChoiceField(queryset=Bodega.objects.all(),
+        required=True, help_text=_('Bodega a donde se envían los expedientes'))
+    comentario = forms.CharField(max_length=150, required=False)
+
+
+class SalidaTomos_Form(forms.Form):
+    codigo = forms.IntegerField(required=True, help_text=_('Código de colaborador'))
+    nombre = forms.CharField(max_length=60, required=True, help_text=_('Nombre del colaborador'))
+    extension = forms.CharField(max_length=6, required=False, help_text=_('Extensión del colaborador'))
+    correo = forms.EmailField(max_length=120, required=True, help_text=_('Correo del colaborador'))
+    gerencia = forms.CharField(max_length=60, required=True, help_text=_('Gerencia a la que pertenece'))
+    comentario = forms.CharField(max_length=254, required=False)
+
+class Bodega_From(forms.ModelForm):
+    class Meta:
+        model = Bodega
+        fields= ['codigo', 'nombre', 'direccion', 'encargado']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['encargado'].queryset = Usuario.objects.filter(groups__name='Expedientes')
 
 def is_integer(n):
     try:

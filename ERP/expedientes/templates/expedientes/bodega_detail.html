@@ -34,6 +34,14 @@
       {{ object.get_estado }}
     </div>
   </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "encargado" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.encargado }}
+    </div>
+  </div>
   {% if perms.expedientes.change_bodega or perms.expedientes.delete_bodega %}
   <div class="row mb-2">
     <div class="col-7">

@@ -11,10 +11,14 @@ from simple_history.models import HistoricalRecords
 # Create your models here.
 class Bodega(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    codigo  = models.CharField(_('Código'), max_length=3, unique=True, help_text=_('Código de 3 caracteres'))
+    codigo  = models.CharField(_('Código'), max_length=3, unique=True, 
+        help_text=_('Código de 3 caracteres'))
     nombre  = models.CharField(_('Nombre'), max_length=30, unique=True)
     direccion = models.CharField(_('Dirección'), max_length=120)
     vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
+    encargado = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, 
+        null=True, blank=True, help_text=_('Usuarios del grupo "Expedientes"'), 
+        verbose_name=_('Encargado'))
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
@@ -213,6 +217,13 @@ class Caja(models.Model):
         self.validate_fields()
         super().save(*args, **kwargs)
 
+    def delete(self):
+        self.vigente = not self.vigente
+        self.save()
+
+    def hard_delete(self):
+        super().delete()
+    
     def list_url():
         return reverse('expedientes:caja_list')
 
@@ -329,9 +340,15 @@ class Tomo(models.Model):
     def __str__(self):
         return "{}-{}".format(self.credito.numero, self.numero)
 
+    def envio_url():
+        return reverse('expedientes:envio_tomo')
+
     def egreso_url(self):
         return reverse('expedientes:egreso_tomo', kwargs={'pk': self.id})
-        
+
+    def remover_url(self):
+        return reverse('expedientes:remover_tomo', kwargs={'pk': self.id})
+
     def labels_url(self):
         return reverse('expedientes:tomo_labels', kwargs={'pk': self.id})
 
