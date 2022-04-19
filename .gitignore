@@ -19,3 +19,5 @@ ERP/usuarios/static/js/
 *.rar
 *.zip
 
+# Archivos temporales
+tmp_emails/

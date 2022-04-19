@@ -27,16 +27,36 @@ Se realiza la configuracion dentro del proyecto
     Settings.py
         
         - SECRET_KEY
+        - DEBUG
+        - ALLOWED_HOSTS 
         - INSTALLED_APPS
-        - TEMPLATES['DIRS']=[os.path.join(BASE_DIR,'templates/')]
+            'crispy_forms',
+            'crispy_bootstrap5',
+            'simple_history',
+            'usuarios',
+        - TEMPLATES['DIRS']=[os.path.join(BASE_DIR,'templates/')] # import os
         - DATABASES
+        -LANGUAGE_CODE
+        - TIME_ZONE
+        - USE_I18N
+        - USE_TZ
+        -if DEBUG: #para envío de correo
+            EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+            EMAIL_FILE_PATH = '<ruta para generar los archivos>' # change this to a proper location
+        else:
+            EMAIL_USE_TLS = True
+            EMAIL_USE_SSL = False
+            EMAIL_HOST = 'smtp.gmail.com'
+            EMAIL_HOST_USER = ''
+            EMAIL_HOST_PASSWORD = ''
+            EMAIL_PORT = 587
 
         Se agrega al final del archivo, para utilizar elementos base
         - CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
         - CRISPY_TEMPLATE_PACK = "bootstrap5"
         - AUTH_USER_MODEL = 'usuarios.Usuario'
-        - LOGIN_REDIRECT_URL = reverse_lazy('index')
-        - LOGOUT_REDIRECT_URL = reverse_lazy('index')
+        - LOGIN_REDIRECT_URL = reverse_lazy('index') # from django.urls import reverse_lazy
+        - LOGOUT_REDIRECT_URL = reverse_lazy('index') # from django.urls import reverse_lazy
 
     urls.py
 
@@ -48,7 +68,7 @@ Se ejecutan las migraciones y creacion de usuario administrador
     python -manage.py migrate
     python -manage.py createsuperuser
 
-Se cargan librerías adicionales: 
+Se cargan librerías adicionales a la ruta static:
     
 - jquery
 - bootstrap
