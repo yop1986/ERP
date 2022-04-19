@@ -1,12 +1,17 @@
 import openpyxl
+import threading
+
 from datetime import datetime
 from itertools import product
 from string import ascii_uppercase
 
+from django.conf import settings
 from django.contrib import messages
+from django.core.mail import EmailMultiAlternatives
 from django.db.models import Count, Max, Min
 from django.db.models.functions import Length
 from django.shortcuts import render, redirect
+from django.template.loader import get_template
 from django.utils.translation import gettext as _
 from django.views.generic import TemplateView, RedirectView
 from django.views.generic.edit import FormMixin
@@ -370,41 +375,6 @@ class Posicion_Etiqueta(DetailView_Login):
         return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
 
 
-class CajasInhabilitadas_ListView(ListView_Login):
-    permission_required = 'expedientes.view_caja'
-    model = Caja
-    paginate_by = 15
-    ordering = ['posicion__nivel__estante__bodega__codigo', 
-        'posicion__nivel__estante__codigo', 'posicion__nivel__numero', 
-        'posicion__numero', 'nombre']
-    extra_context = {
-        'title': _('Cajas Inhabilitadas'),
-        'opciones': {
-            'etiqueta': _('Opciones'),
-            'ver': _('Ver'),
-            'editar': _('Editar'),
-            'inhabilitar': _('Inhabilitar'),
-            'habilitar': _('Habilitar'),
-            'nuevo': _('Nuevo'),
-        },
-        'mensaje_vacio': _('No hay "Cajas" inhabilitadas'),
-    }
-
-    def get_context_data(self, *args, **kwargs):
-        context = super().get_context_data(*args, **kwargs)
-        context['opciones']={
-            'etiqueta': _('Opciones'),
-            'editar': _('Editar'),
-            'accion': _('Inhabilitar') if self.object.vigente else _('Habilitar'),
-            'accion_tag': 'danger' if self.object.vigente else 'success',
-        }
-        return context
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        return queryset.filter(vigente=False)
-
-
 class Caja_ListView(ListView_Login):
     permission_required = 'expedientes.view_caja'
     model = Caja
@@ -430,7 +400,6 @@ class Caja_ListView(ListView_Login):
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(vigente=False)
-
 
 class Caja_DetailView(DetailView_Login):
     permission_required = 'expedientes.view_caja'
@@ -602,8 +571,8 @@ class Tomo_Ingreso(FormView_Login):
 
         try:
             tomo_qs = Tomo.objects.get(credito__numero=tomo[0], numero=tomo[1])
-            caja_qs = Caja.objects.get(posicion__nivel__estante__bodega__codigo=caja[0], 
-                posicion__nivel__estante__codigo=caja[1], posicion__nivel__numero=caja[2], 
+            caja_qs = Caja.objects.get(posicion__nivel__estante__bodega__codigo=caja[0].upper(), 
+                posicion__nivel__estante__codigo=caja[1].upper(), posicion__nivel__numero=caja[2], 
                 posicion__numero=caja[3], numero=caja[4])
 
             if not caja_qs.vigente:
@@ -708,6 +677,7 @@ def Tomo_Opera(request):
             #tomo máximo habilitado
             tomo = tomos.filter(vigente=True).order_by('-numero')[0]
             tomo.usuario=request.user
+            tomo.caja = None
             tomo.vigente=False
             tomo.comentario='Tomo inhabilitado'
             tomo.save()
@@ -759,10 +729,17 @@ def Tomo_Trasladar(request):
             if form.is_valid():
                 bodega = form.cleaned_data['bodega_envio']
                 comentario = f'Traslado a {bodega}\n{form.cleaned_data["comentario"]}'
-                Tomo.objects.filter(id__in=request.session['extraer_tomos']).\
-                    update(comentario=comentario, caja=None)
+                tomos = Tomo.objects.filter(id__in=request.session['extraer_tomos'])
+                context = {
+                    'title': _('Traslado'),
+                    'message': _(f'Se han enviado, a {bodega}, los siguientes tomos:'),
+                    'object_list': {tomo for tomo in tomos},
+                }
+                tomos.update(comentario=comentario, caja=None)
                 del request.session['extraer_tomos']
                 messages.success(request, _('Tomos egresados por traslado'))
+                correo = CrearCorreo('Traslado de Expedientes', request.user.email, [bodega.encargado.email], 'mails/egresos.html', context)
+                correo.send(fail_silently=False)
         finally:
             return redirect(Tomo.envio_url())
 
@@ -771,20 +748,50 @@ def Tomo_Egresar(request):
         try:
             form = SalidaTomos_Form(request.POST)
             if form.is_valid():
+                correo_form = form.cleaned_data["correo"]
+
                 comentario_final = f'Fecha: \t\t{datetime.today().strftime("%d-%m-%Y")}\n'
                 comentario_final += f'Codigo: \t{form.cleaned_data["codigo"]}\n'
                 comentario_final += f'Nombre: \t{form.cleaned_data["nombre"]}\n'
                 comentario_final += f'Extension: \t{form.cleaned_data["extension"]}\n'
-                comentario_final += f'Correo: \t{form.cleaned_data["correo"]}\n'
+                comentario_final += f'Correo: \t{correo_form}\n'
                 comentario_final += f'Gerencia: \t{form.cleaned_data["gerencia"]}\n'
                 comentario_final += f'Comentario: \t{form.cleaned_data["comentario"]}'
 
-                Tomo.objects.filter(id__in=request.session['extraer_tomos']).\
-                update(comentario=comentario_final, caja=None)
-            del request.session['extraer_tomos']
-            messages.success(request, _('Tomos egresados por solicitud'))
+                tomos = Tomo.objects.filter(id__in=request.session['extraer_tomos'])
+                context = {
+                    'title': _('Egreso por Solicitud'),
+                    'message': _(f'Se han entregado, los siguientes tomos:'),
+                    'object_list': {tomo for tomo in tomos},
+                    'comentario': comentario_final,
+                }
+                tomos.update(comentario=comentario_final, caja=None)
+                del request.session['extraer_tomos']
+                messages.success(request, _('Tomos egresados por solicitud'))
+                correo = CrearCorreo('Egreso por solicitud', request.user.email, [request.user.email,correo_form], 'mails/egresos.html', context)
+                correo.send(fail_silently=False)
         finally:
             return redirect(Tomo.envio_url())
+
+
+
+##########################################################################
+#
+##########################################################################
+def CrearCorreo(subject, from_email, to_email, template, context):
+    template = get_template(template)
+    content = template.render(context)
+
+    mail = EmailMultiAlternatives(
+        subject=subject,
+        body='',
+        from_email=from_email,
+        to=to_email,
+        cc=[],
+        )
+
+    mail.attach_alternative(content, 'text/html')
+    return mail
 
 ##########################################################################
 #
