@@ -42,7 +42,6 @@
       {{ object.encargado }}
     </div>
   </div>
-  {% if perms.expedientes.change_bodega or perms.expedientes.delete_bodega %}
   <div class="row mb-2">
     <div class="col-7">
       <strong>{{ opciones.etiqueta }}</strong>
@@ -51,13 +50,13 @@
       {% if perms.expedientes.change_bodega %}
       <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
       {% endif %}
+      <a href="{% url 'expedientes:cajas_inhabilitadas' %}" class="btn btn-dark">{{ opciones.cajas_inhabilitadas }}</a>
       {% if perms.expedientes.delete_bodega %}
       <a href="{{ object.delete_url }}" class="btn btn-{{opciones.accion_tag}}">{{ opciones.accion }}</a>
       {% endif %}
     </div>
   </div>
-  {% endif %}
-
+  
 
 <div class="accordion accordion-flush" id="accordion-estructura">
 

@@ -82,6 +82,7 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
         context['opciones']={
             'etiqueta': _('Opciones'),
             'editar': _('Editar'),
+            'cajas_inhabilitadas': _('Cajas Inhabilitadas'),
             'accion': _('Inhabilitar') if self.object.vigente else _('Habilitar'),
             'accion_tag': 'danger' if self.object.vigente else 'success',
         }
@@ -369,6 +370,68 @@ class Posicion_Etiqueta(DetailView_Login):
         return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
 
 
+class CajasInhabilitadas_ListView(ListView_Login):
+    permission_required = 'expedientes.view_caja'
+    model = Caja
+    paginate_by = 15
+    ordering = ['posicion__nivel__estante__bodega__codigo', 
+        'posicion__nivel__estante__codigo', 'posicion__nivel__numero', 
+        'posicion__numero', 'nombre']
+    extra_context = {
+        'title': _('Cajas Inhabilitadas'),
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'ver': _('Ver'),
+            'editar': _('Editar'),
+            'inhabilitar': _('Inhabilitar'),
+            'habilitar': _('Habilitar'),
+            'nuevo': _('Nuevo'),
+        },
+        'mensaje_vacio': _('No hay "Cajas" inhabilitadas'),
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['opciones']={
+            'etiqueta': _('Opciones'),
+            'editar': _('Editar'),
+            'accion': _('Inhabilitar') if self.object.vigente else _('Habilitar'),
+            'accion_tag': 'danger' if self.object.vigente else 'success',
+        }
+        return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(vigente=False)
+
+
+class Caja_ListView(ListView_Login):
+    permission_required = 'expedientes.view_caja'
+    model = Caja
+    paginate_by = 15
+    ordering = ['posicion__nivel__estante__codigo', 'posicion__nivel__numero', 'posicion__numero', 'numero']
+    extra_context = {
+        'title': _('Cajas'),
+        'botones': {
+            'buscar': _('Buscar'),
+            'limpiar': _('Limpiar'),
+        },
+        'etiquetas': {
+            'caja': _('Caja'),
+        },
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'inhabilitar': _('Inhabilitar'),
+            'habilitar': _('Habilitar'),
+        },
+        'mensaje_vacio': _('No hay "Cajas" inhabilitadas'),
+    }
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(vigente=False)
+
+
 class Caja_DetailView(DetailView_Login):
     permission_required = 'expedientes.view_caja'
     model = Caja
@@ -410,7 +473,6 @@ class Caja_DeleteView(DeleteView_Login):
 
     def get_success_url(self, *args, **kwargs):
         return self.object.view_url()
-
 
 class Caja_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_caja'

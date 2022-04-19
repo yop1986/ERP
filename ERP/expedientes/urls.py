@@ -21,6 +21,7 @@ urlpatterns = [
     path('posiciones/<uuid:pk>/', views.Posicion_DetailView.as_view(), name='posicion_view'),
     path('posiciones/etiquetas/<uuid:pk>/', views.Posicion_Etiqueta.as_view(), name='posicion_labels'),
 
+    path('cajas/', views.Caja_ListView.as_view(), name='cajas_inhabilitadas'),
     path('cajas/<uuid:pk>/', views.Caja_DetailView.as_view(), name='caja_view'),
     path('cajas/delete/<uuid:pk>', views.Caja_DeleteView.as_view(), name='caja_delete'),
     path('cajas/etiquetas/<uuid:pk>/', views.Caja_Etiqueta.as_view(), name='caja_labels'),
