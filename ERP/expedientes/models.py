@@ -17,7 +17,7 @@ class Bodega(models.Model):
     direccion = models.CharField(_('Dirección'), max_length=120)
     vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
     encargado = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, 
-        null=True, blank=True, help_text=_('Usuarios del grupo "Expedientes"'), 
+        null=True, blank=True, help_text=_('Usuarios en grupos que inicien con "Expedientes"'), 
         verbose_name=_('Encargado'))
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     

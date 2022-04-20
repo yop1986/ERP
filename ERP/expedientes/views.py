@@ -738,8 +738,8 @@ def Tomo_Trasladar(request):
                 tomos.update(comentario=comentario, caja=None)
                 del request.session['extraer_tomos']
                 messages.success(request, _('Tomos egresados por traslado'))
-                correo = CrearCorreo('Traslado de Expedientes', request.user.email, [bodega.encargado.email], 'mails/egresos.html', context)
-                correo.send(fail_silently=False)
+                correo = crea_correo('Traslado de Expedientes', request.user.email, [bodega.encargado.email], 'mails/egresos.html', context)
+                envia_correo(correo)
         finally:
             return redirect(Tomo.envio_url())
 
@@ -768,8 +768,8 @@ def Tomo_Egresar(request):
                 tomos.update(comentario=comentario_final, caja=None)
                 del request.session['extraer_tomos']
                 messages.success(request, _('Tomos egresados por solicitud'))
-                correo = CrearCorreo('Egreso por solicitud', request.user.email, [request.user.email,correo_form], 'mails/egresos.html', context)
-                correo.send(fail_silently=False)
+                correo = crea_correo('Egreso por solicitud', request.user.email, [request.user.email,correo_form], 'mails/egresos.html', context)
+                envia_correo(correo)
         finally:
             return redirect(Tomo.envio_url())
 
@@ -778,7 +778,7 @@ def Tomo_Egresar(request):
 ##########################################################################
 #
 ##########################################################################
-def CrearCorreo(subject, from_email, to_email, template, context):
+def crea_correo(subject, from_email, to_email, template, context):
     template = get_template(template)
     content = template.render(context)
 
@@ -793,6 +793,12 @@ def CrearCorreo(subject, from_email, to_email, template, context):
     mail.attach_alternative(content, 'text/html')
     return mail
 
+def envia_correo(mail):
+    thread = threading.Thread(
+        mail.send(fail_silently=False)
+    )
+    thread.start()
+    
 ##########################################################################
 #
 ##########################################################################

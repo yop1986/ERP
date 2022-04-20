@@ -80,7 +80,7 @@ class Bodega_From(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['encargado'].queryset = Usuario.objects.filter(groups__name='Expedientes')
+        self.fields['encargado'].queryset = Usuario.objects.filter(groups__name__startswith='Expedientes')
 
 def is_integer(n):
     try:
