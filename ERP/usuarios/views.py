@@ -90,6 +90,8 @@ class Perfil_Update(UpdateView_Login):
     def get_object(self):
         return Usuario.objects.get(pk=self.request.user.id)
 
+    def get_success_url(self):
+        return self.object.get_absolute_url()
 
 class PasswordChangeView(views_auth.PasswordChangeView):
     template_name='registration/change_password.html'
