@@ -32,7 +32,7 @@
       <strong>{{ opciones.etiqueta }}</strong>
     </div>
     <div class="col-5">
-      <a href="{{ object.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}"></a>
+      <a href="{{ object.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
     </div>
   </div>
   {% endif %}
@@ -47,21 +47,25 @@
     </h2>
     <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="flush-headingOne" data-bs-parent="#accordion-estructura">
       <div class="accordion-body">
-        <table class="table">
+        <table class="table table-striped table-bordered">
           <thead>
             <tr>
-              {% for caja in estructura.cajas %}
-              <th scope="col" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_head }}:{{ caja }}"><a href="{{ caja.view_url }}">{{ caja.numero }}</a></th>
-              {% endfor %}
+              <th scope="col">{{ estructura.tooltip_head }}</th>
+              <th scope="col">{{ estructura.tooltip_body }}</th>
             </tr>
           </thead>
           <tbody>
-          {% for folio in estructura.folios %}
-            {% if forloop.counter|modulo:estructura.no_columnas == 1 %}<tr>{% endif %}
-            <td class='table-success' data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_body }}:{{ folio.credito }}">
-              <a href="{{ folio.view_url }}">{{ folio }}</a>
-            </td>
-            {% if forloop.counter|modulo:estructura.no_columnas == 0 %}</tr>{% endif %}
+          {% for caja in estructura.estructura %}
+            <tr>
+              <th data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_head }}: {{ caja }}">
+                  <a href="{{ caja.view_url }}">{{ caja.numero }}</a>
+              </th>
+              <td>
+              {% for tomo in caja.get_tomos %}
+                <a href="{{ tomo.credito_view }}">{{ tomo }}</a><br>
+              {% endfor %}
+              </td>
+            </tr>
           {% endfor %}
           </tbody>
         </table>

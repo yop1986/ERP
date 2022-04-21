@@ -76,11 +76,13 @@ class SalidaTomos_Form(forms.Form):
 class Bodega_From(forms.ModelForm):
     class Meta:
         model = Bodega
-        fields= ['codigo', 'nombre', 'direccion', 'encargado']
+        fields= ['codigo', 'nombre', 'direccion', 'encargado', 'personal']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['encargado'].queryset = Usuario.objects.filter(groups__name__startswith='Expedientes')
+        usuarios = Usuario.objects.filter(groups__name__startswith='Expedientes')
+        self.fields['encargado'].queryset = usuarios
+        self.fields['personal'].queryset = usuarios
 
 def is_integer(n):
     try:

@@ -3,6 +3,7 @@ import uuid
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Count
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -19,6 +20,9 @@ class Bodega(models.Model):
     encargado = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, 
         null=True, blank=True, help_text=_('Usuarios en grupos que inicien con "Expedientes"'), 
         verbose_name=_('Encargado'))
+    personal = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='bodega_personal', 
+        null=True, blank=True, help_text=_('Usuarios en grupos que inicien con "Expedientes"'), 
+        verbose_name=_('Personal'))
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
@@ -62,8 +66,13 @@ class Bodega(models.Model):
         return reverse('expedientes:bodega_delete', kwargs={'pk': self.id})
 
     def get_estado(self):
-        return _("Vigente") if self.vigente else _("No Vigente")
+        return _('Vigente') if self.vigente else _('No Vigente')
 
+    def get_accion(self):
+        return _('Inhabilitar') if self.vigente else _('Habilitar')
+
+    def get_accion_tag(self):
+        return _('danger') if self.vigente else _('success')
 
 class Estante(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -239,8 +248,17 @@ class Caja(models.Model):
     def get_estado(self):
         return _("Vigente") if self.vigente else _("No Vigente")
 
+    def get_accion(self):
+        return _('Inhabilitar') if self.vigente else _('Habilitar')
+
+    def get_accion_tag(self):
+        return _('danger') if self.vigente else _('success')
+
     def labels_url(self):
         return reverse('expedientes:caja_labels', kwargs={'pk': self.id})
+
+    def get_tomos(self):
+        return Tomo.objects.filter(caja=self).prefetch_related('credito')
 
 
 class Cliente(models.Model):
@@ -339,6 +357,9 @@ class Tomo(models.Model):
 
     def __str__(self):
         return "{}-{}".format(self.credito.numero, self.numero)
+
+    def view_credito(self):
+        return reverse('expedientes:credito_view', kwargs={'pk': self.credito.id})
 
     def envio_url():
         return reverse('expedientes:envio_tomo')

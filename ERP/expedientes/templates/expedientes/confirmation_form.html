@@ -7,7 +7,7 @@
         {% csrf_token %}
         {{ form|crispy }}
         <p></p>
-        <input type="submit" name="{{ botones.guardar }}" value="{{ botones.guardar }}" class="btn btn-{{ botones.tag }}">
+        <input type="submit" name="Guardar" value="{{ object.get_accion }}" class="btn btn-{{ object.get_accion_tag }}">
         <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{{ list_url }}{% endif %}" class="btn btn-warning">{{ botones.cancelar }}</a>
     </form>
     

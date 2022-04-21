@@ -2,18 +2,18 @@ import openpyxl
 import threading
 
 from datetime import datetime
-from itertools import product
+#from itertools import product
 from string import ascii_uppercase
 
-from django.conf import settings
+#from django.conf import settings
 from django.contrib import messages
 from django.core.mail import EmailMultiAlternatives
-from django.db.models import Count, Max, Min
+from django.db.models import Max
 from django.db.models.functions import Length
 from django.shortcuts import render, redirect
 from django.template.loader import get_template
 from django.utils.translation import gettext as _
-from django.views.generic import TemplateView, RedirectView
+from django.views.generic import TemplateView
 from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
 
@@ -44,8 +44,6 @@ class Bodega_ListView(ListView_Login):
             'etiqueta': _('Opciones'),
             'ver': _('Ver'),
             'editar': _('Editar'),
-            'inhabilitar': _('Inhabilitar'),
-            'habilitar': _('Habilitar'),
             'nuevo': _('Nuevo'),
         },
         'botones': {
@@ -67,6 +65,13 @@ class Bodega_ListView(ListView_Login):
             context['form'] = Busqueda()
         return context
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        else:    
+            return queryset.filter(personal=self.request.user)
+
 class Bodega_DetailView(FormMixin, DetailView_Login):
     permission_required = 'expedientes.view_bodega'
     model = Bodega
@@ -79,7 +84,7 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
         },
         'botones': {
             'generar': _('Generar'),
-        }
+        },
     }
 
     def get_context_data(self, *args, **kwargs):
@@ -88,18 +93,24 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
             'etiqueta': _('Opciones'),
             'editar': _('Editar'),
             'cajas_inhabilitadas': _('Cajas Inhabilitadas'),
-            'accion': _('Inhabilitar') if self.object.vigente else _('Habilitar'),
-            'accion_tag': 'danger' if self.object.vigente else 'success',
         }
-        queryset = Estante.objects.filter(bodega=self.object).order_by(Length('codigo'), 'codigo')
+        queryset = Nivel.objects.filter(estante__bodega=self.object)\
+            .order_by(Length('estante__codigo'), 'estante__codigo', 'numero')\
+            .prefetch_related('estante', 'estante__bodega')
         context['estructura']={
-            'estantes': queryset,
-            'no_columnas': queryset.count(),
             'tooltip_head': _('Estante'),
             'tooltip_body': _('Nivel'),
-            'niveles': Nivel.objects.filter(estante__bodega=self.object).order_by('numero', Length('estante__codigo'), 'estante__codigo')
+            'estructura': queryset,
+            'max_columnas': queryset.aggregate(Max('numero'))['numero__max'],
         }
         return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        else:    
+            return queryset.filter(personal=self.request.user)
 
     def get_success_url(self, *args, **kwargs):
         return self.object.view_url()
@@ -188,8 +199,12 @@ class Bodega_CreateView(CreateView_Login):
             'guardar': _('Guardar'),
             'cancelar': _('Cancelar'),
         },
-        'list_url': reverse_lazy('expedientes:bodega_list'),
     }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['list_url'] = Bodega.list_url()
+        return context
 
 class Bodega_UpdateView(UpdateView_Login):
     permission_required = 'expedientes.change_bodega'
@@ -202,8 +217,12 @@ class Bodega_UpdateView(UpdateView_Login):
             'guardar': _('Guardar'),
             'cancelar': _('Cancelar'),
         },
-        'list_url': reverse_lazy('expedientes:bodega_list'),
     }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['list_url'] = Bodega.list_url()
+        return context
 
 class Bodega_DeleteView(DeleteView_Login):
     permission_required = 'expedientes.delete_bodega'
@@ -211,19 +230,17 @@ class Bodega_DeleteView(DeleteView_Login):
     template_name = 'expedientes/confirmation_form.html'
     extra_context = {
         'title': _('Cambiar Estado Bodega'),
-        'list_url': reverse_lazy('expedientes:bodega_list'),
     }
+
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
+        context['list_url'] = Bodega.list_url()
         context['botones']={
-            'guardar':_('Inhabilitar') if self.object.vigente else _('Habilitar'),
             'cancelar': _('Cancelar'),
-            'tag': _('danger') if self.object.vigente else _('success'),
         }
-        accion = context['botones']['guardar'].lower()
         context['mensajes']={
-            'confirmacion': _(f'¿Quiere {accion} el elemento indicado?'),
+            'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
         }
         return context
 
@@ -248,15 +265,24 @@ class Estante_DetailView(DetailView_Login):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         
-        queryset = Nivel.objects.filter(estante=self.object).order_by('numero')
+        queryset = Posicion.objects.filter(nivel__estante=self.object)\
+            .order_by('nivel__numero', 'numero')\
+            .prefetch_related('nivel', 'nivel__estante', 'nivel__estante__bodega')
+
         context['estructura']={
-            'niveles': queryset,
-            'no_columnas': queryset.count(),
             'tooltip_head': _('Nivel'),
             'tooltip_body': _('Posición'),
-            'posiciones': Posicion.objects.filter(nivel__estante=self.object).order_by('numero', 'nivel__numero')
+            'estructura': queryset,
+            'max_columnas': queryset.aggregate(Max('numero'))['numero__max'],
         }
         return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        else:    
+            return queryset.filter(bodega__personal=self.request.user)
 
 class Estante_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_estante'
@@ -296,15 +322,25 @@ class Nivel_DetailView(DetailView_Login):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         
-        queryset = Posicion.objects.filter(nivel=self.object).order_by('numero')
+        queryset = Caja.objects.filter(posicion__nivel=self.object)\
+            .order_by('posicion__numero', 'numero')\
+            .prefetch_related('posicion__nivel', 'posicion__nivel__estante', 
+                'posicion__nivel__estante__bodega')
+
         context['estructura']={
-            'posiciones': queryset,
-            'no_columnas': queryset.count(),
-            'tooltip_head': _('Posicion'),
+            'tooltip_head': _('Posición'),
             'tooltip_body': _('Caja'),
-            'cajas': Caja.objects.filter(posicion__nivel=self.object).order_by('numero', 'posicion__numero')
+            'estructura': queryset,
+            'max_columnas': queryset.aggregate(Max('numero'))['numero__max'],
         }
         return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        else:    
+            return queryset.filter(estante__bodega__personal=self.request.user)
 
 class Nivel_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_nivel'
@@ -344,15 +380,25 @@ class Posicion_DetailView(DetailView_Login):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         
-        queryset = Caja.objects.filter(posicion=self.object).order_by('numero')
+        queryset = Caja.objects.filter(posicion=self.object)\
+            .order_by('numero')\
+            .prefetch_related('posicion', 'posicion__nivel', 
+                'posicion__nivel__estante', 
+                'posicion__nivel__estante__bodega')
+
         context['estructura']={
-            'cajas': queryset,
-            'no_columnas': queryset.count(),
             'tooltip_head': _('Caja'),
             'tooltip_body': _('Tomo'),
-            'tomos': Tomo.objects.filter(caja__posicion=self.object).order_by('credito__numero', 'numero')
+            'estructura': queryset,
         }
         return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        else:
+            return queryset.filter(nivel__estante__bodega__personal=self.request.user)
 
 class Posicion_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_posicion'
@@ -406,17 +452,32 @@ class Caja_DetailView(DetailView_Login):
     model = Caja
     extra_context = {
         'title': _('Caja'),
+        'sub_titulo': {
+            'tomos': _('Tomos')
+        },
+        'opciones': {
+            'etiqueta':_('Opciones'),
+            'etiquetas':_('Etiquetas'),
+        },
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context['opciones'] = {
-            'etiqueta':_('Opciones'),
-            'etiquetas':_('Etiquetas'),
-            'accion': _('Inhabilitar') if self.object.vigente else _('Habilitar'),
-            'accion_tag': 'danger' if self.object.vigente else 'success',
+        queryset = Tomo.objects.filter(caja=self.object)\
+            .order_by('credito__numero', 'numero')\
+            .prefetch_related('credito')
+        context['estructura']={
+            'tooltip_head': _('Tomo'),
+            'estructura': queryset,
         }
         return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        else:
+            return queryset.filter(posicion__nivel__estante__bodega__personal=self.request.user)
 
 class Caja_DeleteView(DeleteView_Login):
     permission_required = 'expedientes.delete_caja'

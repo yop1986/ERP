@@ -3,7 +3,7 @@
 
 {% block create_button %}
 {% if perms.expedientes.add_bodega %}
-<a href="{% url 'expedientes:bodega_create' %}" class="btn btn-success"><img src="{% static 'images/expedientes_add.png' %}" width="32" alt="{{ opciones.nuevo }}"></a>
+<a href="{% url 'expedientes:bodega_create' %}" class="btn btn-success"><img src="{% static 'images/expedientes_add.png' %}" width="32" alt="{{ opciones.nuevo }}" title="{{ opciones.nuevo }}"></a>
 {% endif %}
 {% endblock %}
 
@@ -11,7 +11,7 @@
     {% include 'base_expedientes_search_form.html' %}
 
   {% if object_list %}
-    <table class="table">
+    <table class="table table-striped">
       <thead>
         <tr>
           <th scope="col">#</th>
@@ -32,13 +32,7 @@
             <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
             {% endif %}
             {% if perms.expedientes.change_bodega %}
-            <a href="{{ object.delete_url }}" 
-              {% if object.vigente %} 
-                class="btn btn-danger"> {{ opciones.inhabilitar }} 
-              {% else %}  
-                class="btn btn-success">{{ opciones.habilitar }} 
-              {% endif %}
-            </a>
+            <a href="{{ object.delete_url }}" class="btn btn-{{ object.get_accion_tag }}"> {{ object.get_accion }}</a>
             {% endif %}
           </td>
         </tr>

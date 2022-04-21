@@ -32,7 +32,7 @@
       <strong>{{ opciones.etiqueta }}</strong>
     </div>
     <div class="col-5">
-      <a href="{{ object.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}"></a>
+      <a href="{{ object.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
     </div>
   </div>
   {% endif %}
@@ -47,21 +47,25 @@
     </h2>
     <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="flush-headingOne" data-bs-parent="#accordion-estructura">
       <div class="accordion-body">
-        <table class="table">
+        <table class="table table-striped table-bordered">
           <thead>
             <tr>
-              {% for posicion in estructura.posiciones %}
-              <th scope="col" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_head }}:{{ posicion }}"><a href="{{ posicion.view_url }}">{{ posicion.numero }}</a></th>
-              {% endfor %}
+              <th scope="col">{{ estructura.tooltip_head }}</th>
+              <th scope="col" colspan="{{ estructura.max_columnas }}">{{ estructura.tooltip_body }}</th>
             </tr>
           </thead>
           <tbody>
-          {% for caja in estructura.cajas %}
-            {% if forloop.counter|modulo:estructura.no_columnas == 1 %}<tr>{% endif %}
-            <td class='table-success' data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_body }}:{{ caja }}">
+          {% for caja in estructura.estructura %}
+            {% if caja.numero == 1 %}
+            <tr>
+              <th data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_head }}: {{ caja.posicion }}">
+                  <a href="{{ caja.posicion.view_url }}">{{ caja.posicion.numero }}</a>
+              </th>
+            {% endif %}
+            <td data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_body }}:{{ caja }}">
               <a href="{{ caja.view_url }}">{{ caja.numero }}</a>
             </td>
-            {% if forloop.counter|modulo:estructura.no_columnas == 0 %}</tr>{% endif %}
+            {% if caja.numero == estructura.max_columnas %}</tr>{% endif %}
           {% endfor %}
           </tbody>
         </table>

@@ -1,15 +1,16 @@
 <div class="collapse navbar-collapse" id="navbarNavDropdown">
     <ul class="navbar-nav">
+      {% if perms.expedientes.load_credito %}
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Creditos
         </a>
         <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-          {% if perms.expedientes.load_credito %}
+          
           <li><a class="dropdown-item" href="{% url 'expedientes:carga' %}">Carga de Créditos</a></li>
-          {% endif %}
         </ul>
       </li>
+      {% endif %}
       <li class="nav-item">
         <a class="nav-link" href="{% url 'expedientes:bodega_list' %}">Bodega</a>
       </li>
