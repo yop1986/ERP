@@ -63,13 +63,13 @@
         {% csrf_token %}
         <input type="hidden" name="credito" value="{{ credito.id }}">
         {% if perms.expedientes.add_tomo %}
-        <input type="image" src="{% static 'images/expedientes_add.png' %}" name="agregar" width="60" class="btn btn-success">
+        <input type="image" src="{% static 'images/expedientes_add.png' %}" name="agregar" width="60" class="btn btn-success" alt="{{ opciones.agregar_tomo }}" title="{{ opciones.agregar_tomo }}">
         {% endif %}
         {% if perms.expedientes.delete_tomo %}
-        <input type="image" src="{% static 'images/expedientes_remove.png' %}" name="remover" width="60" class="btn btn-danger">
+        <input type="image" src="{% static 'images/expedientes_remove.png' %}" name="remover" width="60" class="btn btn-danger" alt="{{ opciones.remover_tomo }}" title="{{ opciones.remover_tomo }}">
         {% endif %}
         {% if perms.expedientes.label_credito %}
-        <a href="{{ credito.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}"></a>
+        <a href="{{ credito.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
         {% endif %}
       </form>
     </div>
@@ -93,13 +93,21 @@
         <tr>
           <td>{{ tomo.numero }}</td>
           <td><pre>{{ tomo.comentario }}</pre></td>
-          <td>{% if tomo.caja %}{{ tomo.caja }}{% else %}-{% endif %}</td>
+          <td>
+            {% if not tomo.caja %}
+              -
+            {% elif request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
+              <a href="{{ tomo.caja.view_url }}"> {{ tomo.caja }}</a>
+            {% else %}
+              {{ tomo.caja.posicion.nivel.estante.bodega }}
+            {% endif %}
+          </td>
           <td>
             {% if perms.expedientes.label_tomo %}
-            <a href="{{ tomo.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}"></a>
+            <a href="{{ tomo.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
             {% endif %}
-            {% if perms.expedientes.change_tomo %}
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#extraerForm" data-bs-whatever="{{ tomo.id }}"><img src="{% static 'images/expedientes_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
+            {% if perms.expedientes.change_tomo and tomo.caja and request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
+              <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#extraerForm" data-bs-whatever="{{ tomo.id }}"><img src="{% static 'images/expedientes_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
             {% endif %}
           </td>
         </tr>

@@ -17,6 +17,8 @@ class Bodega(models.Model):
     nombre  = models.CharField(_('Nombre'), max_length=30, unique=True)
     direccion = models.CharField(_('Dirección'), max_length=120)
     vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
+    correo_egreso = models.BooleanField(_('Correo por egreso'), default=True)
+    correo_traslado = models.BooleanField(_('Correo por traslado'), default=True)
     encargado = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, 
         null=True, blank=True, help_text=_('Usuarios en grupos que inicien con "Expedientes"'), 
         verbose_name=_('Encargado'))

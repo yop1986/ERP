@@ -27,17 +27,16 @@ urlpatterns = [
     path('cajas/etiquetas/<uuid:pk>/', views.Caja_Etiqueta.as_view(), name='caja_labels'),
 
     path('creditos/carga/', views.CargaMasiva_Form.as_view(), name='carga'),
-    path('creditos/buscar/', views.Credito_Search, name='credito_search'),
+    path('creditos/buscar/', views.buscar_credito, name='credito_search'),
     path('creditos/<uuid:pk>/', views.Credito_DetailView.as_view(), name='credito_view'),
     path('creditos/etiquetas/<uuid:pk>/', views.Credito_Etiqueta.as_view(), name='credito_labels'),
 
-    path('tomos/opera/', views.Tomo_Opera, name='opera_tomo'), #agrega/habilita o deshabilita tomo
+    path('tomos/opera/', views.operaciones_tomo, name='opera_tomo'), #agrega/habilita o deshabilita tomo
     path('tomos/ingreso/', views.Tomo_Ingreso.as_view(), name='ingreso_tomo'), 
-    path('tomos/cargaregreso/', views.Tomo_CargarEgreso, name='cargaregreso_tomo'), #carga un tomo a la lista de envío
-    path('tomos/remover/<uuid:pk>/', views.Tomo_EgresoRemover, name='remover_tomo'), #quita un elemento de la lista
+    path('tomos/cargaregreso/', views.agregarlista_tomo, name='cargaregreso_tomo'), #carga un tomo a la lista de envío
+    path('tomos/remover/<uuid:pk>/', views.removerlista_tomo, name='remover_tomo'), #quita un elemento de la lista
     path('tomos/envio/', views.ProcesaEgresos.as_view(), name='envio_tomo'), # visualiza el ilstado de tomos a procesar
-    path('tomos/trasladar/', views.Tomo_Trasladar, name='trasladar_tomo'), # realiza traslado de una bodega a otra
-    path('tomos/egresar/', views.Tomo_Egresar, name='egresar_tomo'), # realiza el egreso ofical de la bodega
+    path('tomos/trasladar/', views.salida_tomo, name='salida_tomo'), # proceso las salidas
     path('tomos/etiquetas/<uuid:pk>/', views.Tomo_Etiqueta.as_view(), name='tomo_labels'),
 
 

@@ -17,7 +17,7 @@
           <th scope="row">{{ forloop.counter0|add:page_obj.start_index }}</th>
           <td>{{ object }}</td>
           <td>
-            {% if perms.expedientes.change_caja %}
+            {% if perms.expedientes.delete_caja %}
             <a href="{{ object.delete_url }}" class="btn btn-success">{{ opciones.habilitar }} </a>
             {% endif %}
           </td>

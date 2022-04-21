@@ -2,10 +2,8 @@ import openpyxl
 import threading
 
 from datetime import datetime
-#from itertools import product
 from string import ascii_uppercase
 
-#from django.conf import settings
 from django.contrib import messages
 from django.core.mail import EmailMultiAlternatives
 from django.db.models import Max
@@ -427,25 +425,23 @@ class Caja_ListView(ListView_Login):
     paginate_by = 15
     ordering = ['posicion__nivel__estante__codigo', 'posicion__nivel__numero', 'posicion__numero', 'numero']
     extra_context = {
-        'title': _('Cajas'),
-        'botones': {
-            'buscar': _('Buscar'),
-            'limpiar': _('Limpiar'),
-        },
+        'title': _('Cajas Inhabilitadas'),
         'etiquetas': {
             'caja': _('Caja'),
         },
         'opciones': {
             'etiqueta': _('Opciones'),
-            'inhabilitar': _('Inhabilitar'),
             'habilitar': _('Habilitar'),
         },
         'mensaje_vacio': _('No hay "Cajas" inhabilitadas'),
     }
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        return queryset.filter(vigente=False)
+        queryset = super().get_queryset().filter(vigente=False)
+        if self.request.user.is_superuser:
+            return queryset
+        else:
+            return queryset.filter(posicion__nivel__estante__bodega__personal=self.request.user)
 
 class Caja_DetailView(DetailView_Login):
     permission_required = 'expedientes.view_caja'
@@ -485,19 +481,16 @@ class Caja_DeleteView(DeleteView_Login):
     template_name = 'expedientes/confirmation_form.html'
     extra_context = {
         'title': _('Cambiar Estado de Caja'),
+        'botones': {
+            'cancelar': _('Cancelar'),
+        },
         'list_url': reverse_lazy('expedientes:index'),
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context['botones']={
-            'guardar':_('Inhabilitar') if self.object.vigente else _('Habilitar'),
-            'cancelar': _('Cancelar'),
-            'tag': _('danger') if self.object.vigente else _('success'),
-        }
-        accion = context['botones']['guardar'].lower()
         context['mensajes']={
-            'confirmacion': _(f'¿Quiere {accion} el elemento indicado?'),
+            'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
         }
         return context
 
@@ -551,7 +544,7 @@ class CargaMasiva_Form(FormView_Login):
     def form_valid(self, form):
         archivo = form.cleaned_data['archivo']
         libro = openpyxl.load_workbook(archivo)
-        insert_datos(datos_excel(libro[libro.sheetnames[0]]))
+        _insert_datos(datos_excel(libro[libro.sheetnames[0]]))
         return super().form_valid(form)
 
 class Credito_DetailView(DetailView_Login):
@@ -578,7 +571,11 @@ class Credito_DetailView(DetailView_Login):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['egreso_form']=EgresoTomo_Form()
-        context['tomos'] = Tomo.objects.filter(credito=self.object, vigente=True).order_by('numero')
+        context['tomos'] = Tomo.objects.filter(credito=self.object, vigente=True)\
+            .order_by('numero').prefetch_related('caja', 'caja__posicion', 
+                'caja__posicion__nivel', 'caja__posicion__nivel__estante', 
+                'caja__posicion__nivel__estante__bodega',
+                'caja__posicion__nivel__estante__bodega__personal')
         return context
 
 class Credito_Etiqueta(DetailView_Login):
@@ -615,7 +612,7 @@ class Tomo_Ingreso(FormView_Login):
         'list_url': reverse_lazy('expedientes:index'),
     }
     success_url = reverse_lazy('expedientes:index')
-    success_message =''
+    success_message ='' # se remueve el mensaje default agregado en formview_login
 
     def post(self, request, *args, **kwargs):
         if 'Guardar' in request.POST:
@@ -651,7 +648,6 @@ class Tomo_Ingreso(FormView_Login):
                 messages.warning(self.request, _('El tomo se encuentra asignado a: ')+f'{tomo_qs.caja}')
         except:
             messages.warning(self.request, _('Tomo o caja no encontrado ')+f'{tomo[0]}-{tomo[1]}')
-        
         return super().form_valid(form)
 
 class Tomo_Etiqueta(DetailView_Login):
@@ -695,14 +691,15 @@ class ProcesaEgresos(TemplateView_Login):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         tomos = self.request.session.get('extraer_tomos', [])
-        tomo_qs = Tomo.objects.filter(id__in=tomos).order_by('credito__numero', 'numero')
+        tomo_qs = Tomo.objects.filter(id__in=tomos)\
+            .order_by('credito__numero', 'numero')
         context['object_list'] = tomo_qs
         context['traslado_form'] = TrasladoTomos_Form()
         context['egreso_form'] = SalidaTomos_Form()
         return context
 
 
-def Credito_Search(request):
+def buscar_credito(request):
     numero = request.GET['numero'].replace(' ','').split('-')
     credito = Credito.objects.filter(numero=numero[0])
     if credito:
@@ -713,7 +710,7 @@ def Credito_Search(request):
     #return render(request, 'expedientes/index.html')
     return redirect(reverse_lazy('expedientes:index'))
     
-def Tomo_Opera(request):
+def operaciones_tomo(request):
     credito = Credito.objects.get(id=request.POST['credito'])
     tomos = Tomo.objects.filter(credito=credito)
     if 'agregar.x' in request.POST:
@@ -744,7 +741,7 @@ def Tomo_Opera(request):
             tomo.save()
     return redirect(credito.view_url())
 
-def Tomo_CargarEgreso(request):
+def agregarlista_tomo(request):
     '''
         Agrega tomos a a lista que se extraera de la bodega.
     '''
@@ -772,7 +769,7 @@ def Tomo_CargarEgreso(request):
         finally:
             return redirect(Tomo.objects.get(id=tomoid).credito.view_url())
 
-def Tomo_EgresoRemover(request, pk):
+def removerlista_tomo(request, pk):
     '''
         Elimina tomos del listado a trasladar/egresar
     '''
@@ -783,8 +780,8 @@ def Tomo_EgresoRemover(request, pk):
     finally:
         return redirect(Tomo.envio_url())
     
-def Tomo_Trasladar(request):
-    if request.method=='POST':
+def salida_tomo(request):
+    if 'trasladar' in request.POST:
         try:
             form = TrasladoTomos_Form(request.POST)
             if form.is_valid():
@@ -803,9 +800,7 @@ def Tomo_Trasladar(request):
                 envia_correo(correo)
         finally:
             return redirect(Tomo.envio_url())
-
-def Tomo_Egresar(request):
-    if request.method=='POST':
+    elif 'egresar' in request.POST:
         try:
             form = SalidaTomos_Form(request.POST)
             if form.is_valid():
@@ -855,6 +850,7 @@ def crea_correo(subject, from_email, to_email, template, context):
     return mail
 
 def envia_correo(mail):
+    ''' Envío asincrono de correos '''
     thread = threading.Thread(
         mail.send(fail_silently=False)
     )
@@ -901,14 +897,14 @@ def datos_excel(hoja):
     return {'clientes': clientes, 'oficinas': oficinas, 'monedas': monedas, 
         'productos': productos,'creditos': creditos}
 
-def insert_datos(datos):
-    clientes = insert_clientes(datos['clientes'])
-    oficinas = insert_oficinas(datos['oficinas'])
-    monedas = insert_monedas(datos['monedas'])
-    productos = insert_productos(datos['productos'])
-    creditos = insert_creditos(datos['creditos'])
+def _insert_datos(datos):
+    clientes = _insert_clientes(datos['clientes'])
+    oficinas = _insert_oficinas(datos['oficinas'])
+    monedas = _insert_monedas(datos['monedas'])
+    productos = _insert_productos(datos['productos'])
+    creditos = _insert_creditos(datos['creditos'])
 
-def insert_clientes(datos):
+def _insert_clientes(datos):
     clientes = []
     queryset = Cliente.objects.filter(codigo__in=[int(dato[0]) for dato in datos])
     for dato in datos:
@@ -916,7 +912,7 @@ def insert_clientes(datos):
             clientes.append(Cliente(codigo=int(dato[0]), nombre=dato[1]))
     Cliente.objects.bulk_create(clientes)
 
-def insert_oficinas(datos):
+def _insert_oficinas(datos):
     oficinas = []
     queryset = Oficina.objects.filter(numero__in=[int(dato[0]) for dato in datos])
     for dato in datos:
@@ -924,7 +920,7 @@ def insert_oficinas(datos):
             oficinas.append(Oficina(numero=int(dato[0]), descripcion=dato[1]))
     Oficina.objects.bulk_create(oficinas)
 
-def insert_monedas(datos):
+def _insert_monedas(datos):
     monedas = []
     queryset = Moneda.objects.filter(descripcion__in=datos)
     for dato in datos:
@@ -932,7 +928,7 @@ def insert_monedas(datos):
             monedas.append(Moneda(descripcion=dato))
     Moneda.objects.bulk_create(monedas)
 
-def insert_productos(datos):
+def _insert_productos(datos):
     productos = []
     queryset = Producto.objects.filter(descripcion__in=datos)
     for dato in datos:
@@ -940,7 +936,7 @@ def insert_productos(datos):
             productos.append(Producto(descripcion=dato))
     Producto.objects.bulk_create(productos)
 
-def insert_creditos(datos):
+def _insert_creditos(datos):
     #creditos.append([credito, fecha, monto, mis, cod_ofi, moneda, producto])
     queryset = Credito.objects.filter(numero__in=[dato[0] for dato in datos])
     clientes = Cliente.objects.filter(codigo__in=[int(dato[3]) for dato in datos])
