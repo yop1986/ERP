@@ -38,7 +38,7 @@ class Bodega_From(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        usuarios = Usuario.objects.filter(groups__name__startswith='Expedientes')
+        usuarios = Usuario.objects.filter(groups__name__startswith='Expedientes').distinct()
         self.fields['encargado'].queryset = usuarios
         self.fields['personal'].queryset = usuarios
         

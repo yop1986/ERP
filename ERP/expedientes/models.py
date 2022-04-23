@@ -3,7 +3,6 @@ import uuid
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Count
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -23,7 +22,7 @@ class Bodega(models.Model):
         null=True, blank=True, help_text=_('Usuarios en grupos que inicien con "Expedientes"'), 
         verbose_name=_('Encargado'))
     personal = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='bodega_personal', 
-        null=True, blank=True, help_text=_('Usuarios en grupos que inicien con "Expedientes"'), 
+        help_text=_('Usuarios en grupos que inicien con "Expedientes"'), 
         verbose_name=_('Personal'))
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
@@ -84,11 +83,11 @@ class Estante(models.Model):
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
-        permissions = [
-            ("label_estante", "Permite la impresión de todas las etiquetas del estante"),
-        ]
         constraints = [
             models.UniqueConstraint(fields=['codigo', 'bodega'], name='unq_codigo_bodega'),
+        ]
+        permissions = [
+            ("label_estante", "Permite la impresión de todas las etiquetas del estante"),
         ]
 
     def __str__(self):
@@ -135,11 +134,11 @@ class Nivel(models.Model):
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
-        permissions = [
-            ("label_nivel", "Permite la impresión de todas las etiquetas del nivel"),
-        ]
         constraints = [
             models.UniqueConstraint(fields=['estante', 'numero'], name='unq_estante_numero'),
+        ]
+        permissions = [
+            ("label_nivel", "Permite la impresión de todas las etiquetas del nivel"),
         ]
 
     def __str__(self):
@@ -172,11 +171,11 @@ class Posicion(models.Model):
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
-        permissions = [
-            ("label_posicion", "Permite la impresión de todas las etiquetas de la posición"),
-        ]
         constraints = [
             models.UniqueConstraint(fields=['nivel', 'numero'], name='unq_nivel_numero'),
+        ]
+        permissions = [
+            ("label_posicion", "Permite la impresión de todas las etiquetas de la posición"),
         ]
 
     def __str__(self):
@@ -209,11 +208,11 @@ class Caja(models.Model):
     history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
-        permissions = [
-            ("label_caja", "Permite la impresión de la etiqueta de la caja"),
-        ]
         constraints = [
             models.UniqueConstraint(fields=['posicion', 'numero'], name='unq_posicion_numero'),
+        ]
+        permissions = [
+            ("label_caja", "Permite la impresión de la etiqueta de la caja"),
         ]
 
     def __str__(self):
@@ -260,7 +259,8 @@ class Caja(models.Model):
         return reverse('expedientes:caja_labels', kwargs={'pk': self.id})
 
     def get_tomos(self):
-        return Tomo.objects.filter(caja=self).prefetch_related('credito')
+        return Tomo.objects.filter(caja=self).order_by('-fecha_modificacion')\
+            .prefetch_related('credito')
 
 
 class Cliente(models.Model):
@@ -306,6 +306,7 @@ class Credito(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     numero  = models.CharField(max_length=18, db_index=True, unique=True)
     monto   = models.DecimalField(max_digits=18, decimal_places=2)
+    escaneado = models.BooleanField(_('Escaneado'), default=False)
     fecha_concesion = models.DateField(null=True)
     fecha_ingreso = models.DateTimeField(auto_now_add=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='credito_cliente')
@@ -332,6 +333,9 @@ class Credito(models.Model):
     def cant_tomos(self):
         return Tomo.objects.filter(credito=self, vigente=True).count()
 
+    def esta_escaneado(self):
+        return _('Si') if self.escaneado else _('No')
+
 
 class Tomo(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -339,9 +343,9 @@ class Tomo(models.Model):
     vigente = models.BooleanField(default=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
     comentario = models.TextField()
-    credito = models.ForeignKey(Credito, on_delete=models.PROTECT, related_name='folio_credito')
-    caja    = models.ForeignKey(Caja, on_delete=models.PROTECT, null=True, related_name='folio_caja')
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_('Usuario'), related_name='folio_usuario')
+    credito = models.ForeignKey(Credito, on_delete=models.PROTECT, related_name='tomo_credito')
+    caja    = models.ForeignKey(Caja, on_delete=models.PROTECT, null=True, related_name='tomo_caja')
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_('Usuario'), related_name='tomo_usuario')
     history = HistoricalRecords(
         history_id_field = models.BigAutoField(),
         excluded_fields=['numero', 'credito'],
@@ -350,11 +354,14 @@ class Tomo(models.Model):
         )
 
     class Meta:
-        permissions = [
-            ("label_tomo", "Permite imprimir etiquetas de los tomos"),
-        ]
         constraints = [
             models.UniqueConstraint(fields=['credito', 'numero'], name='unq_credito_numero'),
+        ]
+        indexes = [
+            models.Index(fields=['fecha_modificacion'])
+        ]
+        permissions = [
+            ("label_tomo", "Permite imprimir etiquetas de los tomos"),
         ]
 
     def __str__(self):
@@ -375,5 +382,6 @@ class Tomo(models.Model):
     def labels_url(self):
         return reverse('expedientes:tomo_labels', kwargs={'pk': self.id})
 
-    def get_ubicacion(self):
-        return self.caja if self.caja else self.comentario if self.comentario else ''
+    def get_posicion(self):
+        return Caja.objects.filter(id=self.caja.id, tomo_caja__fecha_modificacion__gte=self.fecha_modificacion).count()
+

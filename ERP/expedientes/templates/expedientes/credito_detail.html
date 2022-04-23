@@ -1,5 +1,5 @@
 {% extends "base_expedientes.html" %}
-{% load static humanize verbose_names crispy_forms_tags %}
+{% load static humanize verbose_names crispy_forms_tags l10n %}
 
 {% block inner_content %}
 
@@ -41,7 +41,15 @@
       <strong>{% get_verbose_field_name credito "monto" %}</strong>
     </div>
     <div class="col-5">
-      {%if credito.moneda.simbolo%}{{ credito.moneda.simbolo }}{% endif %} {{ credito.monto|intcomma  }}
+      {%if credito.moneda.simbolo %}{{ credito.moneda.simbolo }}{% endif %} {{ credito.monto|unlocalize|intcomma  }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name credito "escaneado" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ credito.esta_escaneado }}
     </div>
   </div>
   <div class="row mb-2">
@@ -52,6 +60,7 @@
       {{ credito.cant_tomos }}
     </div>
   </div>
+
   
   {% if perms.expedientes.label_credito or perms.expedientes.add_tomo or perms.expedientes.delete_tomo %}
   <div class="row mb-2">
@@ -97,7 +106,7 @@
             {% if not tomo.caja %}
               -
             {% elif request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
-              <a href="{{ tomo.caja.view_url }}"> {{ tomo.caja }}</a>
+              <a href="{{ tomo.caja.view_url }}"> {{ tomo.caja }} ({{ tomo.get_posicion }})</a>
             {% else %}
               {{ tomo.caja.posicion.nivel.estante.bodega }}
             {% endif %}

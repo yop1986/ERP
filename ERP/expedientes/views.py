@@ -460,7 +460,7 @@ class Caja_DetailView(DetailView_Login):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         queryset = Tomo.objects.filter(caja=self.object)\
-            .order_by('credito__numero', 'numero')\
+            .order_by('-fecha_modificacion')\
             .prefetch_related('credito')
         context['estructura']={
             'tooltip_head': _('Tomo'),
@@ -632,8 +632,10 @@ class Tomo_Ingreso(FormView_Login):
             caja_qs = Caja.objects.get(posicion__nivel__estante__bodega__codigo=caja[0].upper(), 
                 posicion__nivel__estante__codigo=caja[1].upper(), posicion__nivel__numero=caja[2], 
                 posicion__numero=caja[3], numero=caja[4])
-
-            if not caja_qs.vigente:
+            
+            if not self.request.user in caja_qs.posicion.nivel.estante.bodega.personal.all():
+                messages.warning(self.request, _('Usuario no puede asignar expedientes en esa caja'))
+            elif not caja_qs.vigente:
                 messages.warning(self.request, _('La caja no se encuentra habilitada'))
             elif not tomo_qs.caja:
                 tomo_qs.comentario = comentario
