@@ -32,10 +32,9 @@ urlpatterns = [
     path('creditos/etiquetas/<uuid:pk>/', views.Credito_Etiqueta.as_view(), name='credito_labels'),
 
     path('tomos/opera/', views.operaciones_tomo, name='opera_tomo'), #agrega/habilita o deshabilita tomo
+    path('tomos/opera/<uuid:pk>', views.operaciones_tomo, name='opera_tomo'), #agrega/habilita o deshabilita tomo
     path('tomos/ingreso/', views.Tomo_Ingreso.as_view(), name='ingreso_tomo'), 
-    path('tomos/cargaregreso/', views.agregarlista_tomo, name='cargaregreso_tomo'), #carga un tomo a la lista de envío
-    path('tomos/remover/<uuid:pk>/', views.removerlista_tomo, name='remover_tomo'), #quita un elemento de la lista
-    path('tomos/envio/', views.ProcesaEgresos.as_view(), name='envio_tomo'), # visualiza el ilstado de tomos a procesar
+    path('tomos/envio/', views.Tomo_Template.as_view(), name='envio_tomo'), # visualiza el ilstado de tomos a procesar
     path('tomos/trasladar/', views.salida_tomo, name='salida_tomo'), # proceso las salidas
     path('tomos/etiquetas/<uuid:pk>/', views.Tomo_Etiqueta.as_view(), name='tomo_labels'),
 

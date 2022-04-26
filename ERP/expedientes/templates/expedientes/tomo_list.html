@@ -22,7 +22,7 @@
           <td>{{ object }}</td>
           <td>{{ object.caja }}</td>
           <td>
-            <a href="{{ object.remover_url }}" class="btn btn-danger"><img src="{% static 'images/expedientes_remove.png' %}" alt="{{ opciones.eliminar }}" title="{{ opciones.eliminar }}" height="30"></a>
+            <a href="{% url 'expedientes:opera_tomo' object.id %}" class="btn btn-danger"><img src="{% static 'images/expedientes_remove.png' %}" alt="{{ opciones.eliminar }}" title="{{ opciones.eliminar }}" height="30"></a>
           </td>
         </tr>
     {% endfor %}

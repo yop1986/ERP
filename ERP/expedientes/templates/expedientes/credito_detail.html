@@ -71,6 +71,10 @@
       <form method="post" action="{% url 'expedientes:opera_tomo' %}">
         {% csrf_token %}
         <input type="hidden" name="credito" value="{{ credito.id }}">
+
+        {% if perms.expedientes.change_tomo and not credito.escaneado %}
+        <input type="image" src="{% static 'images/expedientes_escaneado.png' %}" name="escaneado" width="60" class="btn btn-success" alt="{{ opciones.escaneado }}" title="{{ opciones.escaneado }}">
+        {% endif %}
         {% if perms.expedientes.add_tomo %}
         <input type="image" src="{% static 'images/expedientes_add.png' %}" name="agregar" width="60" class="btn btn-success" alt="{{ opciones.agregar_tomo }}" title="{{ opciones.agregar_tomo }}">
         {% endif %}
@@ -92,6 +96,7 @@
       <thead>
         <tr>
           <th scope="col">#</th>
+          <th scope="col">{% get_verbose_field_name tomos.0 "fecha_modificacion" %}</th>
           <th scope="col">{% get_verbose_field_name tomos.0 "comentario" %}</th>
           <th scope="col">{% get_verbose_field_name tomos.0 "caja" %}</th>
           <th scope="col">{{ opciones.etiqueta }}</th>
@@ -101,6 +106,7 @@
     {% for tomo in tomos %}
         <tr>
           <td>{{ tomo.numero }}</td>
+          <td>{{ tomo.fecha_modificacion|date:"d/m/Y" }}</td>
           <td><pre>{{ tomo.comentario }}</pre></td>
           <td>
             {% if not tomo.caja %}
@@ -135,13 +141,13 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form method="post" action="{% url 'expedientes:cargaregreso_tomo' %}" autocomplete="off">
+        <form method="post" action="{% url 'expedientes:opera_tomo' %}" autocomplete="off">
           <input type="hidden" class="form-control" id="tomo-id" name="tomo-id">
           <div class="mb-3">
             {{ egreso_form|crispy }}
           </div>
           {% csrf_token %}
-          <input type="submit" name="Guardar" value="{{ opciones.guardar }}" class="btn btn-primary">
+          <input type="submit" name="agregar" value="{{ opciones.guardar }}" class="btn btn-primary">
         </form>
       </div>
     </div>
@@ -156,7 +162,6 @@
 
 {% block js %}
 <script src="{% static 'js/jquery-3.6.0.min.js' %}"></script>
-<script src="{% static 'js/bootstrap.min.js' %}"></script>
 <script type="text/javascript">
   var extraerForm = document.getElementById('extraerForm')
   

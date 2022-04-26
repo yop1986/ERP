@@ -18,8 +18,8 @@ class Bodega(models.Model):
     vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
     correo_egreso = models.BooleanField(_('Correo por egreso'), default=True)
     correo_traslado = models.BooleanField(_('Correo por traslado'), default=True)
-    encargado = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, 
-        null=True, blank=True, help_text=_('Usuarios en grupos que inicien con "Expedientes"'), 
+    encargado = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, 
+        help_text=_('Usuarios en grupos que inicien con "Expedientes"'), 
         verbose_name=_('Encargado'))
     personal = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='bodega_personal', 
         help_text=_('Usuarios en grupos que inicien con "Expedientes"'), 
@@ -80,7 +80,6 @@ class Estante(models.Model):
     codigo  = models.CharField(_('Código'), max_length=2, db_index=True, help_text=_('Código máximo de 2 caracteres'))
     vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
     bodega  = models.ForeignKey(Bodega, on_delete=models.PROTECT, related_name='estante_bodega', verbose_name=_('Bodega'))
-    history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
         constraints = [
@@ -131,7 +130,6 @@ class Nivel(models.Model):
     numero  = models.PositiveSmallIntegerField(_('Peldaño'), help_text=_('Número del nivel a registrar'))
     vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
     estante = models.ForeignKey(Estante, on_delete=models.PROTECT, related_name='nivel_estante', verbose_name=_('Estante'))
-    history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
         constraints = [
@@ -168,7 +166,6 @@ class Posicion(models.Model):
     numero = models.PositiveSmallIntegerField(_('Posición'))
     vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
     nivel = models.ForeignKey(Nivel, on_delete=models.PROTECT, related_name='posicion_nivel', verbose_name=_('Nivel'))
-    history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
         constraints = [
@@ -267,7 +264,6 @@ class Cliente(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     codigo = models.PositiveIntegerField(db_index=True, unique=True)
     nombre = models.CharField(max_length=90)
-    history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
@@ -277,7 +273,6 @@ class Moneda(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = models.CharField(max_length=21, unique=True)
     simbolo = models.CharField(max_length=1, unique=True, blank=True, null=True)
-    history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
     
     def __str__(self):
         return f"{self.descripcion} ({self.simbolo})"
@@ -286,7 +281,6 @@ class Moneda(models.Model):
 class Producto(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     descripcion = models.CharField(max_length=12, unique=True)
-    history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self):
         return self.descripcion
@@ -296,7 +290,6 @@ class Oficina(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     numero = models.PositiveIntegerField(db_index=True, unique=True)
     descripcion = models.CharField(max_length=60)
-    history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
 
     def __str__(self):
         return f"{str(self.numero).zfill(4)} - {self.descripcion}"
@@ -313,12 +306,17 @@ class Credito(models.Model):
     moneda  = models.ForeignKey(Moneda, on_delete=models.PROTECT, related_name='credito_moneda')
     oficina = models.ForeignKey(Oficina, on_delete=models.PROTECT, related_name='credito_oficina')
     producto= models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='credito_producto')
-    history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['numero', 'monto', 'fecha_concesion', 
+        'fecha_ingreso', 'cliente', 'moneda', 'oficina', 'producto'],
+        user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
         permissions = [
             ("load_credito", "Carga masiva de créditos"),
             ("label_credito", "Permite imprimir etiquetas de los tomos"),
+        ]
+        indexes = [
+            models.Index(fields=['numero'])
         ]
 
     def __str__(self):
@@ -341,16 +339,15 @@ class Tomo(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     numero  = models.PositiveSmallIntegerField()
     vigente = models.BooleanField(default=True)
-    fecha_modificacion = models.DateTimeField(auto_now=True)
+    fecha_modificacion = models.DateTimeField(_('Fecha'), auto_now=True)
     comentario = models.TextField()
     credito = models.ForeignKey(Credito, on_delete=models.PROTECT, related_name='tomo_credito')
     caja    = models.ForeignKey(Caja, on_delete=models.PROTECT, null=True, related_name='tomo_caja')
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_('Usuario'), related_name='tomo_usuario')
     history = HistoricalRecords(
         history_id_field = models.BigAutoField(),
-        excluded_fields=['numero', 'credito'],
+        excluded_fields=['numero', 'credito', 'usuario'],
         user_model=settings.AUTH_USER_MODEL,
-        #history_change_reason_field=models.TextField(null=True)
         )
 
     class Meta:
@@ -375,9 +372,6 @@ class Tomo(models.Model):
 
     def egreso_url(self):
         return reverse('expedientes:egreso_tomo', kwargs={'pk': self.id})
-
-    def remover_url(self):
-        return reverse('expedientes:remover_tomo', kwargs={'pk': self.id})
 
     def labels_url(self):
         return reverse('expedientes:tomo_labels', kwargs={'pk': self.id})

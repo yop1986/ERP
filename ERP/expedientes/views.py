@@ -3,6 +3,7 @@ import threading
 
 from datetime import datetime
 from string import ascii_uppercase
+from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 from django.contrib import messages
 from django.core.mail import EmailMultiAlternatives
@@ -145,7 +146,7 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
                 if not cajas.filter(numero=i, posicion=posicion):
                     inserts.append(Caja(numero=i, posicion=posicion))
 
-        Caja.objects.bulk_create(inserts)
+        bulk_create_with_history(inserts, Caja, batch_size=500)
 
     def _genera_estructura_posiciones(self, pPosicion):
         inserts = []
@@ -561,6 +562,7 @@ class Credito_DetailView(DetailView_Login):
         'opciones':{
             'etiqueta':_('Opciones'),
             'etiquetas':_('Etiquetas'),
+            'escaneado': _('Escaneado'),
             'agregar_tomo':_('Agregar tomo'),
             'remover_tomo':_('Remover tomo'),
             'extraer':_('Extraer'),
@@ -638,10 +640,9 @@ class Tomo_Ingreso(FormView_Login):
             elif not caja_qs.vigente:
                 messages.warning(self.request, _('La caja no se encuentra habilitada'))
             elif not tomo_qs.caja:
-                tomo_qs.comentario = comentario
-                tomo_qs.vigente = True
-                tomo_qs.caja = caja_qs
-                tomo_qs.usuario = self.request.user
+                tomo_qs.comentario, tomo_qs.vigente = comentario, True
+                tomo_qs.caja, tomo_qs.usuario = caja_qs, self.request.user
+                tomo_qs._change_reason, tomo_qs._history_user = 'Tomo_Ingreso', self.request.user
                 tomo_qs.save()
                 messages.success(self.request, _('Se guardo el tomo ')+f'{tomo[0]}-{tomo[1]}')
 
@@ -672,7 +673,7 @@ class Tomo_Etiqueta(DetailView_Login):
                 arreglo[tomo] = 'mostrar'
         return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
 
-class ProcesaEgresos(TemplateView_Login):
+class Tomo_Template(TemplateView_Login):
     permission_required = 'expedientes.change_tomo'
     template_name = 'expedientes/tomo_list.html'
     extra_context = {
@@ -709,49 +710,64 @@ def buscar_credito(request):
     elif len(numero)>0:
         messages.warning(request, _('No se encontró el crédito: ')+numero[0])
 
-    #return render(request, 'expedientes/index.html')
     return redirect(reverse_lazy('expedientes:index'))
     
-def operaciones_tomo(request):
-    credito = Credito.objects.get(id=request.POST['credito'])
-    tomos = Tomo.objects.filter(credito=credito)
-    if 'agregar.x' in request.POST:
+def operaciones_tomo(request, pk=None):
+    if 'escaneado.x' in request.POST:
+        ''' Actualiza el Crédito a Escaneado '''
+        credito = Credito.objects.get(id=request.POST['credito'])
+        credito.escaneado = True
+        credito._history_user = request.user
+        credito._change_reason = 'operaciones_tomo > escaneado '
+        credito.save()
+    elif 'agregar.x' in request.POST:
+        ''' Crea/Habilita un tomo '''
+        credito = Credito.objects.get(id=request.POST['credito'])
+        tomos = Tomo.objects.filter(credito=credito)
+    
         if not tomos:
-            Tomo(numero=1, credito=credito, comentario='Tomo habilitado', 
-                usuario=request.user).save()
+            tomo = Tomo(numero=1, credito=credito, comentario='Tomo habilitado', 
+                usuario=request.user)
+            tomo._change_reason = 'operaciones_tomo > agregar (unico nuevo)'
+            tomo._history_user = request.user
+            tomo.save()
         elif tomos.filter(vigente=False):
             #tomo minimo inhabilitado
             tomo = tomos.filter(vigente=False).order_by('numero')[0]
-            tomo.usuario=request.user
-            tomo.vigente=True
-            tomo.comentario='Tomo habilitado'
+            tomo.usuario, tomo.vigente = request.user, True
+            tomo.comentario = 'Tomo habilitado'
+            tomo._change_reason, tomo._history_user = 'operaciones_tomo > agregar (habilita existente)', request.user
             tomo.save()
         else:
             num = tomos.aggregate(Max('numero'))['numero__max']+1
-            Tomo(numero=num, credito=credito, comentario='Tomo habilitado', 
-                usuario=request.user).save()
-    else: #elif 'remover.x' in request.POST:
+            tomo = Tomo(numero=num, credito=credito, comentario='Tomo habilitado', 
+                usuario=request.user)
+            tomo._change_reason = 'operaciones_tomo > agregar (agrega nuevo)'
+            tomo._history_user = request.user
+            tomo.save()
+    elif 'remover.x' in request.POST:
+        ''' Ihabilita un tomo '''
+        credito = Credito.objects.get(id=request.POST['credito'])
+        tomos = Tomo.objects.filter(credito=credito)
+    
         if not tomos or not tomos.filter(vigente=True):
             messages.warning(request, _('No hay tomos para deshabilitar en el crédito ')+ credito.numero)
         else:
             #tomo máximo habilitado
             tomo = tomos.filter(vigente=True).order_by('-numero')[0]
-            tomo.usuario=request.user
-            tomo.caja = None
-            tomo.vigente=False
-            tomo.comentario='Tomo inhabilitado'
-            tomo.save()
-    return redirect(credito.view_url())
-
-def agregarlista_tomo(request):
-    '''
-        Agrega tomos a a lista que se extraera de la bodega.
-    '''
-    #del request.session['extraer_tomos']
-    if 'Guardar' in request.POST:
-        extraer_tomos=request.session['extraer_tomos'] if 'extraer_tomos' in request.session else []            
+            if tomo.caja:
+                messages.warning(request, _('El tomo se encuentra ingresado en una caja '))
+            else:
+                tomo.usuario, tomo.vigente = request.user, False
+                tomo.comentario='Tomo inhabilitado'
+                tomo._change_reason, tomo._history_user = 'operaciones_tomo > remover', request.user
+                tomo.save()
+    elif 'agregar' in request.POST:
+        ''' Agrega tomos a a lista que se extraera de la bodega '''
+        extraer_tomos=request.session['extraer_tomos'] if 'extraer_tomos' in request.session else []
         tomoid = request.POST['tomo-id']
         tomo = request.POST['tomo'].replace(' ', '').split('-')
+
         try: 
             if len(tomo)==2:
                 t = Tomo.objects.get(credito__numero=tomo[0], numero=int(tomo[1]))
@@ -769,18 +785,16 @@ def agregarlista_tomo(request):
         except:
             messages.warning(request, _('Tomo mal ingresado o no existe'))
         finally:
-            return redirect(Tomo.objects.get(id=tomoid).credito.view_url())
-
-def removerlista_tomo(request, pk):
-    '''
-        Elimina tomos del listado a trasladar/egresar
-    '''
-    try: 
-        extraer_tomos = request.session['extraer_tomos']
-        extraer_tomos.remove(str(pk))
-        request.session['extraer_tomos'] = extraer_tomos
-    finally:
-        return redirect(Tomo.envio_url())
+            return redirect(Tomo.objects.get(id=tomoid).credito.view_url())   
+    else: #'quitar' in request.POST:
+        ''' Elimina tomos del listado a trasladar/egresar '''
+        try: 
+            extraer_tomos = request.session['extraer_tomos']
+            extraer_tomos.remove(str(pk))
+            request.session['extraer_tomos'] = extraer_tomos
+        finally:
+            return redirect(Tomo.envio_url())
+    return redirect(credito.view_url())
     
 def salida_tomo(request):
     if 'trasladar' in request.POST:
@@ -790,14 +804,17 @@ def salida_tomo(request):
                 bodega = form.cleaned_data['bodega_envio']
                 comentario = f'Traslado a {bodega}\n{form.cleaned_data["comentario"]}'
                 tomos = Tomo.objects.filter(id__in=request.session['extraer_tomos'])
+                tomos.update(comentario=comentario, caja=None, usuario=request.user)
+                for tomo in tomos : tomo._change_reason, tomo._history_user = 'salida_tomo > trasladar', request.user
+                bulk_update_with_history(tomos, Tomo, ['comentario', 'caja'], batch_size=500)
+                del request.session['extraer_tomos']
+                messages.success(request, _('Tomos egresados por traslado'))
+                
                 context = {
                     'title': _('Traslado'),
                     'message': _(f'Se han enviado, a {bodega}, los siguientes tomos:'),
                     'object_list': {tomo for tomo in tomos},
                 }
-                tomos.update(comentario=comentario, caja=None)
-                del request.session['extraer_tomos']
-                messages.success(request, _('Tomos egresados por traslado'))
                 correo = crea_correo('Traslado de Expedientes', request.user.email, [bodega.encargado.email], 'mails/egresos.html', context)
                 envia_correo(correo)
         finally:
@@ -807,7 +824,7 @@ def salida_tomo(request):
             form = SalidaTomos_Form(request.POST)
             if form.is_valid():
                 correo_form = form.cleaned_data["correo"]
-
+                print(f"correo>>>{correo_form}")
                 comentario_final = f'Fecha: \t\t{datetime.today().strftime("%d-%m-%Y")}\n'
                 comentario_final += f'Codigo: \t{form.cleaned_data["codigo"]}\n'
                 comentario_final += f'Nombre: \t{form.cleaned_data["nombre"]}\n'
@@ -817,15 +834,18 @@ def salida_tomo(request):
                 comentario_final += f'Comentario: \t{form.cleaned_data["comentario"]}'
 
                 tomos = Tomo.objects.filter(id__in=request.session['extraer_tomos'])
+                tomos.update(comentario=comentario_final, caja=None, usuario=request.user)
+                for tomo in tomos : tomo._change_reason, tomo._history_user = 'salida_tomo > egresar', request.user
+                bulk_update_with_history(tomos, Tomo, ['comentario', 'caja'], batch_size=500)
+                del request.session['extraer_tomos']
+                messages.success(request, _('Tomos egresados por solicitud'))
+                
                 context = {
                     'title': _('Egreso por Solicitud'),
                     'message': _(f'Se han entregado, los siguientes tomos:'),
                     'object_list': {tomo for tomo in tomos},
                     'comentario': comentario_final,
                 }
-                tomos.update(comentario=comentario_final, caja=None)
-                del request.session['extraer_tomos']
-                messages.success(request, _('Tomos egresados por solicitud'))
                 correo = crea_correo('Egreso por solicitud', request.user.email, [request.user.email,correo_form], 'mails/egresos.html', context)
                 envia_correo(correo)
         finally:
@@ -939,7 +959,6 @@ def _insert_productos(datos):
     Producto.objects.bulk_create(productos)
 
 def _insert_creditos(datos):
-    #creditos.append([credito, fecha, monto, mis, cod_ofi, moneda, producto])
     queryset = Credito.objects.filter(numero__in=[dato[0] for dato in datos])
     clientes = Cliente.objects.filter(codigo__in=[int(dato[3]) for dato in datos])
     oficinas = Oficina.objects.filter(numero__in=[int(dato[4]) for dato in datos])
@@ -954,4 +973,4 @@ def _insert_creditos(datos):
                 moneda=monedas.get(descripcion=dato[5]), 
                 oficina=oficinas.get(numero=int(dato[4])), 
                 producto=productos.get(descripcion=dato[6])))
-    Credito.objects.bulk_create(creditos)
+    bulk_create_with_history(creditos, Credito, batch_size=500)
