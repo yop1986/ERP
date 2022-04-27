@@ -7,14 +7,25 @@ table.fixed col {
 }
 
 table.fixed tr {
-    line-height: 15px; 
+    line-height: 45px; 
     /*height: 0.5cm;*/
 }
 
 table.fixed td {
-    margin-top: 27px;
-    padding-top: 27px;
+    margin-top: 42px;
+    padding-top: 42px;
     text-align: center;
+}
+
+.table-border {
+    border-width: thin;
+    border-style: dotted;
+
+    padding: 12px;
+}
+
+.align-left {
+    text-align: left;
 }
 
 .ocultar {
@@ -31,9 +42,18 @@ table.fixed td {
 
 }
 
+.big {
+    font-family: 'Arial';
+    font-size: 3em;
+    margin-bottom: 30px;
+    padding-bottom: 30px;
+}
+
 .small {
     font-family: 'Arial';
-    font-size: 0.9em;
+    font-size: 1.5em;
+    margin-bottom: 30px;
+    padding-bottom: 30px;
 }
 
 @page {

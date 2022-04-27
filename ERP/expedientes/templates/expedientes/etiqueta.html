@@ -6,7 +6,6 @@
     <link rel="stylesheet" type="text/css" href="{% static 'css/expedientes_style.css' %}">
 </head>
 <body>
-{% if arreglo %}
 <table class="fixed">
     <col/>
     <col/>
@@ -20,15 +19,5 @@
         {% if forloop.counter|divisibleby:2 %}</tr>{% endif %}
     {% endfor %}
 </table>
-{% else %}
-<h1>{{ context.title }}: {{ context.object }}</h1>
-<form>
-    {% csrf_token %}
-    <table>
-        {{ form }}
-    </table>
-    <input type="submit" name="enviar" value="Enviar">
-</form>
-{% endif %}
 </body>
 </html>

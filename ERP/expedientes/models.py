@@ -75,6 +75,7 @@ class Bodega(models.Model):
     def get_accion_tag(self):
         return _('danger') if self.vigente else _('success')
 
+
 class Estante(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     codigo  = models.CharField(_('Código'), max_length=2, db_index=True, help_text=_('Código máximo de 2 caracteres'))
@@ -202,7 +203,7 @@ class Caja(models.Model):
     numero = models.PositiveSmallIntegerField(_('Numero'))
     vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
     posicion = models.ForeignKey(Posicion, on_delete=models.PROTECT, related_name='caja_posicion', verbose_name=_('Posición'))
-    history = HistoricalRecords(user_model=settings.AUTH_USER_MODEL)
+    history = HistoricalRecords(excluded_fields=['numero', 'posicion'], user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
         constraints = [

@@ -7,7 +7,7 @@ from simple_history.utils import bulk_create_with_history, bulk_update_with_hist
 
 from django.contrib import messages
 from django.core.mail import EmailMultiAlternatives
-from django.db.models import Max
+from django.db.models import Q, Max
 from django.db.models.functions import Length
 from django.shortcuts import render, redirect
 from django.template.loader import get_template
@@ -69,7 +69,8 @@ class Bodega_ListView(ListView_Login):
         if self.request.user.is_superuser:
             return queryset
         else:    
-            return queryset.filter(personal=self.request.user)
+            return queryset.filter(
+                Q(personal=self.request.user)|Q(encargado=self.request.user))
 
 class Bodega_DetailView(FormMixin, DetailView_Login):
     permission_required = 'expedientes.view_bodega'
@@ -109,7 +110,8 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
         if self.request.user.is_superuser:
             return queryset
         else:    
-            return queryset.filter(personal=self.request.user)
+            return queryset.filter(
+                Q(personal=self.request.user)|Q(encargado=self.request.user))
 
     def get_success_url(self, *args, **kwargs):
         return self.object.view_url()
@@ -146,7 +148,7 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
                 if not cajas.filter(numero=i, posicion=posicion):
                     inserts.append(Caja(numero=i, posicion=posicion))
 
-        bulk_create_with_history(inserts, Caja, batch_size=500)
+        bulk_create_with_history(inserts, Caja, batch_size=1500)
 
     def _genera_estructura_posiciones(self, pPosicion):
         inserts = []
@@ -281,13 +283,14 @@ class Estante_DetailView(DetailView_Login):
         if self.request.user.is_superuser:
             return queryset
         else:    
-            return queryset.filter(bodega__personal=self.request.user)
+            return queryset.filter(
+                Q(bodega__personal=self.request.user)
+                |Q(bodega__encargado=self.request.user))
 
 class Estante_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_estante'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
-    form_class = GeneraEtiquetas_Form()
 
     def get(self, request, *args, **kwargs):
         context = {
@@ -295,13 +298,10 @@ class Estante_Etiqueta(DetailView_Login):
             'object': Estante.objects.get(pk=kwargs['pk'])
         }
         arreglo = {}
-        if request.GET.get('posicion'):
-            cajas = list(Caja.objects.filter(posicion__nivel__estante__id=self.kwargs['pk']))
-            for i in range(1, int(request.GET.get('posicion'))):
-                arreglo[i] = 'ocultar'
-            for caja in cajas:
-                arreglo[caja] = 'mostrar'
-        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+        cajas = list(Caja.objects.filter(posicion__nivel__estante__id=self.kwargs['pk']))
+        for caja in cajas:
+            arreglo[caja] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'context': context})
 
 
 class Nivel_DetailView(DetailView_Login):
@@ -339,27 +339,25 @@ class Nivel_DetailView(DetailView_Login):
         if self.request.user.is_superuser:
             return queryset
         else:    
-            return queryset.filter(estante__bodega__personal=self.request.user)
+            return queryset.filter(
+                Q(estante__bodega__personal=self.request.user)
+                |Q(estante__bodega__encargado=self.request.user))
 
 class Nivel_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_nivel'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
-    form_class = GeneraEtiquetas_Form()
-
+    
     def get(self, request, *args, **kwargs):
         context = {
             'title': _('Etiqueta'),
             'object': Nivel.objects.get(pk=kwargs['pk'])
         }
         arreglo = {}
-        if request.GET.get('posicion'):
-            cajas = list(Caja.objects.filter(posicion__nivel__id=self.kwargs['pk']))
-            for i in range(1, int(request.GET.get('posicion'))):
-                arreglo[i] = 'ocultar'
-            for caja in cajas:
-                arreglo[caja] = 'mostrar'
-        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+        cajas = list(Caja.objects.filter(posicion__nivel__id=self.kwargs['pk']))
+        for caja in cajas:
+            arreglo[caja] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'context': context})
 
 
 class Posicion_DetailView(DetailView_Login):
@@ -397,27 +395,25 @@ class Posicion_DetailView(DetailView_Login):
         if self.request.user.is_superuser:
             return queryset
         else:
-            return queryset.filter(nivel__estante__bodega__personal=self.request.user)
+            return queryset.filter(
+                Q(nivel__estante__bodega__personal=self.request.user)
+                | Q(nivel__estante__bodega__encargado=self.request.user))
 
 class Posicion_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_posicion'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
-    form_class = GeneraEtiquetas_Form()
-
+    
     def get(self, request, *args, **kwargs):
         context = {
             'title': _('Etiqueta'),
             'object': Posicion.objects.get(pk=kwargs['pk'])
         }
         arreglo = {}
-        if request.GET.get('posicion'):
-            cajas = list(Caja.objects.filter(posicion__id=self.kwargs['pk']))
-            for i in range(1, int(request.GET.get('posicion'))):
-                arreglo[i] = 'ocultar'
-            for caja in cajas:
-                arreglo[caja] = 'mostrar'
-        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+        cajas = list(Caja.objects.filter(posicion__id=self.kwargs['pk']))
+        for caja in cajas:
+            arreglo[caja] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'context': context})
 
 
 class Caja_ListView(ListView_Login):
@@ -442,7 +438,9 @@ class Caja_ListView(ListView_Login):
         if self.request.user.is_superuser:
             return queryset
         else:
-            return queryset.filter(posicion__nivel__estante__bodega__personal=self.request.user)
+            return queryset.filter(
+                Q(posicion__nivel__estante__bodega__personal=self.request.user)
+                |Q(posicion__nivel__estante__bodega__encargado=self.request.user))
 
 class Caja_DetailView(DetailView_Login):
     permission_required = 'expedientes.view_caja'
@@ -474,7 +472,9 @@ class Caja_DetailView(DetailView_Login):
         if self.request.user.is_superuser:
             return queryset
         else:
-            return queryset.filter(posicion__nivel__estante__bodega__personal=self.request.user)
+            return queryset.filter(
+                Q(posicion__nivel__estante__bodega__personal=self.request.user)
+                |Q(posicion__nivel__estante__bodega__encargado=self.request.user))
 
 class Caja_DeleteView(DeleteView_Login):
     permission_required = 'expedientes.delete_caja'
@@ -502,8 +502,7 @@ class Caja_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_caja'
     template_name = 'expedientes/etiqueta.html'
     model = Caja
-    form_class = GeneraEtiquetas_Form()
-
+    
     def get(self, request, *args, **kwargs):
         caja = Caja.objects.get(id=self.kwargs['pk'])
         context = {
@@ -511,11 +510,8 @@ class Caja_Etiqueta(DetailView_Login):
             'object': caja
         }
         arreglo = {}
-        if request.GET.get('posicion'):
-            for i in range(1, int(request.GET.get('posicion'))):
-                arreglo[i] = 'ocultar'
-            arreglo[caja] = 'mostrar'
-        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+        arreglo[caja] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'context': context})
 
 
 class CargaMasiva_Form(FormView_Login):
@@ -582,23 +578,19 @@ class Credito_DetailView(DetailView_Login):
 
 class Credito_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_credito'
-    template_name = 'expedientes/etiqueta.html'
+    template_name = 'expedientes/etiqueta_tomo.html'
     model = Tomo
-    form_class = GeneraEtiquetas_Form()
-
+    
     def get(self, request, *args, **kwargs):
         context = {
             'title': _('Etiqueta'),
             'object': Credito.objects.get(pk=kwargs['pk'])
         }
         arreglo = {}
-        if request.GET.get('posicion'):
-            tomos = list(Tomo.objects.filter(credito__id=self.kwargs['pk'], vigente=True))
-            for i in range(1, int(request.GET.get('posicion'))):
-                arreglo[i] = 'ocultar'
-            for tomo in tomos:
-                arreglo[tomo] = 'mostrar'
-        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+        tomos = list(Tomo.objects.filter(credito__id=self.kwargs['pk'], vigente=True).order_by('numero'))
+        for tomo in tomos:
+            arreglo[tomo] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'context': context})
 
 
 class Tomo_Ingreso(FormView_Login):
@@ -806,7 +798,7 @@ def salida_tomo(request):
                 tomos = Tomo.objects.filter(id__in=request.session['extraer_tomos'])
                 tomos.update(comentario=comentario, caja=None, usuario=request.user)
                 for tomo in tomos : tomo._change_reason, tomo._history_user = 'salida_tomo > trasladar', request.user
-                bulk_update_with_history(tomos, Tomo, ['comentario', 'caja'], batch_size=500)
+                bulk_update_with_history(tomos, Tomo, ['comentario', 'caja'], batch_size=1500)
                 del request.session['extraer_tomos']
                 messages.success(request, _('Tomos egresados por traslado'))
                 
@@ -836,7 +828,7 @@ def salida_tomo(request):
                 tomos = Tomo.objects.filter(id__in=request.session['extraer_tomos'])
                 tomos.update(comentario=comentario_final, caja=None, usuario=request.user)
                 for tomo in tomos : tomo._change_reason, tomo._history_user = 'salida_tomo > egresar', request.user
-                bulk_update_with_history(tomos, Tomo, ['comentario', 'caja'], batch_size=500)
+                bulk_update_with_history(tomos, Tomo, ['comentario', 'caja'], batch_size=1500)
                 del request.session['extraer_tomos']
                 messages.success(request, _('Tomos egresados por solicitud'))
                 
@@ -973,4 +965,4 @@ def _insert_creditos(datos):
                 moneda=monedas.get(descripcion=dato[5]), 
                 oficina=oficinas.get(numero=int(dato[4])), 
                 producto=productos.get(descripcion=dato[6])))
-    bulk_create_with_history(creditos, Credito, batch_size=500)
+    bulk_create_with_history(creditos, Credito, batch_size=1500)
