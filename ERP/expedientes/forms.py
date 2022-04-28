@@ -38,7 +38,7 @@ class Bodega_From(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        usuarios = Usuario.objects.filter(groups__name__startswith='Expedientes').distinct()
+        usuarios = Usuario.objects.filter(is_active=True, groups__name__startswith='Expedientes').distinct()
         self.fields['encargado'].queryset = usuarios
         self.fields['personal'].queryset = usuarios
         
@@ -71,7 +71,7 @@ class EgresoTomo_Form(forms.Form):
     tomo = forms.CharField(required=True)
 
 class TrasladoTomos_Form(forms.Form):
-    bodega_envio = forms.ModelChoiceField(queryset=Bodega.objects.all(),
+    bodega_envio = forms.ModelChoiceField(queryset=Bodega.objects.filter(vigente=True),
         required=True, help_text=_('Bodega a donde se envían los expedientes'))
     comentario = forms.CharField(max_length=150, required=False)
 

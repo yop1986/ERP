@@ -72,7 +72,7 @@
         {% csrf_token %}
         <input type="hidden" name="credito" value="{{ credito.id }}">
 
-        {% if perms.expedientes.change_tomo and not credito.escaneado %}
+        {% if perms.expedientes.change_credito and not credito.escaneado %}
         <input type="image" src="{% static 'images/expedientes_escaneado.png' %}" name="escaneado" width="60" class="btn btn-success" alt="{{ opciones.escaneado }}" title="{{ opciones.escaneado }}">
         {% endif %}
         {% if perms.expedientes.add_tomo %}

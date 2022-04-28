@@ -70,7 +70,8 @@ class Bodega_ListView(ListView_Login):
             return queryset
         else:    
             return queryset.filter(
-                Q(personal=self.request.user)|Q(encargado=self.request.user))
+                Q(personal=self.request.user)
+                |Q(encargado=self.request.user)).distinct()
 
 class Bodega_DetailView(FormMixin, DetailView_Login):
     permission_required = 'expedientes.view_bodega'
@@ -111,7 +112,8 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
             return queryset
         else:    
             return queryset.filter(
-                Q(personal=self.request.user)|Q(encargado=self.request.user))
+                Q(personal=self.request.user)
+                |Q(encargado=self.request.user)).distinct()
 
     def get_success_url(self, *args, **kwargs):
         return self.object.view_url()
@@ -225,6 +227,15 @@ class Bodega_UpdateView(UpdateView_Login):
         context['list_url'] = Bodega.list_url()
         return context
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        else:
+            return queryset.filter(
+                Q(personal=self.request.user)
+                |Q(encargado=self.request.user)).distinct()
+
 class Bodega_DeleteView(DeleteView_Login):
     permission_required = 'expedientes.delete_bodega'
     model = Bodega
@@ -232,7 +243,6 @@ class Bodega_DeleteView(DeleteView_Login):
     extra_context = {
         'title': _('Cambiar Estado Bodega'),
     }
-
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -244,6 +254,15 @@ class Bodega_DeleteView(DeleteView_Login):
             'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
         }
         return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        else:
+            return queryset.filter(
+                Q(personal=self.request.user)
+                |Q(encargado=self.request.user)).distinct()
 
     def get_success_url(self, *args, **kwargs):
         return super().get_success_url(self.object.vigente)
@@ -285,7 +304,7 @@ class Estante_DetailView(DetailView_Login):
         else:    
             return queryset.filter(
                 Q(bodega__personal=self.request.user)
-                |Q(bodega__encargado=self.request.user))
+                |Q(bodega__encargado=self.request.user)).distinct()
 
 class Estante_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_estante'
@@ -341,7 +360,7 @@ class Nivel_DetailView(DetailView_Login):
         else:    
             return queryset.filter(
                 Q(estante__bodega__personal=self.request.user)
-                |Q(estante__bodega__encargado=self.request.user))
+                |Q(estante__bodega__encargado=self.request.user)).distinct()
 
 class Nivel_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_nivel'
@@ -397,7 +416,7 @@ class Posicion_DetailView(DetailView_Login):
         else:
             return queryset.filter(
                 Q(nivel__estante__bodega__personal=self.request.user)
-                | Q(nivel__estante__bodega__encargado=self.request.user))
+                | Q(nivel__estante__bodega__encargado=self.request.user)).distinct()
 
 class Posicion_Etiqueta(DetailView_Login):
     permission_required = 'expedientes.label_posicion'
@@ -440,7 +459,7 @@ class Caja_ListView(ListView_Login):
         else:
             return queryset.filter(
                 Q(posicion__nivel__estante__bodega__personal=self.request.user)
-                |Q(posicion__nivel__estante__bodega__encargado=self.request.user))
+                |Q(posicion__nivel__estante__bodega__encargado=self.request.user)).distinct()
 
 class Caja_DetailView(DetailView_Login):
     permission_required = 'expedientes.view_caja'
@@ -474,7 +493,7 @@ class Caja_DetailView(DetailView_Login):
         else:
             return queryset.filter(
                 Q(posicion__nivel__estante__bodega__personal=self.request.user)
-                |Q(posicion__nivel__estante__bodega__encargado=self.request.user))
+                |Q(posicion__nivel__estante__bodega__encargado=self.request.user)).distinct()
 
 class Caja_DeleteView(DeleteView_Login):
     permission_required = 'expedientes.delete_caja'
@@ -494,6 +513,15 @@ class Caja_DeleteView(DeleteView_Login):
             'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
         }
         return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        else:
+            return queryset.filter(
+                Q(posicion__nivel__estante__bodega__personal=self.request.user)
+                |Q(posicion__nivel__estante__bodega__encargado=self.request.user)).distinct()
 
     def get_success_url(self, *args, **kwargs):
         return self.object.view_url()
@@ -631,6 +659,8 @@ class Tomo_Ingreso(FormView_Login):
                 messages.warning(self.request, _('Usuario no puede asignar expedientes en esa caja'))
             elif not caja_qs.vigente:
                 messages.warning(self.request, _('La caja no se encuentra habilitada'))
+            elif not caja_qs.posicion.nivel.estante.bodega.vigente:
+                messages.warning(self.request, _('La bodega no se encuentra habilitada'))
             elif not tomo_qs.caja:
                 tomo_qs.comentario, tomo_qs.vigente = comentario, True
                 tomo_qs.caja, tomo_qs.usuario = caja_qs, self.request.user
