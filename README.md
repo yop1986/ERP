@@ -101,7 +101,7 @@ Es necesario desactivar el debug en settings (adicional a la configuracion anter
         > openssl req -x509 -newkey rsa:4096 -nodes -out <ruta>\cert.pem -keyout <ruta>\key.pem -days 1830
 
     El proceso solicita informacion adicional para generar el certificado
-    
+
 #### NGinx 
 
 Se descomprime Nginx (version descargada de nginx.org) y se coloca la carpeta en el disco `C:\`
@@ -111,7 +111,7 @@ Se crean las carpetas sites-available, sites-enable
     C:\nginx-1.21.6\sites-enable
     C:\nginx-1.21.6\sites-available
     
-Se descomprimen los archivos nginx_waitress.rar [(material de apoyo del autor)](https://github.com/Johnnyboycurtis/webproject) O los archivos modificados agregados en el proyecto Docs\Certificados
+Se descomprimen los archivos nginx_waitress.rar [(material de apoyo del autor)](https://github.com/Johnnyboycurtis/webproject) O los archivos modificados agregados en el proyecto "Docs\Servidor Produccion"
 
     - cert.pem
     - key.pem
