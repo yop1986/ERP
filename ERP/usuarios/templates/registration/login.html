@@ -1,0 +1,20 @@
+{% extends 'base_usuario.html' %}
+{% load static crispy_forms_tags %}
+
+{% block inner_content %}
+<main class="form-signin">
+  {% if request.user.is_authenticated %}
+    <div class="alert alert-warning" role="alert">{{ mensajes.logueado }} <a href="{% url 'logout' %}">Salir (X)</a></div>
+  {% else %}
+    <form method="post">
+      <img class="mb-4" src="{% static 'images/logo.png' %}" alt="" width="72" height="57">
+      {% csrf_token %}
+      {{ form|crispy }}
+      <p></p>
+      <p><input type="submit" name="{{ botones.ingresar }}" value="{{ botones.ingresar }}" class="btn btn-dark"></p>
+    </form>
+
+    <a href="#">Recuperar contraseña</a>
+  {% endif %}
+</main>
+{% endblock %}

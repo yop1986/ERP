@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Correo</title>
+</head>
+<body>
+    <div class="container">
+        <h2>{{ title }}</h2>
+        <p>{{ message }}</p>
+        <ul>
+            {% for object in object_list %}
+            <li>{{ object }} {% if object.caja %}({{ object.caja }}){% endif %}</li>
+            {% endfor %}
+        </ul>
+
+        {% if comentario %}
+        <pre>
+            {{ comentario }}
+        </pre>
+        {% endif %}
+    </div>
+</body>
+</html>

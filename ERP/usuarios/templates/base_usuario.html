@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block nav %}
+{% endblock %}
+
+{% block content %}
+  {% if messages %}
+    {% for message in messages %}
+      <div {% if message.tags %} class="alert alert-{{ message.tags }}"{% endif %} role="alert">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+  <div class="row mb-3">
+    <div class="col-10">
+      <h1 class="pb-2 border-bottom">{{ title }}</h1>
+    </div>
+    <div class="col-2 p-2 ">
+      {% block create_button %}{% endblock %}
+    </div>
+  </div>
+
+    {% block inner_content %}
+    {% endblock %}
+{% endblock %}

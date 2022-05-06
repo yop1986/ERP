@@ -1,0 +1,30 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ context.title }} - {{ context.object }}</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/expedientes_style.css' %}">
+</head>
+<body>
+<table class="fixed">
+    <col/>
+    <col/>
+
+    {% for key, value in arreglo.items %}
+        {% if not forloop.counter|divisibleby:2 %}<tr>{% endif %}
+            <td class="table-border">
+                <span class="{{ value }} big">{{ key.numero }}</span><br>
+                <div class="mostrar small align-left">
+                    Credito: {{ context.object.numero }}<br>
+                    Cliente: {{ context.object.cliente }}<br>
+                    Monto: {{ context.object.monto }}<br>
+                    Oficina: {{ context.object.oficina }}<br>
+                    Producto: {{ context.object.producto }}<br>
+                </div>
+                <span class="{{ value }}">*{{ key }}*</span>
+            </td>
+        {% if forloop.counter|divisibleby:2 %}</tr>{% endif %}
+    {% endfor %}
+</table>
+</body>
+</html>

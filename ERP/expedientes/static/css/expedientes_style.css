@@ -1,0 +1,76 @@
+table.fixed {
+    table-layout: fixed;
+}
+
+table.fixed col {
+    width: 570px;
+}
+
+table.fixed tr {
+    line-height: 45px; 
+    /*height: 0.5cm;*/
+}
+
+table.fixed td {
+    margin-top: 42px;
+    padding-top: 42px;
+    text-align: center;
+}
+
+.table-border {
+    border-width: thin;
+    border-style: dotted;
+
+    padding: 12px;
+}
+
+.align-left {
+    text-align: left;
+}
+
+.ocultar {
+    color: white;
+    visibility: hidden;
+}
+
+.mostrar {
+    color: black;
+    visibility: visible;
+
+    font-family: 'barcode39';
+    font-size: 3em;
+
+}
+
+.big {
+    font-family: 'Arial';
+    font-size: 3em;
+    margin-bottom: 30px;
+    padding-bottom: 30px;
+}
+
+.small {
+    font-family: 'Arial';
+    font-size: 1.5em;
+    margin-bottom: 30px;
+    padding-bottom: 30px;
+}
+
+@page {
+    size: 8.5in 14in;
+    margin-top: 1cm;
+    margin-bottom: 2cm;
+    margin-right: 0.2cm;
+    margin-left: 0.2cm;
+}
+
+
+@font-face {
+    font-family: 'barcode39';
+    src: url('Free3of9.woff2') format('woff2'),
+        url('Free3of9.woff') format('woff'),
+        url('free3of9.ttf') format('truetype'),
+        url('fre3of9x.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}

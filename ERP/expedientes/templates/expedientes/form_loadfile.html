@@ -1,0 +1,13 @@
+{% extends "base_expedientes.html" %}
+{% load crispy_forms_tags %}
+
+{% block inner_content %}
+    <form method="post" autocomplete="off" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <p></p>
+        <input type="submit" name="Cargar" value="{{ botones.guardar }}" class="btn btn-dark">
+        <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{{ list_url }}{% endif %}" class="btn btn-danger">{{ botones.cancelar }}</a>
+    </form>
+    <!-- {% crispy form %} -->
+{% endblock %}

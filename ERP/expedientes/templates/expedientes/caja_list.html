@@ -1,0 +1,35 @@
+{% extends "base_expedientes.html" %}
+{% load static verbose_names %}
+
+{% block inner_content %}
+  {% if object_list %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">{{ etiquetas.caja }}</th>
+          <th scope="col">{{ opciones.etiqueta }}</th>
+        </tr>
+      </thead>
+      <tbody>
+    {% for object in object_list %}
+        <tr>
+          <th scope="row">{{ forloop.counter0|add:page_obj.start_index }}</th>
+          <td>{{ object }}</td>
+          <td>
+            {% if perms.expedientes.delete_caja %}
+            <a href="{{ object.delete_url }}" class="btn btn-success">{{ opciones.habilitar }} </a>
+            {% endif %}
+          </td>
+        </tr>
+    {% endfor %}
+      </tbody>
+    </table>
+{% else %}
+    <div class="alert alert-warning" role="alert">{{ mensaje_vacio }}</div>
+{% endif %}
+{% endblock %}
+
+{% block pagination %}
+  {% include 'base_pagination.html' %}
+{% endblock %}

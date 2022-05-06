@@ -1,0 +1,37 @@
+{% extends 'base_qlik.html' %}
+
+
+{% block inner_content %}
+<div class="container px-4 py-5" id="icon-grid">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 py-5">
+        <div class="col d-flex align-items-start">
+            <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#bootstrap"/></svg>
+            <div>
+            <h4 class="fw-bold mb-0">Tipos de Datos</h4>
+            <p>Permite categorizar el origen de los datos de acuerdo con su fuente.</p>
+            </div>
+        </div>
+        <div class="col d-flex align-items-start">
+            <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#cpu-fill"/></svg>
+            <div>
+            <h4 class="fw-bold mb-0">Origen de Datos</h4>
+            <p>Permite determinar todo origen de dato, desde el más básico hasta los mas complejos generados por modelos.</p>
+            </div>
+        </div>
+        <div class="col d-flex align-items-start">
+            <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#calendar3"/></svg>
+            <div>
+            <h4 class="fw-bold mb-0">Streams</h4>
+            <p>Agrupacion utilizada dentro de Qlik Sense para los modelos.</p>
+            </div>
+        </div>
+        <div class="col d-flex align-items-start">
+            <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#home"/></svg>
+            <div>
+            <h4 class="fw-bold mb-0">Modelos</h4>
+            <p>Modelos de datos publicados en Qlik Sense.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
