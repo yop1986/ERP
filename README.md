@@ -30,6 +30,7 @@ Se realiza la configuracion dentro del proyecto
         
         - SECRET_KEY
         - INSTALLED_APPS
+            'django.contrib.humanize',
             'crispy_forms',
             'crispy_bootstrap5',
             'simple_history',
@@ -70,9 +71,13 @@ Se realiza la configuracion dentro del proyecto
 
 Se ejecutan las migraciones y creacion de usuario administrador
 
-    python -manage.py makemigrations <app>
-    python -manage.py migrate
-    python -manage.py createsuperuser
+    python manage.py makemigrations <app>
+    python manage.py migrate
+    python manage.py createsuperuser
+
+Eliminar las migraciones de una app
+    
+    python manage.py migrate <--fake> <app> zero 
 
 Se cargan librerías adicionales a la ruta usuarios/static:
     
