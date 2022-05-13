@@ -1,0 +1,13 @@
+<h2>{{ title }}</h2>
+<p>{{ message }}</p>
+<ul>
+    {% for object in object_list %}
+    <li>{{ object }} {% if object.caja %}({{ object.caja }}){% endif %}</li>
+    {% endfor %}
+</ul>
+
+{% if comentario %}
+<pre>
+    {{ comentario }}
+</pre>
+{% endif %}

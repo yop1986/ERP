@@ -1,21 +1,21 @@
-{% extends "base_expedientes.html" %}
+{% extends "base_documentos.html" %}
 {% load static verbose_names math_operations crispy_forms_tags %}
 
 {% block inner_content %}
   <div class="row mb-2">
     <div class="col-7">
-      <strong>{% get_verbose_field_name object "bodega" %}</strong>
+      <strong>{% get_verbose_field_name object "nivel" %}</strong>
     </div>
     <div class="col-5">
-      <a href="{{ object.bodega.view_url }}">{{ object.bodega }}</a>
+      <a href="{{ object.nivel.view_url }}">{{ object.nivel }}</a>
     </div>
   </div>
   <div class="row mb-2">
     <div class="col-7">
-      <strong>{% get_verbose_field_name object "codigo" %}</strong>
+      <strong>{% get_verbose_field_name object "numero" %}</strong>
     </div>
     <div class="col-5">
-      {{ object.codigo }}
+      {{ object.numero }}
     </div>
   </div>
   <div class="row mb-2">
@@ -26,7 +26,7 @@
       {{ object.get_estado }}
     </div>
   </div>
-  {% if perms.expedientes.label_estante %}
+  {% if perms.documentos.label_posicion %}
   <div class="row mb-2">
     <div class="col-7">
       <strong>{{ opciones.etiqueta }}</strong>
@@ -36,7 +36,6 @@
     </div>
   </div>
   {% endif %}
-
 
 <div class="accordion accordion-flush" id="accordion-estructura">
 
@@ -52,21 +51,21 @@
           <thead>
             <tr>
               <th scope="col">{{ estructura.tooltip_head }}</th>
-              <th scope="col" colspan="{{ estructura.max_columnas }}">{{ estructura.tooltip_body }}</th>
+              <th scope="col">{{ estructura.tooltip_body }}</th>
             </tr>
           </thead>
           <tbody>
-          {% for posicion in estructura.estructura %}
-            {% if posicion.numero == 1 %}
+          {% for caja in estructura.estructura %}
             <tr>
-              <th data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_head }}: {{ posicion.nivel }}">
-                  <a href="{{ posicion.nivel.view_url }}">{{ posicion.nivel.numero }}</a>
+              <th data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_head }}: {{ caja }}">
+                  <a href="{{ caja.view_url }}">{{ caja.numero }}</a>
               </th>
-            {% endif %}
-            <td data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_body }}:{{ posicion }}">
-              <a href="{{ posicion.view_url }}">{{ posicion.numero }}</a>
-            </td>
-            {% if posicion.numero == estructura.max_columnas %}</tr>{% endif %}
+              <td>
+              {% for tomo in caja.get_tomos %}
+                <a href="{{ tomo.credito_view }}">{{ tomo }}</a><br>
+              {% endfor %}
+              </td>
+            </tr>
           {% endfor %}
           </tbody>
         </table>

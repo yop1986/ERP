@@ -2,7 +2,7 @@ from django.urls import path, include
 
 from . import views
 
-app_name='expedientes'
+app_name='documentos'
 urlpatterns = [
     path('', views.Inicio_Template.as_view(), name='index'),
 

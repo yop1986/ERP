@@ -1,14 +1,14 @@
-{% extends "base_expedientes.html" %}
+{% extends "base_documentos.html" %}
 {% load static verbose_names %}
 
 {% block create_button %}
-{% if perms.expedientes.add_bodega %}
-<a href="{% url 'expedientes:bodega_create' %}" class="btn btn-success"><img src="{% static 'images/expedientes_add.png' %}" width="32" alt="{{ opciones.nuevo }}" title="{{ opciones.nuevo }}"></a>
+{% if perms.documentos.add_bodega %}
+<a href="{% url 'documentos:bodega_create' %}" class="btn btn-success"><img src="{% static 'images/documentos_add.png' %}" width="32" alt="{{ opciones.nuevo }}" title="{{ opciones.nuevo }}"></a>
 {% endif %}
 {% endblock %}
 
 {% block inner_content %}
-    {% include 'base_expedientes_search_form.html' %}
+    {% include 'base_documentos_search_form.html' %}
 
   {% if object_list %}
     <table class="table table-striped">
@@ -28,10 +28,10 @@
           <td>{{ object.get_estado }}</td>
           <td>
             <a href="{{ object.view_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
-            {% if perms.expedientes.change_bodega %}
+            {% if perms.documentos.change_bodega %}
             <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
             {% endif %}
-            {% if perms.expedientes.change_bodega %}
+            {% if perms.documentos.delete_bodega %}
             <a href="{{ object.delete_url }}" class="btn btn-{{ object.get_accion_tag }}"> {{ object.get_accion }}</a>
             {% endif %}
           </td>

@@ -1,4 +1,4 @@
-{% extends "base_expedientes.html" %}
+{% extends "base_documentos.html" %}
 {% load verbose_names math_operations crispy_forms_tags %}
 
 {% block inner_content %}
@@ -47,11 +47,13 @@
       <strong>{{ opciones.etiqueta }}</strong>
     </div>
     <div class="col-5">
-      {% if perms.expedientes.change_bodega %}
+      {% if perms.documentos.change_bodega %}
       <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
       {% endif %}
-      <a href="{% url 'expedientes:cajas_inhabilitadas' %}" class="btn btn-dark">{{ opciones.cajas_inhabilitadas }}</a>
-      {% if perms.expedientes.delete_bodega %}
+      {% if perms.documentos.view_caja %}
+      <a href="{% url 'documentos:cajas_inhabilitadas' %}" class="btn btn-dark">{{ opciones.cajas_inhabilitadas }}</a>
+      {% endif %}
+      {% if perms.documentos.delete_bodega %}
       <a href="{{ object.delete_url }}" class="btn btn-{{ object.get_accion_tag }}">{{ object.get_accion }}</a>
       {% endif %}
     </div>
@@ -60,7 +62,7 @@
 
 <div class="accordion accordion-flush" id="accordion-estructura">
 
-  {% if perms.expedientes.genera_estructura %}
+  {% if perms.documentos.genera_estructura %}
   <div class="accordion-item">
     <h2 class="accordion-header" id="flush-headingOne">
       <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
@@ -78,7 +80,7 @@
     </div>
   </div>
   {% endif %}
-  {% if perms.expedientes.view_estructura %}
+  {% if perms.documentos.view_estructura %}
   <div class="accordion-item">
     <h2 class="accordion-header" id="flush-headingTwo">
       <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseTwo" aria-expanded="false" aria-controls="flush-collapseTwo">

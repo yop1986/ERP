@@ -55,16 +55,16 @@ class Bodega(models.Model):
         super().delete()
     
     def list_url(self=None):
-        return reverse('expedientes:bodega_list')
+        return reverse('documentos:bodega_list')
 
     def view_url(self):
-        return reverse('expedientes:bodega_view', kwargs={'pk': self.id})
+        return reverse('documentos:bodega_view', kwargs={'pk': self.id})
 
     def update_url(self):
-        return reverse('expedientes:bodega_update', kwargs={'pk': self.id})
+        return reverse('documentos:bodega_update', kwargs={'pk': self.id})
 
     def delete_url(self):
-        return reverse('expedientes:bodega_delete', kwargs={'pk': self.id})
+        return reverse('documentos:bodega_delete', kwargs={'pk': self.id})
 
     def get_estado(self):
         return _('Vigente') if self.vigente else _('No Vigente')
@@ -108,19 +108,19 @@ class Estante(models.Model):
         super().save(*args, **kwargs)
         
     def list_url():
-        return reverse('expedientes:estante_list')
+        return reverse('documentos:estante_list')
 
     def view_url(self):
-        return reverse('expedientes:estante_view', kwargs={'pk': self.id})
+        return reverse('documentos:estante_view', kwargs={'pk': self.id})
 
     def update_url(self):
-        return reverse('expedientes:estante_update', kwargs={'pk': self.id})
+        return reverse('documentos:estante_update', kwargs={'pk': self.id})
 
     def delete_url(self):
-        return reverse('expedientes:estante_delete', kwargs={'pk': self.id})
+        return reverse('documentos:estante_delete', kwargs={'pk': self.id})
 
     def labels_url(self):
-        return reverse('expedientes:estante_labels', kwargs={'pk': self.id})
+        return reverse('documentos:estante_labels', kwargs={'pk': self.id})
 
     def get_estado(self):
         return _("Vigente") if self.vigente else _("No Vigente")
@@ -144,19 +144,19 @@ class Nivel(models.Model):
         return f"{self.estante}-{self.numero:02d}"
 
     def list_url():
-        return reverse('expedientes:nivel_list')
+        return reverse('documentos:nivel_list')
 
     def view_url(self):
-        return reverse('expedientes:nivel_view', kwargs={'pk': self.id})
+        return reverse('documentos:nivel_view', kwargs={'pk': self.id})
 
     def update_url(self):
-        return reverse('expedientes:nivel_update', kwargs={'pk': self.id})
+        return reverse('documentos:nivel_update', kwargs={'pk': self.id})
 
     def delete_url(self):
-        return reverse('expedientes:nivel_delete', kwargs={'pk': self.id})
+        return reverse('documentos:nivel_delete', kwargs={'pk': self.id})
 
     def labels_url(self):
-        return reverse('expedientes:nivel_labels', kwargs={'pk': self.id})
+        return reverse('documentos:nivel_labels', kwargs={'pk': self.id})
 
     def get_estado(self):
         return _("Vigente") if self.vigente else _("No Vigente")
@@ -180,22 +180,22 @@ class Posicion(models.Model):
         return f"{self.nivel}-{self.numero:02d}"
 
     def list_url():
-        return reverse('expedientes:posicion_list')
+        return reverse('documentos:posicion_list')
 
     def view_url(self):
-        return reverse('expedientes:posicion_view', kwargs={'pk': self.id})
+        return reverse('documentos:posicion_view', kwargs={'pk': self.id})
 
     def update_url(self):
-        return reverse('expedientes:posicion_update', kwargs={'pk': self.id})
+        return reverse('documentos:posicion_update', kwargs={'pk': self.id})
 
     def delete_url(self):
-        return reverse('expedientes:posicion_delete', kwargs={'pk': self.id})
+        return reverse('documentos:posicion_delete', kwargs={'pk': self.id})
 
     def get_estado(self):
         return _("Vigente") if self.vigente else _("No Vigente")
 
     def labels_url(self):
-        return reverse('expedientes:posicion_labels', kwargs={'pk': self.id})
+        return reverse('documentos:posicion_labels', kwargs={'pk': self.id})
 
 
 class Caja(models.Model):
@@ -233,16 +233,16 @@ class Caja(models.Model):
         super().delete()
     
     def list_url():
-        return reverse('expedientes:caja_list')
+        return reverse('documentos:caja_list')
 
     def view_url(self):
-        return reverse('expedientes:caja_view', kwargs={'pk': self.id})
+        return reverse('documentos:caja_view', kwargs={'pk': self.id})
 
     def update_url(self):
-        return reverse('expedientes:caja_update', kwargs={'pk': self.id})
+        return reverse('documentos:caja_update', kwargs={'pk': self.id})
 
     def delete_url(self):
-        return reverse('expedientes:caja_delete', kwargs={'pk': self.id})
+        return reverse('documentos:caja_delete', kwargs={'pk': self.id})
 
     def get_estado(self):
         return _("Vigente") if self.vigente else _("No Vigente")
@@ -254,7 +254,7 @@ class Caja(models.Model):
         return _('danger') if self.vigente else _('success')
 
     def labels_url(self):
-        return reverse('expedientes:caja_labels', kwargs={'pk': self.id})
+        return reverse('documentos:caja_labels', kwargs={'pk': self.id})
 
     def get_tomos(self):
         return Tomo.objects.filter(caja=self).order_by('-fecha_modificacion')\
@@ -324,10 +324,10 @@ class Credito(models.Model):
         return f"{self.numero} - {self.cliente.nombre}"
 
     def view_url(self):
-        return reverse('expedientes:credito_view', kwargs={'pk': self.id})
+        return reverse('documentos:credito_view', kwargs={'pk': self.id})
 
     def labels_url(self):
-        return reverse('expedientes:credito_labels', kwargs={'pk': self.id})
+        return reverse('documentos:credito_labels', kwargs={'pk': self.id})
 
     def cant_tomos(self):
         return Tomo.objects.filter(credito=self, vigente=True).count()
@@ -366,16 +366,16 @@ class Tomo(models.Model):
         return "{}-{}".format(self.credito.numero, self.numero)
 
     def view_credito(self):
-        return reverse('expedientes:credito_view', kwargs={'pk': self.credito.id})
+        return reverse('documentos:credito_view', kwargs={'pk': self.credito.id})
 
     def envio_url():
-        return reverse('expedientes:envio_tomo')
+        return reverse('documentos:envio_tomo')
 
     def egreso_url(self):
-        return reverse('expedientes:egreso_tomo', kwargs={'pk': self.id})
+        return reverse('documentos:egreso_tomo', kwargs={'pk': self.id})
 
     def labels_url(self):
-        return reverse('expedientes:tomo_labels', kwargs={'pk': self.id})
+        return reverse('documentos:tomo_labels', kwargs={'pk': self.id})
 
     def get_posicion(self):
         return Caja.objects.filter(id=self.caja.id, tomo_caja__fecha_modificacion__gte=self.fecha_modificacion).count()

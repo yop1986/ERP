@@ -1,30 +1,32 @@
 <div class="collapse navbar-collapse" id="navbarNavDropdown">
     <ul class="navbar-nav">
-      {% if perms.expedientes.load_credito %}
+      {% if perms.documentos.load_credito %}
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Creditos
         </a>
         <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-          <li><a class="dropdown-item" href="{% url 'expedientes:carga' %}">Carga de Créditos</a></li>
+          <li><a class="dropdown-item" href="{% url 'documentos:carga' %}">Carga de Créditos</a></li>
         </ul>
       </li>
       {% endif %}
+      {% if perms.documentos.view_bodega %}
       <li class="nav-item">
-        <a class="nav-link" href="{% url 'expedientes:bodega_list' %}">Bodega</a>
+        <a class="nav-link" href="{% url 'documentos:bodega_list' %}">Bodega</a>
       </li>
-      {% if perms.expedientes.change_tomo %}
+      {% endif %}
+      {% if perms.documentos.change_tomo %}
       <li class="nav-item">
-        <a class="nav-link" href="{% url 'expedientes:ingreso_tomo' %}">Ingreso Tomo</a>
+        <a class="nav-link" href="{% url 'documentos:ingreso_tomo' %}">Ingreso Tomo</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="{% url 'expedientes:envio_tomo' %}">Envío Tomos</a>
+        <a class="nav-link" href="{% url 'documentos:envio_tomo' %}">Envío Tomos</a>
       </li>
       {% endif %}
     </ul>
   </div>
 
-  <form class="d-flex" method="get" action="{% url 'expedientes:credito_search' %}" autocomplete="off">
+  <form class="d-flex" method="get" action="{% url 'documentos:credito_search' %}" autocomplete="off">
     <input class="form-control me-2" type="search" placeholder="Crédito" aria-label="Search" name="numero">
     <button class="btn btn-outline-success" type="submit">Buscar</button>
   </form>

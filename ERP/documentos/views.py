@@ -26,14 +26,14 @@ from usuarios.views_base import (ListView_Login, DetailView_Login, TemplateView_
 
 # Create your views here.
 class Inicio_Template(TemplateView):
-    template_name = 'expedientes/index.html'
+    template_name = 'documentos/index.html'
     extra_context = {
-        'title': 'Expedientes',
+        'title': 'Documentos',
     }
 
 
 class Bodega_ListView(ListView_Login):
-    permission_required = 'expedientes.view_bodega'
+    permission_required = 'documentos.view_bodega'
     model = Bodega
     paginate_by = 15
     ordering = ['-vigente', 'nombre']
@@ -74,7 +74,7 @@ class Bodega_ListView(ListView_Login):
                 |Q(encargado=self.request.user)).distinct()
 
 class Bodega_DetailView(FormMixin, DetailView_Login):
-    permission_required = 'expedientes.view_bodega'
+    permission_required = 'documentos.view_bodega'
     model = Bodega
     form_class = GeneraEstructura
     extra_context = {
@@ -192,10 +192,10 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
         return codigos
 
 class Bodega_CreateView(CreateView_Login):
-    permission_required = 'expedientes.add_bodega'
+    permission_required = 'documentos.add_bodega'
     model = Bodega
     form_class = Bodega_From
-    template_name = 'expedientes/form.html'
+    template_name = 'documentos/form.html'
     extra_context = {
         'title': _('Nueva Bodega'),
         'botones': {
@@ -210,10 +210,10 @@ class Bodega_CreateView(CreateView_Login):
         return context
 
 class Bodega_UpdateView(UpdateView_Login):
-    permission_required = 'expedientes.change_bodega'
+    permission_required = 'documentos.change_bodega'
     model = Bodega
     form_class = Bodega_From
-    template_name = 'expedientes/form.html'
+    template_name = 'documentos/form.html'
     extra_context = {
         'title': _('Modificar Bodega'),
         'botones': {
@@ -237,9 +237,9 @@ class Bodega_UpdateView(UpdateView_Login):
                 |Q(encargado=self.request.user)).distinct()
 
 class Bodega_DeleteView(DeleteView_Login):
-    permission_required = 'expedientes.delete_bodega'
+    permission_required = 'documentos.delete_bodega'
     model = Bodega
-    template_name = 'expedientes/confirmation_form.html'
+    template_name = 'documentos/confirmation_form.html'
     extra_context = {
         'title': _('Cambiar Estado Bodega'),
     }
@@ -269,7 +269,7 @@ class Bodega_DeleteView(DeleteView_Login):
 
 
 class Estante_DetailView(DetailView_Login):
-    permission_required = 'expedientes.view_estante'
+    permission_required = 'documentos.view_estante'
     model = Estante
     extra_context = {
         'title': _('Estante'),
@@ -307,8 +307,8 @@ class Estante_DetailView(DetailView_Login):
                 |Q(bodega__encargado=self.request.user)).distinct()
 
 class Estante_Etiqueta(DetailView_Login):
-    permission_required = 'expedientes.label_estante'
-    template_name = 'expedientes/etiqueta.html'
+    permission_required = 'documentos.label_estante'
+    template_name = 'documentos/etiqueta.html'
     model = Caja
 
     def get(self, request, *args, **kwargs):
@@ -324,7 +324,7 @@ class Estante_Etiqueta(DetailView_Login):
 
 
 class Nivel_DetailView(DetailView_Login):
-    permission_required = 'expedientes.view_nivel'
+    permission_required = 'documentos.view_nivel'
     model = Nivel
     extra_context = {
         'title': _('Nivel'),
@@ -363,8 +363,8 @@ class Nivel_DetailView(DetailView_Login):
                 |Q(estante__bodega__encargado=self.request.user)).distinct()
 
 class Nivel_Etiqueta(DetailView_Login):
-    permission_required = 'expedientes.label_nivel'
-    template_name = 'expedientes/etiqueta.html'
+    permission_required = 'documentos.label_nivel'
+    template_name = 'documentos/etiqueta.html'
     model = Caja
     
     def get(self, request, *args, **kwargs):
@@ -380,7 +380,7 @@ class Nivel_Etiqueta(DetailView_Login):
 
 
 class Posicion_DetailView(DetailView_Login):
-    permission_required = 'expedientes.view_posicion'
+    permission_required = 'documentos.view_posicion'
     model = Posicion
     extra_context = {
         'title': _('Posición'),
@@ -419,8 +419,8 @@ class Posicion_DetailView(DetailView_Login):
                 | Q(nivel__estante__bodega__encargado=self.request.user)).distinct()
 
 class Posicion_Etiqueta(DetailView_Login):
-    permission_required = 'expedientes.label_posicion'
-    template_name = 'expedientes/etiqueta.html'
+    permission_required = 'documentos.label_posicion'
+    template_name = 'documentos/etiqueta.html'
     model = Caja
     
     def get(self, request, *args, **kwargs):
@@ -436,7 +436,7 @@ class Posicion_Etiqueta(DetailView_Login):
 
 
 class Caja_ListView(ListView_Login):
-    permission_required = 'expedientes.view_caja'
+    permission_required = 'documentos.view_caja'
     model = Caja
     paginate_by = 15
     ordering = ['posicion__nivel__estante__codigo', 'posicion__nivel__numero', 'posicion__numero', 'numero']
@@ -462,7 +462,7 @@ class Caja_ListView(ListView_Login):
                 |Q(posicion__nivel__estante__bodega__encargado=self.request.user)).distinct()
 
 class Caja_DetailView(DetailView_Login):
-    permission_required = 'expedientes.view_caja'
+    permission_required = 'documentos.view_caja'
     model = Caja
     extra_context = {
         'title': _('Caja'),
@@ -496,15 +496,15 @@ class Caja_DetailView(DetailView_Login):
                 |Q(posicion__nivel__estante__bodega__encargado=self.request.user)).distinct()
 
 class Caja_DeleteView(DeleteView_Login):
-    permission_required = 'expedientes.delete_caja'
+    permission_required = 'documentos.delete_caja'
     model = Caja
-    template_name = 'expedientes/confirmation_form.html'
+    template_name = 'documentos/confirmation_form.html'
     extra_context = {
         'title': _('Cambiar Estado de Caja'),
         'botones': {
             'cancelar': _('Cancelar'),
         },
-        'list_url': reverse_lazy('expedientes:index'),
+        'list_url': reverse_lazy('documentos:index'),
     }
 
     def get_context_data(self, *args, **kwargs):
@@ -527,8 +527,8 @@ class Caja_DeleteView(DeleteView_Login):
         return self.object.view_url()
 
 class Caja_Etiqueta(DetailView_Login):
-    permission_required = 'expedientes.label_caja'
-    template_name = 'expedientes/etiqueta.html'
+    permission_required = 'documentos.label_caja'
+    template_name = 'documentos/etiqueta.html'
     model = Caja
     
     def get(self, request, *args, **kwargs):
@@ -543,9 +543,9 @@ class Caja_Etiqueta(DetailView_Login):
 
 
 class CargaMasiva_Form(FormView_Login):
-    permission_required = 'expedientes.load_credito'
+    permission_required = 'documentos.load_credito'
     form_class = CargaCreditos_Form
-    template_name = 'expedientes/form_loadfile.html'
+    template_name = 'documentos/form_loadfile.html'
     success_message = _('Se cargaron los registros exitosamente')
     extra_context = {
         'title': _('Carga de Créditos'),
@@ -556,7 +556,7 @@ class CargaMasiva_Form(FormView_Login):
     }
 
     def get_success_url(self):
-        return reverse_lazy('expedientes:index')
+        return reverse_lazy('documentos:index')
 
     def post(self, request, *args, **kwargs):
         if 'Cargar' in request.POST:
@@ -573,7 +573,7 @@ class CargaMasiva_Form(FormView_Login):
         return super().form_valid(form)
 
 class Credito_DetailView(DetailView_Login):
-    permission_required = 'expedientes.view_credito'
+    permission_required = 'documentos.view_credito'
     model = Credito
     extra_context = {
         'title': _('Credito'),
@@ -605,8 +605,8 @@ class Credito_DetailView(DetailView_Login):
         return context
 
 class Credito_Etiqueta(DetailView_Login):
-    permission_required = 'expedientes.label_credito'
-    template_name = 'expedientes/etiqueta_tomo.html'
+    permission_required = 'documentos.label_credito'
+    template_name = 'documentos/etiqueta_tomo.html'
     model = Tomo
     
     def get(self, request, *args, **kwargs):
@@ -622,18 +622,18 @@ class Credito_Etiqueta(DetailView_Login):
 
 
 class Tomo_Ingreso(FormView_Login):
-    permission_required = 'expedientes.change_tomo'
+    permission_required = 'documentos.change_tomo'
     form_class = IngresoTomo_Form
-    template_name = 'expedientes/form.html'
+    template_name = 'documentos/form.html'
     extra_context = {
         'title': _('Ingreso a Bodega'),
         'botones': {
             'guardar': _('Guardar'),
             'cancelar': _('Cancelar'),
         },
-        'list_url': reverse_lazy('expedientes:index'),
+        'list_url': reverse_lazy('documentos:index'),
     }
-    success_url = reverse_lazy('expedientes:index')
+    success_url = reverse_lazy('documentos:index')
     success_message ='' # se remueve el mensaje default agregado en formview_login
 
     def post(self, request, *args, **kwargs):
@@ -676,28 +676,24 @@ class Tomo_Ingreso(FormView_Login):
         return super().form_valid(form)
 
 class Tomo_Etiqueta(DetailView_Login):
-    permission_required = 'expedientes.label_tomo'
-    template_name = 'expedientes/etiqueta.html'
+    permission_required = 'documentos.label_tomo'
+    template_name = 'documentos/etiqueta_tomo.html'
     model = Tomo
-    form_class = GeneraEtiquetas_Form()
 
     def get(self, request, *args, **kwargs):
         context = {
             'title': _('Etiqueta'),
-            'object': Tomo.objects.get(pk=kwargs['pk'])
+            'object': Credito.objects.get(tomo_credito__pk=self.kwargs['pk'])
         }
-        arreglo = {}
-        if request.GET.get('posicion'):
-            tomos = list(Tomo.objects.filter(id=self.kwargs['pk']))
-            for i in range(1, int(request.GET.get('posicion'))):
-                arreglo[i] = 'ocultar'
-            for tomo in tomos:
-                arreglo[tomo] = 'mostrar'
-        return render(request, self.template_name, {'arreglo': arreglo, 'form': self.form_class, 'context': context})
+        arreglo = {}    
+        tomos = list(Tomo.objects.filter(id=self.kwargs['pk']))
+        for tomo in tomos:
+            arreglo[tomo] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'context': context})
 
 class Tomo_Template(TemplateView_Login):
-    permission_required = 'expedientes.change_tomo'
-    template_name = 'expedientes/tomo_list.html'
+    permission_required = 'documentos.change_tomo'
+    template_name = 'documentos/tomo_list.html'
     extra_context = {
         'title': 'Salida de Tomos',
         'opciones': {
@@ -732,7 +728,7 @@ def buscar_credito(request):
     elif len(numero)>0:
         messages.warning(request, _('No se encontró el crédito: ')+numero[0])
 
-    return redirect(reverse_lazy('expedientes:index'))
+    return redirect(reverse_lazy('documentos:index'))
     
 def operaciones_tomo(request, pk=None):
     if 'escaneado.x' in request.POST:

@@ -14,6 +14,8 @@ de al estructura de la aplicación.
 Es necesario contar como minimo con los paquetes indicados en el archivo
 "Docs/dependencies.txt" para el correcto funcionamiento de cada sección.
 
+    pip install -r Docs/dependencies.txt
+
 Se debe iniciar un proyecto sobre le cual se colocarán los modulos
 
     django-admin startproject <nombre>
@@ -48,8 +50,8 @@ Se realiza la configuracion dentro del proyecto
         - CRISPY_TEMPLATE_PACK = "bootstrap5"
         # Reemplazar el usario en settings del proyecto
         - AUTH_USER_MODEL = 'usuarios.Usuario'
-        - LOGIN_REDIRECT_URL = reverse_lazy('index')
-        - LOGOUT_REDIRECT_URL = reverse_lazy('index')
+        - LOGIN_REDIRECT_URL = reverse_lazy('index')        # from django.urls import reverse_lazy
+        - LOGOUT_REDIRECT_URL = reverse_lazy('index')       # from django.urls import reverse_lazy
         - STATIC_ROOT = os.path.join(BASE_DIR, 'static')
         # Configuración de correo (pruebas y producción)
         -if DEBUG:
@@ -64,17 +66,18 @@ Se realiza la configuracion dentro del proyecto
             EMAIL_PORT = 
     urls.py
         - Se agregan las urls asociadas a cada uno de los módulos instalados
+        En el caso de *usuarios* se agrega _path('', include('usuarios.urls')),_
 
 Se ejecutan las migraciones y creacion de usuario administrador
 
-    python -manage.py makemigrations
+    python -manage.py makemigrations <app>
     python -manage.py migrate
     python -manage.py createsuperuser
 
-Se cargan librerías adicionales a la ruta static:
+Se cargan librerías adicionales a la ruta usuarios/static:
     
-- jquery (js)
-- bootstrap (js/css)
+- jquery (js)           # Download the compressed, production jQuery 3.6.0 y map (jquery.min.js)
+- bootstrap (js y css)  # Compiled CSS and JS
 
 ### Desarrollo
 

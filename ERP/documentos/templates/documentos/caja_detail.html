@@ -1,13 +1,13 @@
-{% extends "base_expedientes.html" %}
+{% extends "base_documentos.html" %}
 {% load static verbose_names math_operations crispy_forms_tags %}
 
 {% block inner_content %}
   <div class="row mb-2">
     <div class="col-7">
-      <strong>{% get_verbose_field_name object "estante" %}</strong>
+      <strong>{% get_verbose_field_name object "posicion" %}</strong>
     </div>
     <div class="col-5">
-      <a href="{{ object.estante.view_url }}">{{ object.estante }}</a>
+      <a href="{{ object.posicion.view_url }}">{{ object.posicion }}</a>
     </div>
   </div>
   <div class="row mb-2">
@@ -26,46 +26,47 @@
       {{ object.get_estado }}
     </div>
   </div>
-  {% if perms.expedientes.label_nivel %}
+  {% if perms.documentos.label_caja or perms.documentos.delete_caja %}
   <div class="row mb-2">
     <div class="col-7">
       <strong>{{ opciones.etiqueta }}</strong>
     </div>
     <div class="col-5">
+      {% if perms.documentos.label_caja %}
       <a href="{{ object.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
+      {% endif %}
+      {% if perms.documentos.delete_caja %}
+      <a href="{{ object.delete_url }}" class="btn btn-lg btn-{{ object.get_accion_tag }}">{{ object.get_accion }}</a>
+      {% endif %}
     </div>
   </div>
   {% endif %}
 
-<div class="accordion accordion-flush" id="accordion-estructura">
+<div class="accordion accordion-flush" id="accordion-tomos">
 
   <div class="accordion-item">
     <h2 class="accordion-header" id="flush-headingOne">
       <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
-        {{ sub_titulo.estructura }}
+        {{ sub_titulo.tomos }}
       </button>
     </h2>
-    <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="flush-headingOne" data-bs-parent="#accordion-estructura">
+    <div id="flush-collapseOne" class="accordion-collapse show" aria-labelledby="flush-headingOne" data-bs-parent="#accordion-tomos">
       <div class="accordion-body">
         <table class="table table-striped table-bordered">
           <thead>
             <tr>
+              <th scope="col">#</th>
               <th scope="col">{{ estructura.tooltip_head }}</th>
-              <th scope="col" colspan="{{ estructura.max_columnas }}">{{ estructura.tooltip_body }}</th>
             </tr>
           </thead>
           <tbody>
-          {% for caja in estructura.estructura %}
-            {% if caja.numero == 1 %}
+          {% for tomo in estructura.estructura %}
             <tr>
-              <th data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_head }}: {{ caja.posicion }}">
-                  <a href="{{ caja.posicion.view_url }}">{{ caja.posicion.numero }}</a>
-              </th>
-            {% endif %}
-            <td data-bs-toggle="tooltip" data-bs-placement="top" title="{{ estructura.tooltip_body }}:{{ caja }}">
-              <a href="{{ caja.view_url }}">{{ caja.numero }}</a>
-            </td>
-            {% if caja.numero == estructura.max_columnas %}</tr>{% endif %}
+              <th>{{ forloop.counter }}</th>
+              <td>
+                  <a href="{{ tomo.view_credito }}">{{ tomo }}</a>
+              </td>
+            </tr>
           {% endfor %}
           </tbody>
         </table>
@@ -75,5 +76,4 @@
   </div>
   
 </div>
-
 {% endblock %}
