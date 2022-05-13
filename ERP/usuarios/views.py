@@ -22,16 +22,23 @@ class Inicio_Template(TemplateView):
 
     def get_aplicaciones_instaladas(self):
         apps = {}
-        if('expedientes' in settings.INSTALLED_APPS):
-            apps['expedientes'] = {
-                'image': 'images/expedientes.png',
-                'nombre': 'Expedientes',
-                'descripcion': 'Control de expedientes en bodega.',
-                'url': reverse_lazy('expedientes:index'),
+        if('clientes' in settings.INSTALLED_APPS):
+            apps['clientes'] = {
+                'image': 'images/menu_clientes.png',
+                'nombre': 'Clientes',
+                'descripcion': 'Seguimiento de clientes.',
+                'url': reverse_lazy('clientes:index'),
+            }
+        if('documentos' in settings.INSTALLED_APPS):
+            apps['documentos'] = {
+                'image': 'images/menu_documentos.png',
+                'nombre': 'Documentos',
+                'descripcion': 'Control de documentos en bodega.',
+                'url': reverse_lazy('documentos:index'),
             }
         if('qlik' in settings.INSTALLED_APPS):
             apps['qlik'] = {
-                'image': 'images/qlik.png',
+                'image': 'images/menu_qlik.png',
                 'nombre': 'Qlik Sense',
                 'descripcion': 'Herramienta de control para manejo de las estructuras asociadas a los modelos desarrollados en Qlik Sense.',
                 'url': reverse_lazy('qlik:index'),
