@@ -25,7 +25,7 @@ class Inicio_Template(TemplateView):
         apps = {}
         if('clientes' in settings.INSTALLED_APPS and (
                 self.request.user.is_superuser or 
-                self.request.user.groups.filter(name__istartswith='clientes')).exists()
+                self.request.user.groups.filter(name__istartswith='clientes'))
             ):
             apps['clientes'] = {
                 'image': 'images/menu_clientes.png',
@@ -35,7 +35,7 @@ class Inicio_Template(TemplateView):
             }
         if('documentos' in settings.INSTALLED_APPS and (
                 self.request.user.is_superuser or 
-                self.request.user.groups.filter(name__istartswith='documentos')).exists()
+                self.request.user.groups.filter(name__istartswith='documentos'))
             ):
             apps['documentos'] = {
                 'image': 'images/menu_documentos.png',
@@ -45,7 +45,7 @@ class Inicio_Template(TemplateView):
             }
         if('qlik' in settings.INSTALLED_APPS and (
                 self.request.user.is_superuser or 
-                self.request.user.groups.filter(name__istartswith='qlik')).exists()
+                self.request.user.groups.filter(name__istartswith='qlik'))
             ):
             apps['qlik'] = {
                 'image': 'images/menu_qlik.png',
