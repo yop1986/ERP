@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import views as views_auth
+from django.db.models import Q
 from django.utils.translation import gettext as _
 from django.views.generic import TemplateView
 from django.urls import reverse_lazy
@@ -22,21 +23,30 @@ class Inicio_Template(TemplateView):
 
     def get_aplicaciones_instaladas(self):
         apps = {}
-        if('clientes' in settings.INSTALLED_APPS):
+        if('clientes' in settings.INSTALLED_APPS and (
+                self.request.user.is_superuser or 
+                self.request.user.groups.filter(name__istartswith='clientes')).exists()
+            ):
             apps['clientes'] = {
                 'image': 'images/menu_clientes.png',
                 'nombre': 'Clientes',
                 'descripcion': 'Seguimiento de clientes.',
                 'url': reverse_lazy('clientes:index'),
             }
-        if('documentos' in settings.INSTALLED_APPS):
+        if('documentos' in settings.INSTALLED_APPS and (
+                self.request.user.is_superuser or 
+                self.request.user.groups.filter(name__istartswith='documentos')).exists()
+            ):
             apps['documentos'] = {
                 'image': 'images/menu_documentos.png',
                 'nombre': 'Documentos',
                 'descripcion': 'Control de documentos en bodega.',
                 'url': reverse_lazy('documentos:index'),
             }
-        if('qlik' in settings.INSTALLED_APPS):
+        if('qlik' in settings.INSTALLED_APPS and (
+                self.request.user.is_superuser or 
+                self.request.user.groups.filter(name__istartswith='qlik')).exists()
+            ):
             apps['qlik'] = {
                 'image': 'images/menu_qlik.png',
                 'nombre': 'Qlik Sense',
