@@ -1,21 +1,30 @@
 <div class="collapse navbar-collapse" id="navbarNavDropdown">
     <ul class="navbar-nav">
+    {% if perms.qlik.view_origendato or perms.qlik.view_tipodato %}
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Catálogos
         </a>
         <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+      {% if perms.qlik.view_tipodato %}
           <li><a class="dropdown-item" href="{% url 'qlik:tipodato_list' %}">Tipo de Datos</a></li>
+      {% endif %}
           <li><hr class="dropdown-divider"></li>
+      {% if perms.qlik.view_origendato %}
           <li><a class="dropdown-item" href="{% url 'qlik:origendato_list' %}">Origenes de Datos</a></li>
+      {% endif %}
         </ul>
       </li>
-
+    {% endif %}
+    {% if perms.qlik.view_stream %}
       <li class="nav-item">
         <a class="nav-link" href="{% url 'qlik:stream_list' %}">Streams</a>
       </li>
+    {% endif %}
+    {% if perms.qlik.view_modelo %}
       <li class="nav-item">
         <a class="nav-link" href="{% url 'qlik:modelo_list' %}">Modelos</a>
       </li>
+    {% endif %}
     </ul>
   </div>
