@@ -772,5 +772,5 @@ def ajax_permisos_objetos(request):
         Busca objetos de forma dinmaica con base en el tipo de objeto seleccionado
     '''
     tipo_objeto = request.GET.get('tipo_objeto')
-    objetos = globals()[tipo_objeto].objects.all()
+    objetos = globals()[tipo_objeto].objects.all().order_by('nombre')
     return render(request, 'qlik/permiso_form_objetos.html', {'objetos': objetos})

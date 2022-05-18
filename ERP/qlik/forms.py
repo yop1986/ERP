@@ -126,6 +126,7 @@ class AsignaPermiso_Form(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['licencia'].queryset = self.fields['licencia'].queryset.order_by('nombre')
         
         if 'tobjeto' in self.data:
             try:
