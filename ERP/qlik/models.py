@@ -26,7 +26,8 @@ class Stream(models.Model):
         return Modelo.objects.filter(stream=self)
 
     def get_permisos(self):
-        return Permiso.objects.filter(tobjeto='Stream', obj_id=self.id).prefetch_related('licencia')
+        return Permiso.objects.filter(tobjeto='Stream', obj_id=self.id)\
+            .prefetch_related('licencia').order_by('licencia__nombre')
 
     def list_url(self=None):
         return reverse('qlik:stream_list')
@@ -73,7 +74,8 @@ class Modelo(models.Model):
         return OrigenDato.objects.filter(modelo=self).order_by('nombre')
 
     def get_permisos(self):
-        return Permiso.objects.filter(tobjeto='Modelo', obj_id=self.id).prefetch_related('licencia')
+        return Permiso.objects.filter(tobjeto='Modelo', obj_id=self.id)\
+            .prefetch_related('licencia').order_by('licencia__nombre')
 
     def list_url(self=None):
         return reverse('qlik:modelo_list')
@@ -113,7 +115,8 @@ class TipoDato(models.Model):
         return OrigenDato.objects.filter(tipodato=self, vigente=True)
 
     def get_permisos(self):
-        return Permiso.objects.filter(tobjeto='TipoDato', obj_id=self.id).prefetch_related('licencia')
+        return Permiso.objects.filter(tobjeto='TipoDato', obj_id=self.id)\
+            .prefetch_related('licencia').order_by('licencia__nombre')
 
     def list_url(self=None):
         return reverse('qlik:tipodato_list')
