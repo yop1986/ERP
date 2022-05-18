@@ -3,7 +3,7 @@
 
 {% block create_button %}
 {% if perms.qlik.add_origendato %}
-<a href="{% url 'qlik:origendato_create' %}" class="btn btn-success"><img src="{% static 'images/qlik_add.png' %}" width="32" alt="{{ opciones.nuevo }}"></a>
+<a href="{% url 'qlik:origendato_create' %}" class="btn btn-success"><img src="{% static 'images/qlik_add.png' %}" width="32" alt="{{ opciones.nuevo }}" title="{{ opciones.nuevo }}"></a>
 {% endif %}
 {% endblock %}
 
@@ -27,15 +27,15 @@
         <tr>
           <th scope="row">{{ forloop.counter0|add:page_obj.start_index }}</th>
           <td>{{ object }}</td>
-          <td><a href="{{ object.tipodato.detail_url }}">{{ object.tipodato }}</a></td>
+          <td><a href="{{ object.tipodato.view_url }}">{{ object.tipodato }}</a></td>
         {% if object.modelo %}
-          <td><a href="{{ object.modelo.detail_url }}">{{ object.modelo }}</a></td>
+          <td><a href="{{ object.modelo.view_url }}">{{ object.modelo }}</a></td>
         {% else %}
           <td>-</td>
         {% endif %}
           <td>{{ object.get_estado }}</td>
           <td>
-            <a href="{{ object.detail_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
+            <a href="{{ object.view_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
             {% if perms.qlik.change_origendato %}
             <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
             {% endif %}

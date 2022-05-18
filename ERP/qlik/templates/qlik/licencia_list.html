@@ -1,9 +1,9 @@
 {% extends "base_qlik.html" %}
-{% load static verbose_names crispy_forms_tags %}
+{% load static verbose_names %}
 
 {% block create_button %}
-{% if perms.qlik.add_stream %}
-<a href="{% url 'qlik:stream_create' %}" class="btn btn-success"><img src="{% static 'images/qlik_add.png' %}" width="32" alt="{{ opciones.nuevo }}" title="{{ opciones.nuevo }}"></a>
+{% if perms.qlik.add_licencia %}
+<a href="{% url 'qlik:licencia_create' %}" class="btn btn-success"><img src="{% static 'images/qlik_add.png' %}" width="32" alt="{{ opciones.nuevo }}" title="{{ opciones.nuevo }}"></a>
 {% endif %}
 {% endblock %}
 
@@ -16,6 +16,9 @@
         <tr>
           <th scope="col">#</th>
           <th scope="col">{% get_verbose_field_name object_list.0 "nombre" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "tusuario" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "gerencia" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "tlicencia" %}</th>
           <th scope="col">{{ opciones.etiqueta }}</th>
         </tr>
       </thead>
@@ -24,13 +27,15 @@
         <tr>
           <th scope="row">{{ forloop.counter0|add:page_obj.start_index }}</th>
           <td>{{ object }}</td>
+          <td>{{ object.usuario_ad }}</td>
+          <td>{{ object.gerencia }}</td>
+          <td><a href="{{ object.tlicencia.view_url }}">{{ object.tlicencia }}</a></td>
           <td>
-            <a href="{{ object.external_url }}" class="btn btn-info" target="_blank">{{ opciones.ir }}</a>
             <a href="{{ object.view_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
-            {% if perms.qlik.change_stream %}
+            {% if perms.qlik.change_licencia %}
             <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
             {% endif %}
-            {% if perms.qlik.delete_stream %}
+            {% if perms.qlik.delete_licencia %}
             <a href="{{ object.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
             {% endif %}
           </td>
@@ -40,7 +45,7 @@
     </table>
 {% else %}
     <div class="alert alert-warning" role="alert">{{ mensaje_vacio }}</div>
-{% endif %}
+  {% endif %}
 {% endblock %}
 
 {% block pagination %}

@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import NON_FIELD_ERRORS
 from django.utils.translation import gettext as _
 
-from .models import Stream, Modelo, TipoDato, OrigenDato, OrigenDatoModelo
+from .models import Stream, Modelo, TipoDato, OrigenDato, OrigenDatoModelo, Permiso
 
 class Busqueda(forms.Form):
     valor = forms.CharField(required=True)
@@ -111,3 +111,31 @@ class OrigenDato_Form(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['tipodato'].queryset = TipoDato.objects.filter(vigente=True, origenmodelo=False).order_by('nombre')
+
+
+class AsignaPermiso_Form(forms.ModelForm):
+    '''
+        Permiso_CreateView, Permiso_UpdateView
+        Permite llevar el control de los permisos a los objetos
+    '''
+    objeto = forms.ModelChoiceField(queryset=TipoDato.objects.none())
+    
+    class Meta:
+        model = Permiso
+        fields = ['licencia', 'tobjeto']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        if 'tobjeto' in self.data:
+            try:
+                self.fields['objeto'].queryset = globals()[self.data['tobjeto']].objects.all()
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk:
+            pass #self.fields['objeto'].queryset = self.instance.tobjeto.origendato_set.order_by('nombre')
+
+    def save(self, commit=True):
+        form_data = self.cleaned_data
+        self.instance.obj_id = form_data['objeto'].id
+        return super().save(commit)

@@ -42,47 +42,92 @@
   </div>
   {% endif %}
 
+<div class="accordion" id="accordionPanelsElementosAsociados">
 {% if origenes and perms.qlik.view_origendato %}
-  <div class="row mb-2">
-    <div class="col">
-      <h3>{{ sub_titulo.origenes }}</h3>
-      <table class="table">
-        <thead>
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="headingOne">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+        {{ sub_titulo.origenes }}
+      </button>
+    </h2>
+    <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionPanelsElementosAsociados">
+      <div class="accordion-body">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">{% get_verbose_field_name origenes.0 "nombre" %}</th>
+              <th scope="col">{% get_verbose_field_name origenes.0 "modelo" %}</th>
+              <th scope="col">{% get_verbose_field_name origenes.0 "vigente" %}</th>
+              {% if perms.qlik.change_origendato or perms.qlik.delete_origendato %}
+              <th scope="col">{{ opciones.etiqueta }}</th>
+              {% endif %}
+            </tr>
+          </thead>
+        <tbody>
+      {% for origen in origenes %}
           <tr>
-            <th scope="col">#</th>
-            <th scope="col">{% get_verbose_field_name origenes.0 "nombre" %}</th>
-            <th scope="col">{% get_verbose_field_name origenes.0 "modelo" %}</th>
-            <th scope="col">{% get_verbose_field_name origenes.0 "vigente" %}</th>
-            {% if perms.qlik.change_origendato or perms.qlik.delete_origendato %}
-            <th scope="col">{{ opciones.etiqueta }}</th>
-            {% endif %}
+            <th scope="row">{{ forloop.counter }}</th>
+            <td>{{ origen }}</td>
+            <td>
+              {% if origen.modelo %}<a href="{{ origen.modelo.view_url }}">{{ origen.modelo }}</a>
+              {% else %} - 
+              {% endif %}</td>
+            <td>{{ origen.get_estado }}</td>
+            <td>
+              <a href="{{ origen.view_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
+              {% if perms.qlik.change_origendato %}
+              <a href="{{ origen.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
+              {% endif %}
+              {% if perms.qlik.delete_origendato %}
+              <a href="{{ origen.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
+              {% endif %}
+            </td>
           </tr>
-        </thead>
-      <tbody>
-    {% for origen in origenes %}
-        <tr>
-          <th scope="row">{{ forloop.counter }}</th>
-          <td>{{ origen }}</td>
-          <td>
-            {% if origen.modelo %}<a href="{{ origen.modelo.detail_url }}">{{ origen.modelo }}</a>
-            {% else %} - 
-            {% endif %}</td>
-          <td>{{ origen.get_estado }}</td>
-          <td>
-            <a href="{{ origen.detail_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
-            {% if perms.qlik.change_origendato %}
-            <a href="{{ origen.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
-            {% endif %}
-            {% if perms.qlik.delete_origendato %}
-            <a href="{{ origen.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
-            {% endif %}
-          </td>
-        </tr>
-    {% endfor %}
-      </tbody>
-      </table>
+      {% endfor %}
+        </tbody>
+        </table>
+      </div>
     </div>
   </div>
 {% endif %}
+{% if permisos and perms.qlik.view_permiso %}
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="headingTwo">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+        {{ sub_titulo.permisos }}
+      </button>
+    </h2>
+    <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionPanelsElementosAsociados">
+      <div class="accordion-body">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">{% get_verbose_field_name permisos.0 "licencia" %}</th>
+              {% if perms.qlik.delete_origendato %}
+              <th scope="col">{{ opciones.etiqueta }}</th>
+              {% endif %}
+            </tr>
+          </thead>
+        <tbody>
+      {% for permiso in permisos %}
+          <tr>
+            <th scope="row">{{ forloop.counter }}</th>
+            <td>{{ permiso.licencia }}</td>
+            <td>
+              {% if perms.qlik.delete_origendato %}
+              <a href="{{ permiso.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
+              {% endif %}
+            </td>
+          </tr>
+      {% endfor %}
+        </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endif %}
+</div>
 
 {% endblock %}

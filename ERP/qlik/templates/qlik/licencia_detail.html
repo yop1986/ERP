@@ -1,0 +1,93 @@
+{% extends "base_qlik.html" %}
+{% load verbose_names %}
+
+{% block inner_content %}
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "nombre" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "tusuario" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.usuario_ad }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "gerencia" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.gerencia }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "pais" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ object.pais }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{% get_verbose_field_name object "tlicencia" %}</strong>
+    </div>
+    <div class="col-5">
+      <a href="{{ object.tlicencia.view_url }}">{{ object.tlicencia }}</a>
+    </div>
+  </div>
+  {% if perms.qlik.change_licencia or perms.qlik.delete_licencia %}
+  <div class="row mb-2">
+    <div class="col-7">
+      <strong>{{ opciones.etiqueta }}</strong>
+    </div>
+    <div class="col-5">
+      {% if perms.qlik.change_licencia %}
+      <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
+      {% endif %}
+      {% if perms.qlik.delete_licencia %}
+      <a href="{{ object.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+{% if permisos and perms.qlik.view_permiso %}
+  <div class="row mb-2">
+    <div class="col">
+      <h3>{{ sub_titulo.permisos }}</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">{% get_verbose_field_name permisos.0 "tobjeto" %}</th>
+            {% if perms.qlik.delete_permiso %}
+            <th scope="col">{{ opciones.etiqueta }}</th>
+            {% endif %}
+          </tr>
+        </thead>
+      <tbody>
+    {% for permiso in permisos %}
+        <tr>
+          <th scope="row">{{ forloop.counter }}</th>
+          <td><a href="{{ permiso.objeto.view_url }}">{{ permiso.tobjeto }} - {{ permiso.objeto }}</a></td>
+          <td>
+            {% if perms.qlik.delete_permiso %}
+            <a href="{{ permiso.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
+            {% endif %}
+          </td>
+        </tr>
+    {% endfor %}
+      </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

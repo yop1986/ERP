@@ -1,12 +1,16 @@
 from django.contrib import messages
+from django.db.models import Q
 from django.shortcuts import render
 from django.views.generic import TemplateView
 from django.views.generic.edit import FormMixin
 from django.utils.translation import gettext as _
 
-from .models import Stream, Modelo, TipoDato, OrigenDato, OrigenDatoModelo
-from .forms import Busqueda, Stream_Form, Modelo_CreateForm, Modelo_Form, OrigenDato_Form, ModeloUsaDato_Form, ModeloGeneraDato_Form
-from usuarios.views_base import ListView_Login, DetailView_Login, CreateView_Login, UpdateView_Login, DeleteView_Login
+from .models import (Stream, Modelo, TipoDato, OrigenDato, OrigenDatoModelo, TipoLicencia, 
+    Licencia, Permiso)
+from .forms import (Busqueda, Stream_Form, Modelo_CreateForm, Modelo_Form, OrigenDato_Form, 
+    ModeloUsaDato_Form, ModeloGeneraDato_Form, AsignaPermiso_Form)
+from usuarios.views_base import (ListView_Login, DetailView_Login, CreateView_Login, UpdateView_Login, 
+    DeleteView_Login)
 
 
 class Inicio_Template(TemplateView):
@@ -59,6 +63,7 @@ class Stream_DetailView(FormMixin, DetailView_Login):
         'title': _('Stream'),
         'sub_titulo': {
             'modelos': _('Modelos'),
+            'permisos': _('Permisos'),
         },
         'opciones': {
             'etiqueta': _('Opciones'),
@@ -75,6 +80,7 @@ class Stream_DetailView(FormMixin, DetailView_Login):
     def get_context_data(self, *args, **kwargs):
         context = super(Stream_DetailView, self).get_context_data(*args,**kwargs)
         context['modelos'] = self.object.get_modelos().order_by('nombre')
+        context['permisos'] = self.object.get_permisos()
         return context
 
     def post(self, request, *args, **kwargs):
@@ -124,11 +130,18 @@ class Stream_UpdateView(UpdateView_Login):
         }
     }
 
-    def get_success_url(self):
-        return self.object.detail_url()
-
 class Stream_DeleteView(DeleteView_Login):
-    pass
+    permission_required = 'qlik.delete_stream'
+    template_name = 'qlik/confirmation_form.html'
+    model = Stream
+    extra_context = {
+        'title': _('Eliminar stream'),
+        'confirmacion': _('Esta seguro de eliminar el elemento'),
+        'botones': {
+            'eliminar': _('Eliminar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
 
 
 
@@ -173,8 +186,10 @@ class Modelo_DetailView(FormMixin, DetailView_Login):
     extra_context = {
         'title': _('Modelo'),
         'sub_titulo': {
+            'datos': _('Datos'),
             'usa_datos': _('Usa datos'),
             'genera_datos': _('Genera datos'),
+            'permisos': _('Permisos'),
         },
         'opciones': {
             'etiqueta': _('Opciones'),
@@ -192,6 +207,7 @@ class Modelo_DetailView(FormMixin, DetailView_Login):
         context = super(Modelo_DetailView, self).get_context_data(*args, **kwargs)
         context['origendatomodelo'] = self.get_object().get_origenes_usados()
         context['origendato'] = self.get_object().get_origenes_generados()
+        context['permisos'] = self.get_object().get_permisos()
         post = self.request.POST if 'Usa' in self.request.POST else None
         context['form'] = ModeloUsaDato_Form(post)
         post = self.request.POST if 'Genera' in self.request.POST else None
@@ -260,11 +276,18 @@ class Modelo_UpdateView(UpdateView_Login):
         }
     }
 
-    def get_success_url(self):
-        return self.object.detail_url()
-
 class Modelo_DeleteView(DeleteView_Login):
-    pass
+    permission_required = 'qlik.delete_modelo'
+    template_name = 'qlik/confirmation_form.html'
+    model = Modelo
+    extra_context = {
+        'title': _('Eliminar modelo'),
+        'confirmacion': _('Esta seguro de eliminar el elemento'),
+        'botones': {
+            'eliminar': _('Eliminar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
 
 
 
@@ -308,6 +331,7 @@ class TipoDato_DetailView(DetailView_Login):
         'title': _('Tipo de Dato'),
         'sub_titulo': {
             'origenes': _('Origen de Datos'),
+            'permisos': _('Permisos'),
         },
         'opciones': {
             'etiqueta': _('Opciones'),
@@ -320,6 +344,7 @@ class TipoDato_DetailView(DetailView_Login):
     def get_context_data(self, *args, **kwargs):
         context = super(TipoDato_DetailView, self).get_context_data(*args, **kwargs)
         context['origenes'] = self.object.get_origenes()
+        context['permisos'] = self.object.get_permisos()
         return context
 
 class TipoDato_CreateView(CreateView_Login):
@@ -349,11 +374,18 @@ class TipoDato_UpdateView(UpdateView_Login):
         }
     }
 
-    def get_success_url(self):
-        return self.object.detail_url()
-
 class TipoDato_DeleteView(DeleteView_Login):
-    pass
+    permission_required = 'qlik.delete_tipodato'
+    template_name = 'qlik/confirmation_form.html'
+    model = TipoDato
+    extra_context = {
+        'title': _('Eliminar el tipo de dato'),
+        'confirmacion': _('Esta seguro de eliminar el elemento'),
+        'botones': {
+            'eliminar': _('Eliminar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
 
 
 
@@ -439,11 +471,18 @@ class OrigenDato_UpdateView(UpdateView_Login):
         }
     }
 
-    def get_success_url(self):
-        return self.object.detail_url()
-
 class OrigenDato_DeleteView(DeleteView_Login):
-    pass
+    permission_required = 'qlik.delete_origendato'
+    template_name = 'qlik/confirmation_form.html'
+    model = OrigenDato
+    extra_context = {
+        'title': _('Eliminar el origen de dato'),
+        'confirmacion': _('Esta seguro de eliminar el elemento'),
+        'botones': {
+            'eliminar': _('Eliminar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
 
 
 class OrigenDatoModelo_DeleteView(DeleteView_Login):
@@ -461,10 +500,277 @@ class OrigenDatoModelo_DeleteView(DeleteView_Login):
         return self.object.modelo.detail_url()
 
 
+class TipoLicencia_ListView(ListView_Login):
+    permission_required = 'qlik.view_tipolicencia'
+    model = TipoLicencia
+    paginate_by = 15
+    ordering = ['descripcion']
+    extra_context = {
+        'title': _('Tipos de Licencias'),
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'nuevo': _('Nuevo Tipo'),
+            'ver': _('Ver'),
+            'editar': _('Editar'),
+            'eliminar': _('Eliminar'),
+            'disponibles': _('Disponibles'),
+        },
+        'botones': {
+            'buscar': _('Buscar'),
+            'limpiar': _('Limpiar'),
+        },
+        'mensaje_vacio': _('No hay tipos de licencias registradas')
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        busqueda = self.request.GET.get('valor')
+
+        context = super().get_context_data(*args, **kwargs)
+        context['url_lista'] = TipoLicencia.list_url()
+        if busqueda:
+            context['object_list'] = TipoLicencia.objects.filter(descripcion__icontains=busqueda).order_by('descripcion')
+            context['form'] = Busqueda(self.request.GET)
+        else:
+            context['form'] = Busqueda()
+        return context
+
+class TipoLicencia_DetailView(DetailView_Login):
+    permission_required = 'qlik.view_tipolicencia'
+    template_name = 'qlik/tipolicencia_detail.html'
+    model = TipoLicencia
+    extra_context = {
+        'title': _('Tipo de Licencia'),
+        'sub_titulo': {
+            'licencias': _('Licencias'),
+        },
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'disponibles': _('Disponibles'),
+            'ver': _('Ver'),
+            'editar': _('Editar'),
+            'eliminar': _('Eliminar'),
+        }
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['licencias'] = Licencia.objects.filter(tlicencia=self.object)
+        return context
+
+class TipoLicencia_CreateView(CreateView_Login):
+    permission_required = 'qlik.add_tipolicencia'
+    template_name = 'qlik/form.html'
+    model = TipoLicencia
+    fields = ['descripcion', 'cantidad']
+    extra_context = {
+        'title': _('Nuevo Tipo de Licencia'),
+        'botones': {
+            'guardar': _('Guardar'),
+        },
+    }
+
+class TipoLicencia_UpdateView(UpdateView_Login):
+    permission_required = 'qlik.change_tipolicencia'
+    template_name = 'qlik/form.html'
+    model = TipoLicencia
+    fields = ['descripcion', 'cantidad']
+    extra_context = {
+        'title': _('Modificar Tipo de Licencia'),
+        'botones': {
+            'guardar': _('Modificar'),
+        },
+    }
+
+class TipoLicencia_DeleteView(DeleteView_Login):
+    permission_required = 'qlik.delete_tipolicencia'
+    template_name = 'qlik/confirmation_form.html'
+    model = TipoLicencia
+    extra_context = {
+        'title': _('Eliminar tipo de licencia'),
+        'confirmacion': _('Esta seguro de eliminar el elemento'),
+        'botones': {
+            'eliminar': _('Eliminar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
+
+
+
+class Licencia_ListView(ListView_Login):
+    permission_required = 'qlik.view_licencia'
+    model = Licencia
+    paginate_by = 15
+    ordering = ['nombre']
+    extra_context = {
+        'title': _('Licencias'),
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'nuevo': _('Asignar'),
+            'ver': _('Ver'),
+            'editar': _('Editar'),
+            'eliminar': _('Eliminar'),
+        },
+        'botones': {
+            'buscar': _('Buscar'),
+            'limpiar': _('Limpiar'),
+        },
+        'mensaje_vacio': _('No hay licencias asignadas')
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        busqueda = self.request.GET.get('valor')
+
+        context = super().get_context_data(*args, **kwargs)
+        context['url_lista'] = Licencia.list_url()
+        if busqueda:
+            context['object_list'] = Licencia.objects.filter(Q(nombre__icontains=busqueda) | 
+                Q(gerencia__icontains=busqueda) | Q(codigo__icontains=busqueda)).order_by('nombre')
+            context['form'] = Busqueda(self.request.GET)
+        else:
+            context['form'] = Busqueda()
+        return context
+
+class Licencia_DetailView(DetailView_Login):
+    permission_required = 'qlik.add_licencia'
+    model = Licencia
+    extra_context = {
+        'title': _('Licencia'),
+        'sub_titulo': {
+            'permisos': _('Permisos'),
+        },
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'editar': _('Editar'),
+            'eliminar': _('Eliminar'),
+        }
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['permisos'] = Permiso.objects.filter(licencia=self.object)
+        return context
+
+class Licencia_CreateView(CreateView_Login):
+    permission_required = 'qlik.add_licencia'
+    template_name = 'qlik/form.html'
+    model = Licencia
+    fields = ['codigo', 'nombre', 'tusuario', 'gerencia', 'pais', 'tlicencia']
+    extra_context = {
+        'title': _('Asignación de Licencia'),
+        'botones': {
+            'guardar': _('Guardar'),
+        },
+    }
+
+class Licencia_UpdateView(UpdateView_Login):
+    permission_required = 'qlik.change_licencia'
+    template_name = 'qlik/form.html'
+    model = Licencia
+    fields = ['codigo', 'nombre', 'tusuario', 'gerencia', 'pais', 'tlicencia']
+    extra_context = {
+        'title': _('Actualización de Licencia'),
+        'botones': {
+            'guardar': _('Modificar'),
+        },
+    }
+
+class Licencia_DeleteView(DeleteView_Login):
+    permission_required = 'qlik.delete_licencia'
+    template_name = 'qlik/confirmation_form.html'
+    model = Licencia
+    extra_context = {
+        'title': _('Desasignar licencia'),
+        'confirmacion': _('Esta seguro de desasginar la licencia'),
+        'botones': {
+            'eliminar': _('Desasignar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
+
+
+
+class Permiso_ListView(ListView_Login):
+    permission_required = 'qlik.view_permiso'
+    model = Permiso
+    paginate_by = 15
+    ordering = ['licencia__nombre', 'tobjeto']
+    extra_context = {
+        'title': _('Permisos'),
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'nuevo': _('Asignar'),
+            'ver': _('Ver'),
+            'editar': _('Editar'),
+            'eliminar': _('Eliminar'),
+        },
+        'botones': {
+            'buscar': _('Buscar'),
+            'limpiar': _('Limpiar'),
+        },
+        'mensaje_vacio': _('No hay permisos asignadas')
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        busqueda = self.request.GET.get('valor')
+
+        context = super().get_context_data(*args, **kwargs)
+        context['url_lista'] = Permiso.list_url()
+        if busqueda:
+            context['object_list'] = Permiso.objects.filter(Q(licencia__nombre__icontains=busqueda) | 
+                Q(tobjeto__icontains=busqueda)).order_by('licencia__nombre')
+            context['form'] = Busqueda(self.request.GET)
+        else:
+            context['form'] = Busqueda()
+        return context
+
+class Permiso_CreateView(CreateView_Login):
+    permission_required = 'qlik.add_permiso'
+    template_name = 'qlik/permiso_form.html'
+    form_class = AsignaPermiso_Form
+    model = Permiso
+    extra_context = {
+        'title': _('Asignación de Permisos'),
+        'botones': {
+            'guardar': _('Asignar'),
+        },
+    }
+
+class Permiso_DeleteView(DeleteView_Login):
+    permission_required = 'qlik.delete_permiso'
+    template_name = 'qlik/confirmation_form.html'
+    model = Permiso
+    extra_context = {
+        'title': _('Remover acceso'),
+        'botones': {
+            'eliminar': _('Desasignar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['confirmacion'] = _('Esta seguro de remover el acceso de ') + self.object.objeto.nombre + _(' al usuario ')
+        return context
+
+
+
 ###
 ###
 ###
 def ajax_origenes_asociados(request):
+    '''
+        Modelo_DetailView
+        Origenes asociados
+    '''
     tipo_dato_id = request.GET.get('tipo_origen_id')
     origenes = OrigenDato.objects.filter(tipodato=tipo_dato_id, vigente=True).order_by('nombre')
     return render(request, 'qlik/modelo_detail_origenes_dropdown.html', {'origenes': origenes})
+
+def ajax_permisos_objetos(request):
+    '''
+        Permiso_CreateView
+        Busca objetos de forma dinmaica con base en el tipo de objeto seleccionado
+    '''
+    tipo_objeto = request.GET.get('tipo_objeto')
+    objetos = globals()[tipo_objeto].objects.all()
+    return render(request, 'qlik/permiso_form_objetos.html', {'objetos': objetos})

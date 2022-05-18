@@ -1,0 +1,16 @@
+{% extends "base_qlik.html" %}
+{% load crispy_forms_tags %}
+
+{% block inner_content %}
+    <form method="post" autocomplete="off">
+        <p>¿{{ confirmacion }} <strong>"{{ object }}"</strong>?</p>
+        {% csrf_token %}
+        {{ form|crispy }}
+        <p></p>
+        <input type="submit" name="Guardar" value="{{ botones.eliminar }}" class="btn btn-danger">
+        <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{{ list_url }}{% endif %}" class="btn btn-warning">{{ botones.cancelar }}</a>
+    </form>
+    
+    <!-- {% crispy form %} -->
+
+{% endblock %}

@@ -3,7 +3,7 @@
 
 {% block create_button %}
 {% if perms.qlik.add_modelo %}
-<a href="{% url 'qlik:modelo_create' %}" class="btn btn-success"><img src="{% static 'images/qlik_add.png' %}" width="32" alt="{{ opciones.nuevo }}"></a>
+<a href="{% url 'qlik:modelo_create' %}" class="btn btn-success"><img src="{% static 'images/qlik_add.png' %}" width="32" alt="{{ opciones.nuevo }}" title="{{ opciones.nuevo }}"></a>
 {% endif %}
 {% endblock %}
 
@@ -25,10 +25,10 @@
         <tr>
           <th scope="row">{{ forloop.counter0|add:page_obj.start_index }}</th>
           <td>{{ object }}</td>
-          <td><a href="{{ object.stream.detail_url }}">{{ object.stream }}</a></td>
+          <td><a href="{{ object.stream.view_url }}">{{ object.stream }}</a></td>
           <td>
             <a href="{{ object.external_url }}" class="btn btn-info" target="_blank">{{ opciones.ir }}</a>
-            <a href="{{ object.detail_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
+            <a href="{{ object.view_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
             {% if perms.qlik.change_modelo %}
             <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
             {% endif %}

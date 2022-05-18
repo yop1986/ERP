@@ -1,5 +1,25 @@
 <div class="collapse navbar-collapse" id="navbarNavDropdown">
     <ul class="navbar-nav">
+    {% if perms.qlik.view_tipolicencia or perms.qlik.view_licencia or perms.qlik.view_permiso %}
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Accesos
+        </a>
+        <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+      {% if perms.qlik.view_tipolicencia %}
+          <li><a class="dropdown-item" href="{% url 'qlik:tipolicencia_list' %}">Tipos de Licencia</a></li>
+      {% endif %}
+      {% if perms.qlik.view_licencia %}
+          <li><a class="dropdown-item" href="{% url 'qlik:licencia_list' %}">Licencias</a></li>
+      {% endif %}
+          <li><hr class="dropdown-divider"></li>
+      {% if perms.qlik.view_permiso %}
+          <li><a class="dropdown-item" href="{% url 'qlik:permiso_list' %}">Permisos</a></li>
+      {% endif %}
+        </ul>
+      </li>
+    {% endif %}
+
     {% if perms.qlik.view_origendato or perms.qlik.view_tipodato %}
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -16,11 +36,13 @@
         </ul>
       </li>
     {% endif %}
+
     {% if perms.qlik.view_stream %}
       <li class="nav-item">
         <a class="nav-link" href="{% url 'qlik:stream_list' %}">Streams</a>
       </li>
     {% endif %}
+
     {% if perms.qlik.view_modelo %}
       <li class="nav-item">
         <a class="nav-link" href="{% url 'qlik:modelo_list' %}">Modelos</a>
