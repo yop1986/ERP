@@ -115,18 +115,19 @@ class OrigenDato_Form(forms.ModelForm):
 
 class AsignaPermiso_Form(forms.ModelForm):
     '''
-        Permiso_CreateView, Permiso_UpdateView
+        Permiso_CreateView
         Permite llevar el control de los permisos a los objetos
     '''
     objeto = forms.ModelChoiceField(queryset=TipoDato.objects.none())
     
     class Meta:
         model = Permiso
-        fields = ['licencia', 'tobjeto']
+        fields = ['tobjeto', 'objeto', 'nombre', 'licencias', 'create', 'read', 'update', 'delete', 
+        'export', 'publish', 'change_owner', 'export_data', 'access_offline', 'duplicate', 'approve'] 
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['licencia'].queryset = self.fields['licencia'].queryset.order_by('nombre')
+        self.fields['licencias'].queryset = self.fields['licencias'].queryset.order_by('nombre')
         
         if 'tobjeto' in self.data:
             try:
@@ -140,3 +141,18 @@ class AsignaPermiso_Form(forms.ModelForm):
         form_data = self.cleaned_data
         self.instance.obj_id = form_data['objeto'].id
         return super().save(commit)
+
+class ModificaPermiso_Form(forms.ModelForm):
+    '''
+        Permiso_UpdateView
+        Permite llevar el control de los permisos a los objetos
+    '''
+    class Meta:
+        model = Permiso
+        fields = ['nombre', 'licencias', 'create', 'read', 'update', 'delete', 
+        'export', 'publish', 'change_owner', 'export_data', 'access_offline', 'duplicate', 'approve'] 
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['licencias'].queryset = self.fields['licencias'].queryset.order_by('nombre')
+        

@@ -97,7 +97,8 @@
           <thead>
             <tr>
               <th scope="col">#</th>
-              <th scope="col">{% get_verbose_field_name permisos.0 "licencia" %}</th>
+              <th scope="col">{% get_verbose_field_name permisos.0 "nombre" %}</th>
+              <th scope="col">{% get_verbose_field_name permisos.0 "licencias" %}</th>
               {% if perms.qlik.delete_origendato %}
               <th scope="col">{{ opciones.etiqueta }}</th>
               {% endif %}
@@ -107,9 +108,22 @@
       {% for permiso in permisos %}
           <tr>
             <th scope="row">{{ forloop.counter }}</th>
-            <td><a href="{{ permiso.licencia.view_url }}">{{ permiso.licencia }}</a></td>
+            <td>{{ permiso }}</td>
             <td>
-              {% if perms.qlik.delete_origendato %}
+              {{ permiso.licencias }} - {{ permiso.licencias.nombre }}
+              <ul class="list-group">
+                {% for licencia in permiso.licencias.all %}
+                <li class="list-group-item"><a href="{{ licencia.view_url }}">{{ licencia }}</a></li>
+                {% endfor %}
+              </ul>
+            <td>
+              {% if perms.qlik.view_permiso %}
+              <a href="{{ permiso.view_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
+              {% endif %}
+              {% if perms.qlik.change_permiso %}
+              <a href="{{ permiso.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
+              {% endif %}
+              {% if perms.qlik.delete_permiso %}
               <a href="{{ permiso.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
               {% endif %}
             </td>

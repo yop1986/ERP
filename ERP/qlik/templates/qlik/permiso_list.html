@@ -15,7 +15,7 @@
       <thead>
         <tr>
           <th scope="col">#</th>
-          <th scope="col">{% get_verbose_field_name object_list.0 "licencia" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "licencias" %}</th>
           <th scope="col">{% get_verbose_field_name object_list.0 "tobjeto" %}</th>
           <th scope="col">{{ opciones.etiqueta }}</th>
         </tr>
@@ -24,10 +24,14 @@
     {% for object in object_list %}
         <tr>
           <th scope="row">{{ forloop.counter0|add:page_obj.start_index }}</th>
-          <td><a href="{{ object.licencia.view_url }}">{{ object.licencia }}</a></td>
+          <td>{{ object }}</td>
           <td><a href="{{ object.objeto.view_url }}">{{ object.tobjeto }} - {{ object.objeto.nombre }}</a></td>
           <td>
-            {% if perms.qlik.delete_tipolicencia %}
+            <a href="{{ object.view_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
+            {% if perms.qlik.change_permiso %}
+            <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
+            {% endif %}
+            {% if perms.qlik.delete_permiso %}
             <a href="{{ object.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
             {% endif %}
           </td>

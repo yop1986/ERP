@@ -66,6 +66,7 @@
         <thead>
           <tr>
             <th scope="col">#</th>
+            <th scope="col">{% get_verbose_field_name permisos.0 "nombre" %}</th>
             <th scope="col">{% get_verbose_field_name permisos.0 "tobjeto" %}</th>
             {% if perms.qlik.delete_permiso %}
             <th scope="col">{{ opciones.etiqueta }}</th>
@@ -76,8 +77,13 @@
     {% for permiso in permisos %}
         <tr>
           <th scope="row">{{ forloop.counter }}</th>
+          <td>{{ permiso }}</td>
           <td><a href="{{ permiso.objeto.view_url }}">{{ permiso.tobjeto }} - {{ permiso.objeto }}</a></td>
           <td>
+            <a href="{{ permiso.view_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
+            {% if perms.qlik.change_permiso %}
+            <a href="{{ permiso.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
+            {% endif %}
             {% if perms.qlik.delete_permiso %}
             <a href="{{ permiso.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
             {% endif %}

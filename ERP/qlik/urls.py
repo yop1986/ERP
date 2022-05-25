@@ -46,7 +46,9 @@ urlpatterns = [
     path('licencia/delete/<uuid:pk>', views.Licencia_DeleteView.as_view(), name='licencia_delete'),
 
     path('permiso/', views.Permiso_ListView.as_view(), name='permiso_list'),
+    path('permiso/<uuid:pk>/', views.Permiso_DetailView.as_view(), name='permiso_view'),
     path('permiso/create/', views.Permiso_CreateView.as_view(), name='permiso_create'),
+    path('permiso/update/<uuid:pk>', views.Permiso_UpdateView.as_view(), name='permiso_update'),
     path('permiso/delete/<uuid:pk>', views.Permiso_DeleteView.as_view(), name='permiso_delete'),
     path('ajax/objetos/', views.ajax_permisos_objetos, name='ajax_permiso_origenes'),
 ]

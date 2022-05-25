@@ -8,7 +8,7 @@ from django.utils.translation import gettext as _
 from .models import (Stream, Modelo, TipoDato, OrigenDato, OrigenDatoModelo, TipoLicencia, 
     Licencia, Permiso)
 from .forms import (Busqueda, Stream_Form, Modelo_CreateForm, Modelo_Form, OrigenDato_Form, 
-    ModeloUsaDato_Form, ModeloGeneraDato_Form, AsignaPermiso_Form)
+    ModeloUsaDato_Form, ModeloGeneraDato_Form, AsignaPermiso_Form, ModificaPermiso_Form)
 from usuarios.views_base import (ListView_Login, DetailView_Login, CreateView_Login, UpdateView_Login, 
     DeleteView_Login)
 
@@ -631,7 +631,7 @@ class Licencia_ListView(ListView_Login):
         return context
 
 class Licencia_DetailView(DetailView_Login):
-    permission_required = 'qlik.add_licencia'
+    permission_required = 'qlik.view_licencia'
     model = Licencia
     extra_context = {
         'title': _('Licencia'),
@@ -640,6 +640,7 @@ class Licencia_DetailView(DetailView_Login):
         },
         'opciones': {
             'etiqueta': _('Opciones'),
+            'ver': _('Ver'),
             'editar': _('Editar'),
             'eliminar': _('Eliminar'),
         }
@@ -647,7 +648,7 @@ class Licencia_DetailView(DetailView_Login):
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context['permisos'] = Permiso.objects.filter(licencia=self.object)
+        context['permisos'] = Permiso.objects.filter(licencias=self.object)
         return context
 
 class Licencia_CreateView(CreateView_Login):
@@ -693,7 +694,7 @@ class Permiso_ListView(ListView_Login):
     permission_required = 'qlik.view_permiso'
     model = Permiso
     paginate_by = 15
-    ordering = ['licencia__nombre', 'tobjeto']
+    ordering = ['licencias__nombre', 'tobjeto']
     extra_context = {
         'title': _('Permisos'),
         'opciones': {
@@ -723,15 +724,47 @@ class Permiso_ListView(ListView_Login):
             context['form'] = Busqueda()
         return context
 
+class Permiso_DetailView(DetailView_Login):
+    permission_required = 'qlik.view_permiso'
+    model = Permiso
+    extra_context = {
+        'title': _('Permiso'),
+        'etiquetas': {
+            'permisos': _('Permisos'),
+        },
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'editar': _('Editar'),
+            'eliminar': _('Eliminar'),
+        }
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        #context['licencias'] = Permiso.objects.filter(licencia=self.object)
+        return context
+
 class Permiso_CreateView(CreateView_Login):
     permission_required = 'qlik.add_permiso'
-    template_name = 'qlik/permiso_form.html'
+    template_name = 'qlik/permiso_createform.html'
     form_class = AsignaPermiso_Form
     model = Permiso
     extra_context = {
         'title': _('Asignación de Permisos'),
         'botones': {
             'guardar': _('Asignar'),
+        },
+    }
+
+class Permiso_UpdateView(UpdateView_Login):
+    permission_required = 'qlik.change_permiso'
+    template_name = 'qlik/permiso_updateform.html'
+    model = Permiso
+    form_class = ModificaPermiso_Form
+    extra_context = {
+        'title': _('Actualización de Permisos'),
+        'botones': {
+            'guardar': _('Modificar'),
         },
     }
 

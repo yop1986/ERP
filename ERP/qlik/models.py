@@ -27,8 +27,8 @@ class Stream(models.Model):
 
     def get_permisos(self):
         return Permiso.objects.filter(tobjeto='Stream', obj_id=self.id)\
-            .prefetch_related('licencia').order_by('licencia__nombre')
-
+            .order_by('licencias__nombre')
+        
     def list_url(self=None):
         return reverse('qlik:stream_list')
 
@@ -75,7 +75,7 @@ class Modelo(models.Model):
 
     def get_permisos(self):
         return Permiso.objects.filter(tobjeto='Modelo', obj_id=self.id)\
-            .prefetch_related('licencia').order_by('licencia__nombre')
+            .prefetch_related('licencia').order_by('licencias__nombre')
 
     def list_url(self=None):
         return reverse('qlik:modelo_list')
@@ -116,7 +116,7 @@ class TipoDato(models.Model):
 
     def get_permisos(self):
         return Permiso.objects.filter(tobjeto='TipoDato', obj_id=self.id)\
-            .prefetch_related('licencia').order_by('licencia__nombre')
+            .prefetch_related('licencia').order_by('licencias__nombre')
 
     def list_url(self=None):
         return reverse('qlik:tipodato_list')
@@ -250,22 +250,36 @@ class Licencia(models.Model):
     def delete_url(self):
         return reverse('qlik:licencia_delete', kwargs={'pk': self.id})
 
+
 class Permiso(models.Model):
     '''
         Permiso:
-        Establece los permisos para diferentes objetos
+        Establece las reglas que manejan los permisos
     '''
     MODELO_ASOCIADO = [
-        ('Stream', 'Stream'),
-        ('Modelo', _('Modelo')),
         ('TipoDato', _('Conexión')),
+        ('Modelo', _('Modelo')),
+        ('Stream', 'Stream'),
     ]
 
     # get_tobjeto_display
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nombre      = models.CharField(_('Nombre'), max_length=90)
     obj_id      = models.UUIDField(_('Object ID'))
     tobjeto     = models.CharField(_('Tipo de Objeto'), max_length=21, choices=MODELO_ASOCIADO)
-    licencia    = models.ForeignKey(Licencia, verbose_name=_('Licencia'), on_delete=models.CASCADE, related_name='licencia_permiso')
+    licencias   = models.ManyToManyField(Licencia, verbose_name=_('Licencia'))
+    #Permisos de la regla
+    create      = models.BooleanField(_('Create'), default=False)
+    read        = models.BooleanField(_('Read'), default=False)
+    update      = models.BooleanField(_('Update'), default=False)
+    delete      = models.BooleanField(_('Delete'), default=False)
+    export      = models.BooleanField(_('Export'), default=False)
+    publish     = models.BooleanField(_('Publish'), default=False)
+    change_owner= models.BooleanField(_('Change Owner'), default=False)
+    export_data = models.BooleanField(_('Export Data'), default=False)
+    access_offline= models.BooleanField(_('Access Offline'), default=False)
+    duplicate   = models.BooleanField(_('Duplicate'), default=False)
+    approve     = models.BooleanField(_('Appove'), default=False)
 
     @property
     def objeto(self):
@@ -273,16 +287,21 @@ class Permiso(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['licencia', 'tobjeto', 'obj_id'], name='unq_licencia_objeto'),
+            models.UniqueConstraint(fields=['nombre', 'tobjeto', 'obj_id'], name='unq_permiso_objeto'),
         ]
 
 
     def __str__(self):
-        return f'{self.licencia}'
-        #return globals()[self.tobjeto].objects.get(id=self.obj_id).nombre
+        return f'{self.nombre}'
 
     def list_url(self=None):
         return reverse('qlik:permiso_list')
 
+    def view_url(self):
+        return reverse('qlik:permiso_view', kwargs={'pk': self.id})
+
+    def update_url(self):
+        return reverse('qlik:permiso_update', kwargs={'pk': self.id})
+    
     def delete_url(self):
         return reverse('qlik:permiso_delete', kwargs={'pk': self.id})
