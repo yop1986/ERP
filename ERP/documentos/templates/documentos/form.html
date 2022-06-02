@@ -9,5 +9,4 @@
         <input type="submit" name="Guardar" value="{{ botones.guardar }}" class="btn btn-dark">
         <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{{ list_url }}{% endif %}" class="btn btn-danger">{{ botones.cancelar }}</a>
     </form>
-    <!-- {% crispy form %} -->
 {% endblock %}

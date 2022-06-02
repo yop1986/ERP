@@ -1,0 +1,48 @@
+{% extends "base_documentos.html" %}
+{% load static verbose_names %}
+
+{% block create_button %}
+{% if perms.documentos.add_solicitante %}
+<a href="{% url 'documentos:solicitante_create' %}" class="btn btn-success"><img src="{% static 'images/documentos_add.png' %}" width="32" alt="{{ opciones.nuevo }}" title="{{ opciones.nuevo }}"></a>
+{% endif %}
+{% endblock %}
+
+{% block inner_content %}
+    {% include 'base_documentos_search_form.html' %}
+
+  {% if object_list %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "nombre" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "vigente" %}</th>
+          <th scope="col">{{ opciones.etiqueta }}</th>
+        </tr>
+      </thead>
+      <tbody>
+    {% for object in object_list %}
+        <tr>
+          <th scope="row">{{ forloop.counter0|add:page_obj.start_index }}</th>
+          <td>{{ object }}</td>
+          <td>{{ object.get_estado }}</td>
+          <td>
+            {% if perms.documentos.change_solicitante %}
+            <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
+            {% endif %}
+            {% if perms.documentos.delete_solicitante %}
+            <a href="{{ object.delete_url }}" class="btn btn-{{ object.get_accion_tag }}"> {{ object.get_accion }}</a>
+            {% endif %}
+          </td>
+        </tr>
+    {% endfor %}
+      </tbody>
+    </table>
+{% else %}
+    <div class="alert alert-warning" role="alert">{{ mensaje_vacio }}</div>
+{% endif %}
+{% endblock %}
+
+{% block pagination %}
+  {% include 'base_pagination.html' %}
+{% endblock %}

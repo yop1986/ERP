@@ -9,6 +9,7 @@ from django.contrib import messages
 from django.core.mail import EmailMultiAlternatives
 from django.db.models import Q, Max
 from django.db.models.functions import Length
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.template.loader import get_template
 from django.utils.translation import gettext as _
@@ -17,10 +18,10 @@ from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
 
 from .models import (Bodega, Estante, Nivel, Posicion, Caja, Cliente, Moneda,
-    Producto, Oficina, Credito, Tomo)
+    Producto, Oficina, Credito, Tomo, Solicitante, Motivo, DocumentoFHA, SolicitudFHA)
 from .forms import (Busqueda, GeneraEstructura, GeneraEtiquetas_Form, 
     CargaCreditos_Form, IngresoTomo_Form, EgresoTomo_Form, Bodega_From, 
-    TrasladoTomos_Form, SalidaTomos_Form)
+    TrasladoTomos_Form, SalidaTomos_Form, SolicitudFHA_CreateForm)
 from usuarios.views_base import (ListView_Login, DetailView_Login, TemplateView_Login, 
     CreateView_Login, UpdateView_Login, DeleteView_Login, FormView_Login)
 
@@ -31,7 +32,104 @@ class Inicio_Template(TemplateView):
         'title': 'Documentos',
     }
 
+class CargaMasiva_Form(FormView_Login):
+    permission_required = 'documentos.load_credito'
+    form_class = CargaCreditos_Form
+    template_name = 'documentos/form_loadfile.html'
+    success_message = _('Se cargaron los registros exitosamente')
+    extra_context = {
+        'title': _('Carga de Créditos'),
+        'botones': {
+            'guardar': _('Cargar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
 
+    def get_success_url(self):
+        return reverse_lazy('documentos:index')
+
+    def post(self, request, *args, **kwargs):
+        if 'Cargar' in request.POST:
+            form = self.get_form()
+            if form.is_valid():
+                return self.form_valid(form)
+            else: 
+                return self.form_invalid(form)
+
+    def form_valid(self, form):
+        archivo = form.cleaned_data['archivo']
+        libro = openpyxl.load_workbook(archivo)
+        _insert_masivo_creditos(creditos_excel(libro[libro.sheetnames[0]]))
+        doctosfha = documentosfha(libro[libro.sheetnames[1]])
+        if(len(doctosfha)>1):
+            if self.request.user.has_perm('documentos.add_documentofha'):
+                resultadofha, erroresfha = _insert_documentosfha(doctosfha)
+                for error in erroresfha:
+                    messages.warning(self.request, f'{error["valor"]}: {error["error"]}')
+                    messages.success(self.request, resultadofha)
+            else:
+                messages.warning(self.request, _('No tiene permisos para cargar documentos fha'))
+        return super().form_valid(form)
+
+class Credito_DetailView(DetailView_Login):
+    permission_required = 'documentos.view_credito'
+    model = Credito
+    extra_context = {
+        'title': _('Credito'),
+        'sub_titulo': {
+            'tomos': _('Tomos'),
+            'documentosfha': _('Documentos FHA'),
+        },
+        'etiquetas':{
+            'tomo':_('Cant. de Tomos'),
+        },
+        'opciones':{
+            'etiqueta':_('Opciones'),
+            'etiquetas':_('Etiquetas'),
+            'escaneado': _('Escaneado'),
+            'agregar_tomo':_('Agregar tomo'),
+            'remover_tomo':_('Remover tomo'),
+            'extraer':_('Extraer'),
+            'guardar':_('Guardar'),
+            'solicitud':_('Solicitud'),
+        },
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        if self.request.user.has_perm('documentos.view_tomo'):
+            context['egreso_form']=EgresoTomo_Form()
+            context['tomos'] = Tomo.objects.filter(credito=self.object, vigente=True)\
+                .order_by('numero').prefetch_related('caja', 'caja__posicion', 
+                    'caja__posicion__nivel', 'caja__posicion__nivel__estante', 
+                    'caja__posicion__nivel__estante__bodega',
+                    'caja__posicion__nivel__estante__bodega__personal')
+        if self.request.user.has_perm('documentos.view_documentofha'):
+            context['solicitudfha_form'] = SolicitudFHA_CreateForm()
+            context['documentosfha'] = DocumentoFHA.objects.filter(credito=self.object)\
+                .order_by('tipo', '-vigente')
+        return context
+
+class Credito_Etiqueta(DetailView_Login):
+    permission_required = 'documentos.label_credito'
+    template_name = 'documentos/etiqueta_tomo.html'
+    model = Tomo
+    
+    def get(self, request, *args, **kwargs):
+        context = {
+            'title': _('Etiqueta'),
+            'object': Credito.objects.get(pk=kwargs['pk'])
+        }
+        arreglo = {}
+        tomos = list(Tomo.objects.filter(credito__id=self.kwargs['pk'], vigente=True).order_by('numero'))
+        for tomo in tomos:
+            arreglo[tomo] = 'mostrar'
+        return render(request, self.template_name, {'arreglo': arreglo, 'context': context})
+
+
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+#                   INFORMACIÓN EXPEDIENTES
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 class Bodega_ListView(ListView_Login):
     permission_required = 'documentos.view_bodega'
     model = Bodega
@@ -49,7 +147,7 @@ class Bodega_ListView(ListView_Login):
             'buscar': _('Buscar'),
             'limpiar': _('Limpiar'),
         },
-        'mensaje_vacio': _('No hay "Bodegas" registradas'),
+        'mensaje_vacio': _('No hay "Bodegas" para mostrar'),
     }
 
     def get_context_data(self, *args, **kwargs):
@@ -263,9 +361,6 @@ class Bodega_DeleteView(DeleteView_Login):
             return queryset.filter(
                 Q(personal=self.request.user)
                 |Q(encargado=self.request.user)).distinct()
-
-    def get_success_url(self, *args, **kwargs):
-        return super().get_success_url(self.object.vigente)
 
 
 class Estante_DetailView(DetailView_Login):
@@ -542,85 +637,6 @@ class Caja_Etiqueta(DetailView_Login):
         return render(request, self.template_name, {'arreglo': arreglo, 'context': context})
 
 
-class CargaMasiva_Form(FormView_Login):
-    permission_required = 'documentos.load_credito'
-    form_class = CargaCreditos_Form
-    template_name = 'documentos/form_loadfile.html'
-    success_message = _('Se cargaron los registros exitosamente')
-    extra_context = {
-        'title': _('Carga de Créditos'),
-        'botones': {
-            'guardar': _('Cargar'),
-            'cancelar': _('Cancelar'),
-        }
-    }
-
-    def get_success_url(self):
-        return reverse_lazy('documentos:index')
-
-    def post(self, request, *args, **kwargs):
-        if 'Cargar' in request.POST:
-            form = self.get_form()
-            if form.is_valid():
-                return self.form_valid(form)
-            else: 
-                return self.form_invalid(form)
-
-    def form_valid(self, form):
-        archivo = form.cleaned_data['archivo']
-        libro = openpyxl.load_workbook(archivo)
-        _insert_datos(datos_excel(libro[libro.sheetnames[0]]))
-        return super().form_valid(form)
-
-class Credito_DetailView(DetailView_Login):
-    permission_required = 'documentos.view_credito'
-    model = Credito
-    extra_context = {
-        'title': _('Credito'),
-        'sub_titulo': {
-            'tomos': _('Tomos'),
-        },
-        'etiquetas':{
-            'tomo':_('Cant. de Tomos'),
-        },
-        'opciones':{
-            'etiqueta':_('Opciones'),
-            'etiquetas':_('Etiquetas'),
-            'escaneado': _('Escaneado'),
-            'agregar_tomo':_('Agregar tomo'),
-            'remover_tomo':_('Remover tomo'),
-            'extraer':_('Extraer'),
-            'guardar':_('Guardar'),
-        },
-    }
-
-    def get_context_data(self, *args, **kwargs):
-        context = super().get_context_data(*args, **kwargs)
-        context['egreso_form']=EgresoTomo_Form()
-        context['tomos'] = Tomo.objects.filter(credito=self.object, vigente=True)\
-            .order_by('numero').prefetch_related('caja', 'caja__posicion', 
-                'caja__posicion__nivel', 'caja__posicion__nivel__estante', 
-                'caja__posicion__nivel__estante__bodega',
-                'caja__posicion__nivel__estante__bodega__personal')
-        return context
-
-class Credito_Etiqueta(DetailView_Login):
-    permission_required = 'documentos.label_credito'
-    template_name = 'documentos/etiqueta_tomo.html'
-    model = Tomo
-    
-    def get(self, request, *args, **kwargs):
-        context = {
-            'title': _('Etiqueta'),
-            'object': Credito.objects.get(pk=kwargs['pk'])
-        }
-        arreglo = {}
-        tomos = list(Tomo.objects.filter(credito__id=self.kwargs['pk'], vigente=True).order_by('numero'))
-        for tomo in tomos:
-            arreglo[tomo] = 'mostrar'
-        return render(request, self.template_name, {'arreglo': arreglo, 'context': context})
-
-
 class Tomo_Ingreso(FormView_Login):
     permission_required = 'documentos.change_tomo'
     form_class = IngresoTomo_Form
@@ -718,8 +734,272 @@ class Tomo_Template(TemplateView_Login):
         context['traslado_form'] = TrasladoTomos_Form()
         context['egreso_form'] = SalidaTomos_Form()
         return context
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+#                   INFORMACIÓN EXPEDIENTES
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 
 
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+#                       INFORMACIÓN FHA
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+class Solicitante_ListView(ListView_Login):
+    permission_required = 'documentos.view_solicitante'
+    model = Solicitante
+    paginate_by = 15
+    ordering = ['-vigente', 'nombre']
+    extra_context = {
+        'title': _('Solicitantes'),
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'ver': _('Ver'),
+            'editar': _('Editar'),
+            'nuevo': _('Nuevo'),
+        },
+        'botones': {
+            'buscar': _('Buscar'),
+            'limpiar': _('Limpiar'),
+        },
+        'mensaje_vacio': _('No hay "Solicitantes" para mostrar'),
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        busqueda = self.request.GET.get('valor')
+
+        context = super().get_context_data(*args, **kwargs)
+        context['url_lista'] = Solicitante.list_url()
+        if busqueda:
+            context['form'] = Busqueda(self.request.GET)
+            try:
+                context['object_list'] = Solicitante.objects.filter(codigo=int(busqueda)).order_by('nombre')
+            except Exception as e:
+                context['object_list'] = Solicitante.objects.filter(nombre__icontains=busqueda).order_by('nombre')
+        else:
+            context['form'] = Busqueda()
+        return context
+
+class Solicitante_DetailView(DetailView_Login):
+    permission_required = 'documentos.view_solicitante'
+    model = Solicitante
+    extra_context = {
+        'title': _('Solicitante'),
+        'sub_titulo': {
+            'documentosfha': _('Documentos FHA'),
+        },
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'editar': _('Editar'),
+        },
+    }
+    
+class Solicitante_CreateView(CreateView_Login):
+    permission_required = 'documentos.add_solicitante'
+    template_name = 'documentos/form.html'
+    model = Solicitante
+    fields = '__all__'
+    success_message = _('Se ha guardado el solicitante.')
+    extra_context = {
+        'title': _('Agregar Solicitante'),
+        'botones': {
+            'guardar': _('Agregar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
+
+class Solicitante_UpdateView(UpdateView_Login):
+    permission_required = 'documentos.change_solicitante'
+    template_name = 'documentos/form.html'
+    model = Solicitante
+    fields = '__all__'
+    success_message = _('Se ha actualizado el solicitante.')
+    extra_context = {
+        'title': _('Actualizar Solicitante'),
+        'botones': {
+            'guardar': _('Actualizar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
+
+    def get_success_url(self):
+        return Solicitante.list_url()
+
+class Solicitante_DeleteView(DeleteView_Login):
+    permission_required = 'documentos.delete_solicitante'
+    template_name = 'documentos/confirmation_form.html'
+    model = Solicitante
+    extra_context = {
+        'title': _('Cambiar estado del solicitante'),
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['list_url'] = Solicitante.list_url()
+        context['botones']={
+            'cancelar': _('Cancelar'),
+        }
+        context['mensajes']={
+            'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
+        }
+        return context
+
+
+class Motivo_ListView(ListView_Login):
+    permission_required = 'documentos.view_motivo'
+    model = Motivo
+    paginate_by = 15
+    ordering = ['-vigente', 'nombre']
+    extra_context = {
+        'title': _('Motivos'),
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'ver': _('Ver'),
+            'editar': _('Editar'),
+            'nuevo': _('Nuevo'),
+        },
+        'botones': {
+            'buscar': _('Buscar'),
+            'limpiar': _('Limpiar'),
+        },
+        'mensaje_vacio': _('No hay "Motivos" para mostrar'),
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        busqueda = self.request.GET.get('valor')
+
+        context = super().get_context_data(*args, **kwargs)
+        context['url_lista'] = Motivo.list_url()
+        if busqueda:
+            context['form'] = Busqueda(self.request.GET)
+            context['object_list'] = Motivo.objects.filter(nombre__icontains=busqueda).order_by('nombre')
+        else:
+            context['form'] = Busqueda()
+        return context
+    
+class Motivo_DetailView(DetailView_Login):
+    pass
+    
+class Motivo_CreateView(CreateView_Login):
+    permission_required = 'documentos.add_motivo'
+    template_name = 'documentos/form.html'
+    model = Motivo
+    fields = '__all__'
+    success_message = _('Se ha guardado el motivo.')
+    extra_context = {
+        'title': _('Agregar Motivo'),
+        'botones': {
+            'guardar': _('Agregar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
+    
+class Motivo_UpdateView(UpdateView_Login):
+    permission_required = 'documentos.change_motivo'
+    template_name = 'documentos/form.html'
+    model = Motivo
+    fields = '__all__'
+    success_message = _('Se ha actualizado el motivo.')
+    extra_context = {
+        'title': _('Actualizar Motivo'),
+        'botones': {
+            'guardar': _('Actualizar'),
+            'cancelar': _('Cancelar'),
+        }
+    }
+
+    def get_success_url(self):
+        return self.object.list_url()
+    
+class Motivo_DeleteView(DeleteView_Login):
+    permission_required = 'documentos.delete_motivo'
+    template_name = 'documentos/confirmation_form.html'
+    model = Motivo
+    extra_context = {
+        'title': _('Cambiar estado del motivo'),
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['list_url'] = Motivo.list_url()
+        context['botones']={
+            'cancelar': _('Cancelar'),
+        }
+        context['mensajes']={
+            'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
+        }
+        return context 
+
+
+class DocumentoFHA_ListView(ListView_Login):
+    pass
+    
+class DocumentoFHA_DetailView(DetailView_Login):
+    pass
+    
+class DocumentoFHA_CreateView(CreateView_Login):
+    pass
+    
+class DocumentoFHA_UpdateView(UpdateView_Login):
+    pass
+    
+class DocumentoFHA_DeleteView(DeleteView_Login):
+    permission_required = 'documentos.delete_documentofha'
+    template_name = 'documentos/confirmation_form.html'
+    model = DocumentoFHA
+    extra_context = {
+        'title': _('Cambiar estado al documento'),
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['list_url'] = DocumentoFHA.list_url()
+        context['botones']={
+            'cancelar': _('Cancelar'),
+        }
+        context['mensajes']={
+            'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado; '),
+        }
+        return context
+
+    def get_success_url(self):
+        return self.object.credito.view_url()
+
+
+class SolicitudFHA_ListView(ListView_Login):
+    pass
+    
+class SolicitudFHA_DetailView(DetailView_Login):
+    pass
+    
+class SolicitudFHA_CreateView(CreateView_Login):
+    permission_required = 'documentos.add_solicitudfha'
+    template_name = 'documentos/solicitud_form.html'
+    model = SolicitudFHA
+    form_class = SolicitudFHA_CreateForm
+    success_message = _('Se ha iniciado el proceso de solicitud.')
+    extra_context = {
+        'title': _('Nueva Solicitud'),
+        'botones': {
+            'guardar': _('Crear'),
+            'cancelar': _('Cancelar'),
+        }
+    }
+
+    def form_valid(self, form):
+        form = form.save(commit=False)
+        print(f'>>>>>>>>>>>>>>>>>>>>>>{form}')
+        
+class SolicitudFHA_UpdateView(UpdateView_Login):
+    pass
+    
+class SolicitudFHA_DeleteView(DeleteView_Login):
+    pass 
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+#                      INFORMACIÓN FHA
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+
+
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+#                       FUNCIONES
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 def buscar_credito(request):
     numero = request.GET['numero'].replace(' ','').split('-')
     credito = Credito.objects.filter(numero=numero[0])
@@ -897,9 +1177,46 @@ def envia_correo(mail):
     thread.start()
     
 ##########################################################################
-#
+# Extrae los datos de excel a un dataset
 ##########################################################################
-def datos_excel(hoja):    
+def documentosfha(hoja):
+    orden = {}
+    for i in range(len(hoja[1])):
+        orden[hoja[1][i].value]=i
+
+    documentos = []
+
+    for fila in hoja.iter_rows(min_row=2):
+        #Credito Tipo    Número  Ubicación   Poliza
+        documentos.append({
+            'credito':  fila[orden['Credito']].value,
+            'tipo':     fila[orden['Tipo']].value,
+            'numero':   fila[orden['Numero']].value,
+            'ubicacion':fila[orden['Ubicacion']].value,
+            'poliza':   fila[orden['Poliza']].value,
+        })
+    return documentos
+
+def _insert_documentosfha(datos):
+    errores = []
+    doctos = []
+    for elemento in datos:
+        try:
+            credito = Credito.objects.get(numero=elemento['credito'])
+        except Exception as e:
+            errores.append({'valor': elemento['credito'], 'error': _('No se encontró el número de crédito')})
+
+        if not DocumentoFHA.objects.filter(credito=credito, tipo=elemento['tipo'], numero=elemento['numero']):
+            doctos.append(DocumentoFHA(tipo=elemento['tipo'], numero=elemento['numero'], 
+                ubicacion=elemento['ubicacion'], poliza=elemento['poliza'], credito=credito))
+        else:
+            errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
+                'error': _('Ya existe el documento.')})
+    
+    resultado = bulk_create_with_history(doctos, DocumentoFHA, batch_size=1500)
+    return resultado, errores
+
+def creditos_excel(hoja):    
     orden = {}
     for i in range(len(hoja[1])):
         orden[hoja[1][i].value]=i
@@ -931,13 +1248,14 @@ def datos_excel(hoja):
         credito = fila[orden['Credito']].value
         fecha   = datetime.strptime(fila[orden['Fecha_Ini']].value, "%d/%m/%Y").strftime("%Y-%m-%d")
         monto   = fila[orden['Monto']].value
+        credito_anterior = fila[orden['Credito_Anterior']].value
         if not any(credito in sublist for sublist in creditos):
-            creditos.append([credito, fecha, monto, mis, cod_ofi, moneda, producto])
+            creditos.append([credito, fecha, monto, mis, cod_ofi, moneda, producto, credito_anterior])
         
     return {'clientes': clientes, 'oficinas': oficinas, 'monedas': monedas, 
         'productos': productos,'creditos': creditos}
 
-def _insert_datos(datos):
+def _insert_masivo_creditos(datos):
     clientes = _insert_clientes(datos['clientes'])
     oficinas = _insert_oficinas(datos['oficinas'])
     monedas = _insert_monedas(datos['monedas'])
@@ -986,9 +1304,25 @@ def _insert_creditos(datos):
     creditos = []
     for dato in datos:
         if not queryset.filter(numero=dato[0]):
-            creditos.append(Credito(numero=dato[0], fecha_concesion=dato[1], 
-                monto=dato[2], cliente=clientes.get(codigo=int(dato[3])), 
-                moneda=monedas.get(descripcion=dato[5]), 
-                oficina=oficinas.get(numero=int(dato[4])), 
-                producto=productos.get(descripcion=dato[6])))
+            creditos.append(
+                Credito(
+                    numero=dato[0], fecha_concesion=dato[1], 
+                    monto=dato[2], credito_anterior = dato[7] if dato[7] else '',
+                    cliente=clientes.get(codigo=int(dato[3])), 
+                    moneda=monedas.get(descripcion=dato[5]), 
+                    oficina=oficinas.get(numero=int(dato[4])), 
+                    producto=productos.get(descripcion=dato[6]),
+                )
+            )
     bulk_create_with_history(creditos, Credito, batch_size=1500)
+
+##########################################################################
+# Llamadas Ajax
+##########################################################################
+def ajax_consulta_motivo(request):
+    '''
+        SolicitudFHA_CreateView
+        Obtiene el motivo y determina si mostrar o no el bufete
+    '''
+    motivo = Motivo.objects.get(id=request.GET.get('motivo_id'))
+    return HttpResponse(motivo.demanda)

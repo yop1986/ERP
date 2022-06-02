@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
-from .models import Bodega
+from .models import Bodega, SolicitudFHA
 from usuarios.models import Usuario
      
 
@@ -14,7 +14,12 @@ class Busqueda(forms.Form):
         self.fields['valor'].label = False
         self.fields['valor'].widget.attrs.update({'class':'form-control'})
 
+class CargaCreditos_Form(forms.Form):
+    archivo = forms.FileField(label='Archivo')
 
+##########################################################################
+# Expedientes
+##########################################################################
 class GeneraEstructura(forms.Form):
     '''
         Bodega Detail
@@ -25,7 +30,6 @@ class GeneraEstructura(forms.Form):
     niveles = forms.IntegerField(required=True, min_value=1)
     posiciones = forms.IntegerField(required=True, min_value=1)
     cajas = forms.IntegerField(required=True, min_value=1)
-
 
 class GeneraEtiquetas_Form(forms.Form):
     posicion = forms.IntegerField(min_value=1, max_value=26)
@@ -41,10 +45,6 @@ class Bodega_From(forms.ModelForm):
         usuarios = Usuario.objects.filter(is_active=True, groups__name__istartswith='documentos').distinct()
         self.fields['encargado'].queryset = usuarios
         self.fields['personal'].queryset = usuarios
-        
-class CargaCreditos_Form(forms.Form):
-    archivo = forms.FileField(label='Archivo')
-
 
 class IngresoTomo_Form(forms.Form):
     '''
@@ -87,7 +87,27 @@ class SalidaTomos_Form(forms.Form):
         help_text=_('Gerencia a la que pertenece'))
     comentario = forms.CharField(max_length=254, required=False)
 
+##########################################################################
+# Documentos FHA
+##########################################################################
+class SolicitudFHA_CreateForm(forms.ModelForm):
+    '''
+        SolicitudFHA_CreateView
+        Creación de nuevas solicitudes
+    '''
+    class Meta:
+        model = SolicitudFHA
+        fields = ['solicitante', 'motivo']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['solicitante'].queryset = self.fields['solicitante'].queryset.filter(vigente=True).order_by('nombre')
+        self.fields['motivo'].queryset = self.fields['motivo'].queryset.filter(vigente=True).order_by('nombre')
+
+
+##########################################################################
+# Funciones adicionales
+##########################################################################
 def is_integer(n):
     try:
         float(n)

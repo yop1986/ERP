@@ -9,6 +9,84 @@ from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
 
 # Create your models here.
+class Cliente(models.Model):
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    codigo = models.PositiveIntegerField(db_index=True, unique=True)
+    nombre = models.CharField(max_length=90)
+
+    def __str__(self):
+        return f"{self.codigo} - {self.nombre}"
+
+
+class Moneda(models.Model):
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    descripcion = models.CharField(max_length=21, unique=True)
+    simbolo = models.CharField(max_length=1, unique=True, blank=True, null=True)
+    
+    def __str__(self):
+        return f"{self.descripcion} ({self.simbolo})"
+
+    
+class Producto(models.Model):
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    descripcion = models.CharField(max_length=12, unique=True)
+
+    def __str__(self):
+        return self.descripcion
+
+    
+class Oficina(models.Model):
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    numero = models.PositiveIntegerField(db_index=True, unique=True)
+    descripcion = models.CharField(max_length=60)
+
+    def __str__(self):
+        return f"{str(self.numero).zfill(4)} - {self.descripcion}"
+
+    
+class Credito(models.Model):
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    numero  = models.CharField(max_length=18, db_index=True, unique=True)
+    monto   = models.DecimalField(max_digits=18, decimal_places=2)
+    escaneado = models.BooleanField(_('Escaneado'), default=False)
+    fecha_concesion = models.DateField(null=True)
+    fecha_ingreso = models.DateTimeField(auto_now_add=True)
+    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='credito_cliente')
+    moneda  = models.ForeignKey(Moneda, on_delete=models.PROTECT, related_name='credito_moneda')
+    oficina = models.ForeignKey(Oficina, on_delete=models.PROTECT, related_name='credito_oficina')
+    producto= models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='credito_producto')
+    credito_anterior = models.CharField(max_length=18, blank=True)
+    history = HistoricalRecords(excluded_fields=['numero', 'monto', 'fecha_concesion', 
+        'fecha_ingreso', 'cliente', 'moneda', 'oficina', 'producto'],
+        user_model=settings.AUTH_USER_MODEL)
+    
+    class Meta:
+        permissions = [
+            ("load_credito", "Carga masiva de créditos"),
+            ("label_credito", "Permite imprimir etiquetas de los tomos"),
+        ]
+
+    def __str__(self):
+        return f"{self.numero} - {self.cliente.nombre}"
+
+    def get_credito_anterior(self):
+        return self.credito_anterior if self.credito_anterior else '-'
+
+    def view_url(self):
+        return reverse('documentos:credito_view', kwargs={'pk': self.id})
+
+    def labels_url(self):
+        return reverse('documentos:credito_labels', kwargs={'pk': self.id})
+
+    def cant_tomos(self):
+        return Tomo.objects.filter(credito=self, vigente=True).count()
+
+    def esta_escaneado(self):
+        return _('Si') if self.escaneado else _('No')
+
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+#                   INFORMACIÓN EXPEDIENTES
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 class Bodega(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     codigo  = models.CharField(_('Código'), max_length=3, unique=True, 
@@ -261,81 +339,6 @@ class Caja(models.Model):
             .prefetch_related('credito')
 
 
-class Cliente(models.Model):
-    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    codigo = models.PositiveIntegerField(db_index=True, unique=True)
-    nombre = models.CharField(max_length=90)
-
-    def __str__(self):
-        return f"{self.codigo} - {self.nombre}"
-
-
-class Moneda(models.Model):
-    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    descripcion = models.CharField(max_length=21, unique=True)
-    simbolo = models.CharField(max_length=1, unique=True, blank=True, null=True)
-    
-    def __str__(self):
-        return f"{self.descripcion} ({self.simbolo})"
-
-    
-class Producto(models.Model):
-    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    descripcion = models.CharField(max_length=12, unique=True)
-
-    def __str__(self):
-        return self.descripcion
-
-    
-class Oficina(models.Model):
-    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    numero = models.PositiveIntegerField(db_index=True, unique=True)
-    descripcion = models.CharField(max_length=60)
-
-    def __str__(self):
-        return f"{str(self.numero).zfill(4)} - {self.descripcion}"
-
-    
-class Credito(models.Model):
-    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    numero  = models.CharField(max_length=18, db_index=True, unique=True)
-    monto   = models.DecimalField(max_digits=18, decimal_places=2)
-    escaneado = models.BooleanField(_('Escaneado'), default=False)
-    fecha_concesion = models.DateField(null=True)
-    fecha_ingreso = models.DateTimeField(auto_now_add=True)
-    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='credito_cliente')
-    moneda  = models.ForeignKey(Moneda, on_delete=models.PROTECT, related_name='credito_moneda')
-    oficina = models.ForeignKey(Oficina, on_delete=models.PROTECT, related_name='credito_oficina')
-    producto= models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='credito_producto')
-    history = HistoricalRecords(excluded_fields=['numero', 'monto', 'fecha_concesion', 
-        'fecha_ingreso', 'cliente', 'moneda', 'oficina', 'producto'],
-        user_model=settings.AUTH_USER_MODEL)
-    
-    class Meta:
-        permissions = [
-            ("load_credito", "Carga masiva de créditos"),
-            ("label_credito", "Permite imprimir etiquetas de los tomos"),
-        ]
-        indexes = [
-            models.Index(fields=['numero'])
-        ]
-
-    def __str__(self):
-        return f"{self.numero} - {self.cliente.nombre}"
-
-    def view_url(self):
-        return reverse('documentos:credito_view', kwargs={'pk': self.id})
-
-    def labels_url(self):
-        return reverse('documentos:credito_labels', kwargs={'pk': self.id})
-
-    def cant_tomos(self):
-        return Tomo.objects.filter(credito=self, vigente=True).count()
-
-    def esta_escaneado(self):
-        return _('Si') if self.escaneado else _('No')
-
-
 class Tomo(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     numero  = models.PositiveSmallIntegerField()
@@ -356,7 +359,8 @@ class Tomo(models.Model):
             models.UniqueConstraint(fields=['credito', 'numero'], name='unq_credito_numero'),
         ]
         indexes = [
-            models.Index(fields=['fecha_modificacion'])
+            models.Index(fields=['fecha_modificacion']),
+            models.Index(fields=['numero']),
         ]
         permissions = [
             ("label_tomo", "Permite imprimir etiquetas de los tomos"),
@@ -379,4 +383,177 @@ class Tomo(models.Model):
 
     def get_posicion(self):
         return Caja.objects.filter(id=self.caja.id, tomo_caja__fecha_modificacion__gte=self.fecha_modificacion).count()
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+#                   INFORMACIÓN EXPEDIENTES
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 
+
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+#                   INFORMACIÓN FHA
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+class Solicitante(models.Model):
+    '''
+        Listado de posibles solicitantes de documentos a Boveda 
+    '''
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    codigo  = models.PositiveIntegerField(_('Código'), unique=True)
+    nombre  = models.CharField(_('Nombre'), db_index=True, max_length=30, unique=True)
+    vigente = models.BooleanField(_('Estado'), default=True)
+    history = HistoricalRecords(
+        history_id_field = models.BigAutoField(),
+        user_model = settings.AUTH_USER_MODEL,
+        )
+
+    def __str__(self):
+        return f'{self.nombre} ({self.codigo})'
+
+    def delete(self):
+        self.vigente = not self.vigente
+        self.save()
+
+    def hard_delete(self):
+        super().delete()
+
+    def get_estado(self):
+        return _('Vigente') if self.vigente else _('No Vigente')
+
+    def get_accion(self):
+        return 'Inhabilitar' if self.vigente else 'Habilitar'
+
+    def get_accion_tag(self):
+        return 'danger' if self.vigente else 'success'
+
+    def list_url(self=None):
+        return reverse('documentos:solicitante_list')
+
+    def view_url(self):
+        return  reverse('documentos:solicitante_view', kwargs={'pk': self.id})
+
+    def update_url(self):
+        return  reverse('documentos:solicitante_update', kwargs={'pk': self.id})
+
+    def delete_url(self):
+        return  reverse('documentos:solicitante_delete', kwargs={'pk': self.id})
+
+class Motivo(models.Model):
+    '''
+        Motivos por los cuales puede solicitarse un documento a bóveda
+    '''
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nombre  = models.CharField(_('Nombre'),db_index=True, max_length=30, unique=True)
+    demanda = models.BooleanField(_('Demanda'), default=False)
+    vigente  = models.BooleanField(_('Estado'), default=True)
+    history = HistoricalRecords(
+        history_id_field = models.BigAutoField(),
+        user_model = settings.AUTH_USER_MODEL,
+        )
+
+    def __str__(self):
+        return self.nombre
+
+    def delete(self):
+        self.vigente = not self.vigente
+        self.save()
+
+    def hard_delete(self):
+        super().delete()
+
+    def get_es_demanda(self):
+        return ('Si') if self.demanda else _('No')
+
+    def get_estado(self):
+        return _('Vigente') if self.vigente else _('No Vigente')
+
+    def get_accion(self):
+        return 'Inhabilitar' if self.vigente else 'Habilitar'
+
+    def get_accion_tag(self):
+        return 'danger' if self.vigente else 'success'
+
+    def list_url(self=None):
+        return reverse('documentos:motivo_list')
+
+    def view_url(self):
+        return  reverse('documentos:motivo_view', kwargs={'pk': self.id})
+
+    def update_url(self):
+        return  reverse('documentos:motivo_update', kwargs={'pk': self.id})
+
+    def delete_url(self):
+        return  reverse('documentos:motivo_delete', kwargs={'pk': self.id})
+
+class DocumentoFHA(models.Model):
+    ''' 
+        Documentos almacenados en Bóveda por el FHA
+    '''
+    TIPO_DOCUMENTO_FHA = [
+        ('CED', _('Cédula')),
+        ('SEG', _('Seguro')),
+        ('ESC', _('Escritura')),
+    ]
+
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    fecha   = models.DateField(_('Fecha'), auto_now=True)
+    tipo    = models.CharField(_('Tipo'), max_length=3,choices=TIPO_DOCUMENTO_FHA)
+    numero  = models.PositiveIntegerField(_('Número'))
+    ubicacion = models.PositiveIntegerField(_('Ubicación'), db_index=True)
+    poliza  = models.CharField(_('Póliza de Ingreso'), max_length=9, db_index=True)
+    vigente = models.BooleanField(_('Estado'), default=True)
+    credito = models.ForeignKey(Credito, verbose_name=_('Crédito'), on_delete=models.PROTECT)
+    history = HistoricalRecords(
+        history_id_field = models.BigAutoField(),
+        excluded_fields = ['fecha'],
+        user_model = settings.AUTH_USER_MODEL,
+        )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['credito', 'tipo', 'numero'], name='unq_credito_tipo_numero'),
+        ]
+        indexes = [
+            models.Index(fields=['tipo', 'numero']),
+        ]
+
+    def __str__(self):
+        return f'{self.credito}, {self.tipo}: {self.numero}'
+
+    def delete(self):
+        self.vigente = not self.vigente
+        self.save()
+
+    def hard_delete(self):
+        super().delete()
+    
+    def get_estado(self):
+        return _('Vigente') if self.vigente else _('No Vigente')
+
+    def get_accion(self):
+        return 'Inhabilitar' if self.vigente else 'Habilitar'
+
+    def get_accion_tag(self):
+        return 'danger' if self.vigente else 'success'
+
+    def list_url(self=None):
+        return reverse('documentos:motivo_list')
+
+    def delete_url(self):
+        return  reverse('documentos:documentofha_delete', kwargs={'pk': self.id})
+
+class SolicitudFHA(models.Model):
+    '''
+        Ciclo de vida de la solicitud
+    '''
+    fecha_solicitud = models.DateField(_('Fecha'), db_index=True, auto_now_add=True)
+    bufete          = models.CharField(_('Bufete'), max_length=30, default='')
+    fecha_egreso    = models.DateField(_('Egreso de Bóveda'), null=True)
+    poliza_egreso   = models.PositiveIntegerField(_('Póliza de Egreso'), default=0)
+    fecha_entrega   = models.DateField(_('Entrega a solicitante'), null=True)
+    fecha_devolución= models.DateField(_('Devolución de solicitante'), null=True)
+    regreso_boveda  = models.BooleanField(default=False)
+    vigente         = models.BooleanField(default=True)
+    documento       = models.ForeignKey(DocumentoFHA, verbose_name=_('Documento'), on_delete=models.PROTECT)
+    solicitante     = models.ForeignKey(Solicitante, verbose_name=_('Solicitante'), on_delete=models.PROTECT)
+    motivo          = models.ForeignKey(Motivo, verbose_name=_('Motivo'), on_delete=models.PROTECT)
+
+    def __str__(self):
+        return f'{self.fecha_solicitud} / {self.motivo}'

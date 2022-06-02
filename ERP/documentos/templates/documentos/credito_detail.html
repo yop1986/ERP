@@ -54,12 +54,21 @@
   </div>
   <div class="row mb-2">
     <div class="col-7">
+      <strong>{% get_verbose_field_name credito "credito_anterior" %}</strong>
+    </div>
+    <div class="col-5">
+      {{ credito.get_credito_anterior }}
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-7">
       <strong>{% get_verbose_field_name credito "escaneado" %}</strong>
     </div>
     <div class="col-5">
       {{ credito.esta_escaneado }}
     </div>
   </div>
+  {% if perms.documentos.view_tomo %}
   <div class="row mb-2">
     <div class="col-7">
       <strong>{{ etiquetas.tomo }}</strong>
@@ -68,6 +77,7 @@
       {{ credito.cant_tomos }}
     </div>
   </div>
+  {% endif %}
 
   
   {% if perms.documentos.change_credito or perms.documentos.label_credito or perms.documentos.add_tomo or perms.documentos.delete_tomo %}
@@ -96,56 +106,129 @@
     </div>
   </div>
   {% endif %}
-
 {% endif %}
+
+<div class="accordion accordion-flush" id="accordion-estructura">
 
   {% if tomos %}
-    <table class="table">
-      <thead>
-        <tr>
-          <th scope="col">#</th>
-          <th scope="col">{% get_verbose_field_name tomos.0 "fecha_modificacion" %}</th>
-          <th scope="col">{% get_verbose_field_name tomos.0 "comentario" %}</th>
-          <th scope="col">{% get_verbose_field_name tomos.0 "caja" %}</th>
-          <th scope="col">{{ opciones.etiqueta }}</th>
-        </tr>
-      </thead>
-      <tbody>
-    {% for tomo in tomos %}
-        <tr>
-          <td>{{ tomo.numero }}</td>
-          <td>{{ tomo.fecha_modificacion|date:"d/m/Y" }}</td>
-          <td><pre>{{ tomo.comentario }}</pre></td>
-          <td>
-            {% if not tomo.caja %}
-              -
-            {% elif request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
-              <a href="{{ tomo.caja.view_url }}"> {{ tomo.caja }} ({{ tomo.get_posicion }})</a>
-            {% else %}
-              {{ tomo.caja.posicion.nivel.estante.bodega }}
-            {% endif %}
-          </td>
-          <td>
-            {% if perms.documentos.label_tomo %}
-            <a href="{{ tomo.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
-            {% endif %}
-            {% if perms.documentos.change_tomo and tomo.caja and request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
-              <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#extraerForm" data-bs-whatever="{{ tomo.id }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
-            {% endif %}
-          </td>
-        </tr>
-    {% endfor %}
-      </tbody>
-    </table>
-{% endif %}
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="flush-headingOne">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+        {{ sub_titulo.tomos }}
+      </button>
+    </h2>
+    <div id="flush-collapseOne" class="accordion-collapse collapse show" aria-labelledby="flush-headingOne" data-bs-parent="#accordion-estructura">
+      <div class="accordion-body">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">{% get_verbose_field_name tomos.0 "fecha_modificacion" %}</th>
+              <th scope="col">{% get_verbose_field_name tomos.0 "comentario" %}</th>
+              <th scope="col">{% get_verbose_field_name tomos.0 "caja" %}</th>
+              {% if perms.documentos.label_tomo or perms.documentos.change_tomo %}
+              <th scope="col">{{ opciones.etiqueta }}</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+        {% for tomo in tomos %}
+            <tr>
+              <td>{{ tomo.numero }}</td>
+              <td>{{ tomo.fecha_modificacion|date:"d/m/Y" }}</td>
+              <td><pre>{{ tomo.comentario }}</pre></td>
+              <td>
+                {% if not tomo.caja %}
+                  -
+                {% elif request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
+                  <a href="{{ tomo.caja.view_url }}"> {{ tomo.caja }} ({{ tomo.get_posicion }})</a>
+                {% else %}
+                  {{ tomo.caja.posicion.nivel.estante.bodega }}
+                {% endif %}
+              </td>
+              <td>
+                {% if perms.documentos.label_tomo %}
+                <a href="{{ tomo.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
+                {% endif %}
+                {% if perms.documentos.change_tomo and tomo.caja and request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
+                  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#extraerForm" data-bs-whatever="{{ tomo.id }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
+                {% endif %}
+              </td>
+            </tr>
+        {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
-<!-- Modal -->
+
+  {% if documentosfha %}
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="flush-headingTwo">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseTwo" aria-expanded="false" aria-controls="flush-collapseTwo">
+        {{ sub_titulo.documentosfha }}
+      </button>
+    </h2>
+    <div id="flush-collapseTwo" class="accordion-collapse collapse show" aria-labelledby="flush-headingTwo" data-bs-parent="#accordion-estructura">
+      <div class="accordion-body">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">{% get_verbose_field_name documentosfha.0 "fecha" %}</th>
+              <th scope="col">{% get_verbose_field_name documentosfha.0 "tipo" %}</th>
+              <th scope="col">{% get_verbose_field_name documentosfha.0 "numero" %}</th>
+              <th scope="col">{% get_verbose_field_name documentosfha.0 "ubicacion" %}</th>
+              <th scope="col">{% get_verbose_field_name documentosfha.0 "poliza" %}</th>
+              <th scope="col">{% get_verbose_field_name documentosfha.0 "vigente" %}</th>
+              {% if perms.documentos.add_solicitudfha or perms.documentos.delete_documentofha %}
+              <th scope="col">{{ opciones.etiqueta }}</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+        {% for documento in documentosfha %}
+            <tr>
+              <th scope="row">{{ forloop.counter }}</th>
+              <td>{{ documento.fecha }}</td>
+              <td>{{ documento.tipo }}</td>
+              <td>{{ documento.numero }}</td>
+              <td>{{ documento.ubicacion }}</td>
+              <td>{{ documento.poliza }}</td>
+              <td>{{ documento.get_estado }}</td>
+              <td>
+                {% if perms.documentos.add_solicitudfha %}
+                <a href="{% url 'documentos:solicitudfha_create' documento.id %}" class="btn btn-dark">{{ opciones.solicitud }}</a>
+                {% endif %}
+                {% if perms.documentos.delete_documentofha %}
+                <a href="{{ documento.delete_url }}" class="btn btn-{{documento.get_accion_tag}}"><img src="{% static 'images/documentos_remove.png' %}" alt="{{ documento.get_accion }}" title="{{ documento.get_accion }}" width="25px"></a>
+
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#solicitudForm" data-bs-whatever="{{ tomo.id }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
+                {% endif %}
+              </td>
+            </tr>
+        {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+
+
+
+
+<!-- Modal - Ventana emergente para egresos de tomos -->
 {% if perms.documentos.change_tomo %}
-<div class="modal fade" id="extraerForm" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="extraerForm" tabindex="-1" aria-labelledby="extraerModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">{{ opciones.extraer }}</h5>
+        <h5 class="modal-title" id="extraerModalLabel">{{ opciones.extraer }}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -153,6 +236,31 @@
           <input type="hidden" class="form-control" id="tomo-id" name="tomo-id">
           <div class="mb-3">
             {{ egreso_form|crispy }}
+          </div>
+          {% csrf_token %}
+          <input type="submit" name="agregar" value="{{ opciones.guardar }}" class="btn btn-primary">
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal - Ventana emergente creación de solicitud -->
+{% if perms.documentos.add_solicitudfha %}
+<div class="modal fade" id="solicitudForm" tabindex="-1" aria-labelledby="solicitudFHAModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="solicitudFHAModalLabel">{{ opciones.extraer }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" autocomplete="off">
+          <input type="hidden" class="form-control" id="documento-id" name="documento-id">
+          <div class="mb-3">
+            {{ solicitudfha_form|crispy }}
+            <div id="div_id_bufete" class="mb-3">
           </div>
           {% csrf_token %}
           <input type="submit" name="agregar" value="{{ opciones.guardar }}" class="btn btn-primary">
@@ -171,6 +279,7 @@
 {% block js %}
 <script src="{% static 'js/jquery.min.js' %}"></script>
 <script type="text/javascript">
+{% if perms.documentos.change_tomo %}
   var extraerForm = document.getElementById('extraerForm')
   
   extraerForm.addEventListener('show.bs.modal', function (event) {
@@ -188,6 +297,50 @@
   //var modalTitle = extraerForm.querySelector('.modal-title')
   //modalTitle.textContent = 'New message to ' + recipient
 })
+{% endif %}
 
+{% if perms.documentos.add_solicitudfha %}
+  $("#id_motivo").on("change", function() {
+    //obtiene la url que consulta el detalle de origenes
+    var url = "{% url 'documentos:solicitudfha_consulta_motivo' %}"
+    var motivo_id = 0;
+
+    //obtiene el id del tipo de origen seleccionado
+    if ($(this).val() != '' ){
+      motivo_id = $(this).val();
+    }
+
+    //llamado ajax
+    $.ajax({
+      //url que se debe llamar
+      url: url,
+      //parametros GET
+      data: {
+        'motivo_id': motivo_id
+      },
+
+      //data recibe la infomración de la llamada si fue exitosa
+      success: function(response) {
+        //reemplaza data dentor de id_origendato
+        if (response == 'True') {
+            $('#div_id_bufete').html('\
+            <label for="id_bufete" class="form-label"> \
+                Bufete<span class="asteriskField">*</span> \
+            </label> \
+            <input type="text" name="bufete" maxlength="30" class="textinput textInput form-control" id="id_bufete" required>'
+            );
+        }else{
+            $("#div_id_bufete").html("");
+        }
+      }
+
+      /*
+      success: function(data) {
+        //reemplaza data dentor de id_origendato
+        $("#id_origendato").html(data);
+      }/**/
+    });
+  });
+{% endif %}
 </script>
 {% endblock %}

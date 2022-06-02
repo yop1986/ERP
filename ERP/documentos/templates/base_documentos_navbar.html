@@ -1,5 +1,16 @@
 <div class="collapse navbar-collapse" id="navbarNavDropdown">
     <ul class="navbar-nav">
+      {% if perms.documentos.view_solicitante %}
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Catálogos
+        </a>
+        <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+          <li><a class="dropdown-item" href="{% url 'documentos:solicitante_list' %}">Solicitantes</a></li>
+          <li><a class="dropdown-item" href="{% url 'documentos:motivo_list' %}">Motivos</a></li>
+        </ul>
+      </li>
+      {% endif %}
       {% if perms.documentos.load_credito %}
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
