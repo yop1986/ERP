@@ -50,7 +50,7 @@
       {% if perms.documentos.change_bodega %}
       <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
       {% endif %}
-      {% if perms.documentos.view_caja %}
+      {% if perms.documentos.view_estructura %}
       <a href="{% url 'documentos:cajas_inhabilitadas' %}" class="btn btn-dark">{{ opciones.cajas_inhabilitadas }}</a>
       {% endif %}
       {% if perms.documentos.delete_bodega %}
@@ -87,7 +87,7 @@
         {{ sub_titulo.estructura }}
       </button>
     </h2>
-    <div id="flush-collapseTwo" class="accordion-collapse collapse" aria-labelledby="flush-headingTwo" data-bs-parent="#accordion-estructura">
+    <div id="flush-collapseTwo" class="accordion-collapse show" aria-labelledby="flush-headingTwo" data-bs-parent="#accordion-estructura">
       <div class="accordion-body">
         <table class="table table-striped table-bordered">
           <thead>

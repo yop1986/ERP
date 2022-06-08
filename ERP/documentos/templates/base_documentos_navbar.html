@@ -36,8 +36,9 @@
       {% endif %}
     </ul>
   </div>
-
+  {% if perms.documentos.view_credito %}
   <form class="d-flex" method="get" action="{% url 'documentos:credito_search' %}" autocomplete="off">
     <input class="form-control me-2" type="search" placeholder="Crédito" aria-label="Search" name="numero">
     <button class="btn btn-outline-success" type="submit">Buscar</button>
   </form>
+  {% endif %}

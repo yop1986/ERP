@@ -19,9 +19,8 @@ from django.urls import reverse_lazy
 
 from .models import (Bodega, Estante, Nivel, Posicion, Caja, Cliente, Moneda,
     Producto, Oficina, Credito, Tomo, Solicitante, Motivo, DocumentoFHA, SolicitudFHA)
-from .forms import (Busqueda, GeneraEstructura, GeneraEtiquetas_Form, 
-    CargaCreditos_Form, IngresoTomo_Form, EgresoTomo_Form, Bodega_From, 
-    TrasladoTomos_Form, SalidaTomos_Form, SolicitudFHA_CreateForm)
+from .forms import (Busqueda, GeneraEstructura, CargaCreditos_Form, IngresoTomo_Form, 
+    EgresoTomo_Form, Bodega_From, TrasladoTomos_Form, SalidaTomos_Form, SolicitudFHA_CreateForm)
 from usuarios.views_base import (ListView_Login, DetailView_Login, TemplateView_Login, 
     CreateView_Login, UpdateView_Login, DeleteView_Login, FormView_Login)
 
@@ -97,7 +96,8 @@ class Credito_DetailView(DetailView_Login):
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        if self.request.user.has_perm('documentos.view_tomo'):
+        if self.request.user.has_perm('documentos.view_tomo') or self.request.user.has_perm('documentos.add_tomo') or \
+        self.request.user.has_perm('documentos.delete_tomo'):
             context['egreso_form']=EgresoTomo_Form()
             context['tomos'] = Tomo.objects.filter(credito=self.object, vigente=True)\
                 .order_by('numero').prefetch_related('caja', 'caja__posicion', 
@@ -364,7 +364,7 @@ class Bodega_DeleteView(DeleteView_Login):
 
 
 class Estante_DetailView(DetailView_Login):
-    permission_required = 'documentos.view_estante'
+    permission_required = 'documentos.view_estructura'
     model = Estante
     extra_context = {
         'title': _('Estante'),
@@ -419,7 +419,7 @@ class Estante_Etiqueta(DetailView_Login):
 
 
 class Nivel_DetailView(DetailView_Login):
-    permission_required = 'documentos.view_nivel'
+    permission_required = 'documentos.view_estructura'
     model = Nivel
     extra_context = {
         'title': _('Nivel'),
@@ -458,7 +458,7 @@ class Nivel_DetailView(DetailView_Login):
                 |Q(estante__bodega__encargado=self.request.user)).distinct()
 
 class Nivel_Etiqueta(DetailView_Login):
-    permission_required = 'documentos.label_nivel'
+    permission_required = 'documentos.label_estante'
     template_name = 'documentos/etiqueta.html'
     model = Caja
     
@@ -475,7 +475,7 @@ class Nivel_Etiqueta(DetailView_Login):
 
 
 class Posicion_DetailView(DetailView_Login):
-    permission_required = 'documentos.view_posicion'
+    permission_required = 'documentos.view_estructura'
     model = Posicion
     extra_context = {
         'title': _('Posición'),
@@ -514,7 +514,7 @@ class Posicion_DetailView(DetailView_Login):
                 | Q(nivel__estante__bodega__encargado=self.request.user)).distinct()
 
 class Posicion_Etiqueta(DetailView_Login):
-    permission_required = 'documentos.label_posicion'
+    permission_required = 'documentos.label_estante'
     template_name = 'documentos/etiqueta.html'
     model = Caja
     
@@ -531,7 +531,7 @@ class Posicion_Etiqueta(DetailView_Login):
 
 
 class Caja_ListView(ListView_Login):
-    permission_required = 'documentos.view_caja'
+    permission_required = 'documentos.view_estructura'
     model = Caja
     paginate_by = 15
     ordering = ['posicion__nivel__estante__codigo', 'posicion__nivel__numero', 'posicion__numero', 'numero']
@@ -557,7 +557,7 @@ class Caja_ListView(ListView_Login):
                 |Q(posicion__nivel__estante__bodega__encargado=self.request.user)).distinct()
 
 class Caja_DetailView(DetailView_Login):
-    permission_required = 'documentos.view_caja'
+    permission_required = 'documentos.view_estructura'
     model = Caja
     extra_context = {
         'title': _('Caja'),
@@ -622,7 +622,7 @@ class Caja_DeleteView(DeleteView_Login):
         return self.object.view_url()
 
 class Caja_Etiqueta(DetailView_Login):
-    permission_required = 'documentos.label_caja'
+    permission_required = 'documentos.label_estante'
     template_name = 'documentos/etiqueta.html'
     model = Caja
     
@@ -692,7 +692,7 @@ class Tomo_Ingreso(FormView_Login):
         return super().form_valid(form)
 
 class Tomo_Etiqueta(DetailView_Login):
-    permission_required = 'documentos.label_tomo'
+    permission_required = 'documentos.label_credito'
     template_name = 'documentos/etiqueta_tomo.html'
     model = Tomo
 
@@ -1011,14 +1011,14 @@ def buscar_credito(request):
     return redirect(reverse_lazy('documentos:index'))
     
 def operaciones_tomo(request, pk=None):
-    if 'escaneado.x' in request.POST:
+    if 'escaneado.x' in request.POST and request.user.has_perm('documentos.change_credito'):
         ''' Actualiza el Crédito a Escaneado '''
         credito = Credito.objects.get(id=request.POST['credito'])
         credito.escaneado = True
         credito._history_user = request.user
         credito._change_reason = 'operaciones_tomo > escaneado '
         credito.save()
-    elif 'agregar.x' in request.POST:
+    elif 'agregar.x' in request.POST and request.user.has_perm('documentos.add_tomo'):
         ''' Crea/Habilita un tomo '''
         credito = Credito.objects.get(id=request.POST['credito'])
         tomos = Tomo.objects.filter(credito=credito)
@@ -1043,7 +1043,7 @@ def operaciones_tomo(request, pk=None):
             tomo._change_reason = 'operaciones_tomo > agregar (agrega nuevo)'
             tomo._history_user = request.user
             tomo.save()
-    elif 'remover.x' in request.POST:
+    elif 'remover.x' in request.POST and request.user.has_perm('documentos.delete_tomo'):
         ''' Ihabilita un tomo '''
         credito = Credito.objects.get(id=request.POST['credito'])
         tomos = Tomo.objects.filter(credito=credito)
@@ -1060,7 +1060,7 @@ def operaciones_tomo(request, pk=None):
                 tomo.comentario='Tomo inhabilitado'
                 tomo._change_reason, tomo._history_user = 'operaciones_tomo > remover', request.user
                 tomo.save()
-    elif 'agregar' in request.POST:
+    elif 'agregar' in request.POST and request.user.has_perm('documentos.change_tomo'):
         ''' Agrega tomos a a lista que se extraera de la bodega '''
         extraer_tomos=request.session['extraer_tomos'] if 'extraer_tomos' in request.session else []
         tomoid = request.POST['tomo-id']
@@ -1221,20 +1221,22 @@ def creditos_excel(hoja):
     for i in range(len(hoja[1])):
         orden[hoja[1][i].value]=i
 
-    clientes = []
-    oficinas = []
+    clientes, mises = [], []
+    oficinas, codigos = [], []
     monedas = []
     productos = []
-    creditos = []
+    creditos, numero = [], []
     for fila in hoja.iter_rows(min_row=2):
-        mis     = fila[orden['Cod_Cliente']].value
+        mis     = int(fila[orden['Cod_Cliente']].value)
         cliente = fila[orden['Cliente']].value
-        if not any(mis in sublist for sublist in clientes):
+        if not mis in mises:
+            mises.append(mis)
             clientes.append([mis, cliente])
 
-        cod_ofi = fila[orden['Cod_ofi']].value
+        cod_ofi = int(fila[orden['Cod_ofi']].value)
         oficina = fila[orden['Oficina']].value 
-        if not any(cod_ofi in sublist for sublist in oficinas):
+        if not cod_ofi in codigos:
+            codigos.append(cod_ofi)
             oficinas.append([cod_ofi, oficina])
 
         moneda  = fila[orden['Moneda']].value
@@ -1245,38 +1247,46 @@ def creditos_excel(hoja):
         if not producto in productos:
             productos.append(producto)
 
-        credito = fila[orden['Credito']].value
+        credito = str(fila[orden['Credito']].value)
         fecha   = datetime.strptime(fila[orden['Fecha_Ini']].value, "%d/%m/%Y").strftime("%Y-%m-%d")
         monto   = fila[orden['Monto']].value
         credito_anterior = fila[orden['Credito_Anterior']].value
-        if not any(credito in sublist for sublist in creditos):
-            creditos.append([credito, fecha, monto, mis, cod_ofi, moneda, producto, credito_anterior])
+        escaneado = True if fila[orden['Escaneado']].value=='Si' else False
+        if not credito in numero:
+            numero.append(credito)
+            creditos.append([credito, fecha, monto, mis, cod_ofi, moneda, producto, credito_anterior, escaneado])
         
     return {'clientes': clientes, 'oficinas': oficinas, 'monedas': monedas, 
         'productos': productos,'creditos': creditos}
 
 def _insert_masivo_creditos(datos):
-    clientes = _insert_clientes(datos['clientes'])
-    oficinas = _insert_oficinas(datos['oficinas'])
+    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y"))
     monedas = _insert_monedas(datos['monedas'])
+    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y")+" > Monedas: "+str(len(monedas)))
     productos = _insert_productos(datos['productos'])
+    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y")+" > Productos: "+str(len(productos)))
+    clientes = _insert_clientes(datos['clientes'])
+    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y")+" > Clientes: "+str(len(clientes)))
+    oficinas = _insert_oficinas(datos['oficinas'])
+    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y")+" > Oficinas: "+str(len(oficinas)))
     creditos = _insert_creditos(datos['creditos'])
+    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y")+" > Creditos: "+str(len(creditos)))
 
 def _insert_clientes(datos):
     clientes = []
-    queryset = Cliente.objects.filter(codigo__in=[int(dato[0]) for dato in datos])
+    queryset = Cliente.objects.filter(codigo__in=[dato[0] for dato in datos])
     for dato in datos:
-        if not queryset.filter(codigo=int(dato[0])):
-            clientes.append(Cliente(codigo=int(dato[0]), nombre=dato[1]))
-    Cliente.objects.bulk_create(clientes)
+        if not queryset.filter(codigo=dato[0]):
+            clientes.append(Cliente(codigo=dato[0], nombre=dato[1]))
+    return Cliente.objects.bulk_create(clientes)#, ignore_conflicts= True
 
 def _insert_oficinas(datos):
     oficinas = []
-    queryset = Oficina.objects.filter(numero__in=[int(dato[0]) for dato in datos])
+    queryset = Oficina.objects.filter(numero__in=[dato[0] for dato in datos])
     for dato in datos:
-        if not queryset.filter(numero=int(dato[0])):
-            oficinas.append(Oficina(numero=int(dato[0]), descripcion=dato[1]))
-    Oficina.objects.bulk_create(oficinas)
+        if not queryset.filter(numero=dato[0]):
+            oficinas.append(Oficina(numero=dato[0], descripcion=dato[1]))
+    return Oficina.objects.bulk_create(oficinas)#, ignore_conflicts= True
 
 def _insert_monedas(datos):
     monedas = []
@@ -1284,7 +1294,7 @@ def _insert_monedas(datos):
     for dato in datos:
         if not queryset.filter(descripcion=dato):
             monedas.append(Moneda(descripcion=dato))
-    Moneda.objects.bulk_create(monedas)
+    return Moneda.objects.bulk_create(monedas)
 
 def _insert_productos(datos):
     productos = []
@@ -1292,12 +1302,12 @@ def _insert_productos(datos):
     for dato in datos:
         if not queryset.filter(descripcion=dato):
             productos.append(Producto(descripcion=dato))
-    Producto.objects.bulk_create(productos)
+    return Producto.objects.bulk_create(productos)
 
 def _insert_creditos(datos):
     queryset = Credito.objects.filter(numero__in=[dato[0] for dato in datos])
-    clientes = Cliente.objects.filter(codigo__in=[int(dato[3]) for dato in datos])
-    oficinas = Oficina.objects.filter(numero__in=[int(dato[4]) for dato in datos])
+    clientes = Cliente.objects.filter(codigo__in=[dato[3] for dato in datos])
+    oficinas = Oficina.objects.filter(numero__in=[dato[4] for dato in datos])
     monedas = Moneda.objects.filter(descripcion__in=[dato[5] for dato in datos])
     productos = Producto.objects.filter(descripcion__in=[dato[6] for dato in datos])
 
@@ -1307,14 +1317,16 @@ def _insert_creditos(datos):
             creditos.append(
                 Credito(
                     numero=dato[0], fecha_concesion=dato[1], 
-                    monto=dato[2], credito_anterior = dato[7] if dato[7] else '',
+                    monto=dato[2], 
                     cliente=clientes.get(codigo=int(dato[3])), 
                     moneda=monedas.get(descripcion=dato[5]), 
                     oficina=oficinas.get(numero=int(dato[4])), 
                     producto=productos.get(descripcion=dato[6]),
+                    credito_anterior = dato[7] if dato[7] else '', 
+                    escaneado=dato[8]
                 )
             )
-    bulk_create_with_history(creditos, Credito, batch_size=1500)
+    return bulk_create_with_history(creditos, Credito, batch_size=1500)
 
 ##########################################################################
 # Llamadas Ajax

@@ -68,7 +68,7 @@
       {{ credito.esta_escaneado }}
     </div>
   </div>
-  {% if perms.documentos.view_tomo %}
+  {% if perms.documentos.view_tomo or perms.documentos.add_tomo or perms.documentos.delete_tomo %}
   <div class="row mb-2">
     <div class="col-7">
       <strong>{{ etiquetas.tomo }}</strong>
@@ -126,7 +126,7 @@
               <th scope="col">{% get_verbose_field_name tomos.0 "fecha_modificacion" %}</th>
               <th scope="col">{% get_verbose_field_name tomos.0 "comentario" %}</th>
               <th scope="col">{% get_verbose_field_name tomos.0 "caja" %}</th>
-              {% if perms.documentos.label_tomo or perms.documentos.change_tomo %}
+              {% if perms.documentos.label_credito or perms.documentos.change_tomo %}
               <th scope="col">{{ opciones.etiqueta }}</th>
               {% endif %}
             </tr>
@@ -147,7 +147,7 @@
                 {% endif %}
               </td>
               <td>
-                {% if perms.documentos.label_tomo %}
+                {% if perms.documentos.label_credito %}
                 <a href="{{ tomo.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
                 {% endif %}
                 {% if perms.documentos.change_tomo and tomo.caja and request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}

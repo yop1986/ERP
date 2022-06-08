@@ -26,13 +26,13 @@
       {{ object.get_estado }}
     </div>
   </div>
-  {% if perms.documentos.label_caja or perms.documentos.delete_caja %}
+  {% if perms.documentos.label_estante or perms.documentos.delete_caja %}
   <div class="row mb-2">
     <div class="col-7">
       <strong>{{ opciones.etiqueta }}</strong>
     </div>
     <div class="col-5">
-      {% if perms.documentos.label_caja %}
+      {% if perms.documentos.label_estante %}
       <a href="{{ object.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
       {% endif %}
       {% if perms.documentos.delete_caja %}
@@ -43,7 +43,7 @@
   {% endif %}
 
 <div class="accordion accordion-flush" id="accordion-tomos">
-
+{% if perms.documentos.view_estructura %}
   <div class="accordion-item">
     <h2 class="accordion-header" id="flush-headingOne">
       <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
@@ -70,10 +70,9 @@
           {% endfor %}
           </tbody>
         </table>
-
       </div>
     </div>
   </div>
-  
+{% endif %} 
 </div>
 {% endblock %}

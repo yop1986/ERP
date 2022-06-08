@@ -12,7 +12,7 @@ from simple_history.models import HistoricalRecords
 class Cliente(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     codigo = models.PositiveIntegerField(db_index=True, unique=True)
-    nombre = models.CharField(max_length=90)
+    nombre = models.CharField(max_length=210)
 
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
@@ -29,7 +29,7 @@ class Moneda(models.Model):
     
 class Producto(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    descripcion = models.CharField(max_length=12, unique=True)
+    descripcion = models.CharField(max_length=21, unique=True)
 
     def __str__(self):
         return self.descripcion
@@ -38,7 +38,7 @@ class Producto(models.Model):
 class Oficina(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     numero = models.PositiveIntegerField(db_index=True, unique=True)
-    descripcion = models.CharField(max_length=60)
+    descripcion = models.CharField(max_length=90)
 
     def __str__(self):
         return f"{str(self.numero).zfill(4)} - {self.descripcion}"
@@ -46,7 +46,7 @@ class Oficina(models.Model):
     
 class Credito(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    numero  = models.CharField(max_length=18, db_index=True, unique=True)
+    numero  = models.CharField(max_length=30, db_index=True, unique=True)
     monto   = models.DecimalField(max_digits=18, decimal_places=2)
     escaneado = models.BooleanField(_('Escaneado'), default=False)
     fecha_concesion = models.DateField(null=True)
@@ -55,7 +55,7 @@ class Credito(models.Model):
     moneda  = models.ForeignKey(Moneda, on_delete=models.PROTECT, related_name='credito_moneda')
     oficina = models.ForeignKey(Oficina, on_delete=models.PROTECT, related_name='credito_oficina')
     producto= models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='credito_producto')
-    credito_anterior = models.CharField(max_length=18, blank=True)
+    credito_anterior = models.CharField(max_length=60, blank=True)
     history = HistoricalRecords(excluded_fields=['numero', 'monto', 'fecha_concesion', 
         'fecha_ingreso', 'cliente', 'moneda', 'oficina', 'producto'],
         user_model=settings.AUTH_USER_MODEL)
@@ -91,8 +91,8 @@ class Bodega(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     codigo  = models.CharField(_('Código'), max_length=3, unique=True, 
         help_text=_('Código de 3 caracteres'))
-    nombre  = models.CharField(_('Nombre'), max_length=30, unique=True)
-    direccion = models.CharField(_('Dirección'), max_length=120)
+    nombre  = models.CharField(_('Nombre'), max_length=120, unique=True)
+    direccion = models.CharField(_('Dirección'), max_length=210)
     vigente = models.BooleanField(_('Estado'), default=True) # para eliminación lógica
     correo_egreso = models.BooleanField(_('Correo por egreso'), default=True)
     correo_traslado = models.BooleanField(_('Correo por traslado'), default=True)
@@ -250,9 +250,6 @@ class Posicion(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['nivel', 'numero'], name='unq_nivel_numero'),
         ]
-        permissions = [
-            ("label_posicion", "Permite la impresión de todas las etiquetas de la posición"),
-        ]
 
     def __str__(self):
         return f"{self.nivel}-{self.numero:02d}"
@@ -286,9 +283,6 @@ class Caja(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['posicion', 'numero'], name='unq_posicion_numero'),
-        ]
-        permissions = [
-            ("label_caja", "Permite la impresión de la etiqueta de la caja"),
         ]
 
     def __str__(self):
@@ -362,9 +356,6 @@ class Tomo(models.Model):
             models.Index(fields=['fecha_modificacion']),
             models.Index(fields=['numero']),
         ]
-        permissions = [
-            ("label_tomo", "Permite imprimir etiquetas de los tomos"),
-        ]
 
     def __str__(self):
         return "{}-{}".format(self.credito.numero, self.numero)
@@ -383,6 +374,8 @@ class Tomo(models.Model):
 
     def get_posicion(self):
         return Caja.objects.filter(id=self.caja.id, tomo_caja__fecha_modificacion__gte=self.fecha_modificacion).count()
+
+
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 #                   INFORMACIÓN EXPEDIENTES
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
@@ -496,13 +489,13 @@ class DocumentoFHA(models.Model):
     fecha   = models.DateField(_('Fecha'), auto_now=True)
     tipo    = models.CharField(_('Tipo'), max_length=3,choices=TIPO_DOCUMENTO_FHA)
     numero  = models.PositiveIntegerField(_('Número'))
-    ubicacion = models.PositiveIntegerField(_('Ubicación'), db_index=True)
-    poliza  = models.CharField(_('Póliza de Ingreso'), max_length=9, db_index=True)
+    ubicacion = models.CharField(_('Ubicación'), max_length=12, db_index=True)
+    poliza  = models.CharField(_('Póliza de Ingreso'), max_length=12, db_index=True, default='')
     vigente = models.BooleanField(_('Estado'), default=True)
     credito = models.ForeignKey(Credito, verbose_name=_('Crédito'), on_delete=models.PROTECT)
     history = HistoricalRecords(
         history_id_field = models.BigAutoField(),
-        excluded_fields = ['fecha'],
+        excluded_fields = ['fecha', 'credito', 'tipo', 'numero'],
         user_model = settings.AUTH_USER_MODEL,
         )
 
