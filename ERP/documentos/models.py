@@ -388,14 +388,25 @@ class Solicitante(models.Model):
     '''
         Listado de posibles solicitantes de documentos a Boveda 
     '''
+    AREA = [
+        ('EXP', _('Expedientes')),
+        ('FHA', _('FHA')),
+    ]
+
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    codigo  = models.PositiveIntegerField(_('Código'), unique=True)
-    nombre  = models.CharField(_('Nombre'), db_index=True, max_length=30, unique=True)
+    codigo  = models.PositiveIntegerField(_('Código'))
+    nombre  = models.CharField(_('Nombre'), max_length=30, db_index=True)
+    area    = models.CharField(_('Area'), choices=AREA, max_length=3, db_index=True) #get_area_display
     vigente = models.BooleanField(_('Estado'), default=True)
     history = HistoricalRecords(
         history_id_field = models.BigAutoField(),
         user_model = settings.AUTH_USER_MODEL,
         )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['codigo', 'area'], name='unq_codigo_area'),
+        ]
 
     def __str__(self):
         return f'{self.nombre} ({self.codigo})'
@@ -432,14 +443,25 @@ class Motivo(models.Model):
     '''
         Motivos por los cuales puede solicitarse un documento a bóveda
     '''
+    AREA = [
+        ('EXP', _('Expedientes')),
+        ('FHA', _('FHA')),
+    ]
+
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    nombre  = models.CharField(_('Nombre'),db_index=True, max_length=30, unique=True)
+    nombre  = models.CharField(_('Nombre'),db_index=True, max_length=30, unique=True) #get_area_display
+    area    = models.CharField(_('Area'), choices=AREA, max_length=3, db_index=True)
     demanda = models.BooleanField(_('Demanda'), default=False)
     vigente  = models.BooleanField(_('Estado'), default=True)
     history = HistoricalRecords(
         history_id_field = models.BigAutoField(),
         user_model = settings.AUTH_USER_MODEL,
         )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['nombre', 'area'], name='unq_nombre_area'),
+        ]
 
     def __str__(self):
         return self.nombre
@@ -487,7 +509,7 @@ class DocumentoFHA(models.Model):
 
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     fecha   = models.DateField(_('Fecha'), auto_now=True)
-    tipo    = models.CharField(_('Tipo'), max_length=3,choices=TIPO_DOCUMENTO_FHA)
+    tipo    = models.CharField(_('Tipo'), max_length=3,choices=TIPO_DOCUMENTO_FHA) #get_tipo_display
     numero  = models.PositiveIntegerField(_('Número'))
     ubicacion = models.CharField(_('Ubicación'), max_length=12, db_index=True)
     poliza  = models.CharField(_('Póliza de Ingreso'), max_length=12, db_index=True, default='')

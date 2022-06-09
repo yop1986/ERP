@@ -2,9 +2,11 @@ import openpyxl
 import threading
 
 from datetime import datetime
+from pathlib import Path
 from string import ascii_uppercase
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
+from django.conf import settings
 from django.contrib import messages
 from django.core.mail import EmailMultiAlternatives
 from django.db.models import Q, Max
@@ -58,8 +60,8 @@ class CargaMasiva_Form(FormView_Login):
     def form_valid(self, form):
         archivo = form.cleaned_data['archivo']
         libro = openpyxl.load_workbook(archivo)
-        _insert_masivo_creditos(creditos_excel(libro[libro.sheetnames[0]]))
-        doctosfha = documentosfha(libro[libro.sheetnames[1]])
+        _insert_masivo_creditos(_creditos_excel(libro[libro.sheetnames[0]]))
+        doctosfha = _documentosfha(libro[libro.sheetnames[1]])
         if(len(doctosfha)>1):
             if self.request.user.has_perm('documentos.add_documentofha'):
                 resultadofha, erroresfha = _insert_documentosfha(doctosfha)
@@ -686,7 +688,7 @@ class Tomo_Ingreso(FormView_Login):
 
                 return redirect(tomo_qs.credito.view_url())
             else:
-                messages.warning(self.request, _('El tomo se encuentra asignado a: ')+f'{tomo_qs.caja}')
+                messages.warning(self.request, _('El tomo se encuentra asignado a: ')+f'{tomo_qs.caja.posicion.nivel.estante.bodega}')
         except:
             messages.warning(self.request, _('Tomo o caja no encontrado ')+f'{tomo[0]}-{tomo[1]}')
         return super().form_valid(form)
@@ -1179,7 +1181,14 @@ def envia_correo(mail):
 ##########################################################################
 # Extrae los datos de excel a un dataset
 ##########################################################################
-def documentosfha(hoja):
+def _escribe_log(datos, file_name):
+    output_file = Path(f'{settings.STATIC_ROOT}\\logs\\{file_name}.log')
+    output_file.parent.mkdir(exist_ok=True, parents=True)
+    f = open(output_file, 'a+')
+    f.writelines([d+'\n' for d in datos])
+    f.close()
+    
+def _documentosfha(hoja):
     orden = {}
     for i in range(len(hoja[1])):
         orden[hoja[1][i].value]=i
@@ -1193,84 +1202,95 @@ def documentosfha(hoja):
             'tipo':     fila[orden['Tipo']].value,
             'numero':   fila[orden['Numero']].value,
             'ubicacion':fila[orden['Ubicacion']].value,
-            'poliza':   fila[orden['Poliza']].value,
+            'poliza':   fila[orden['Poliza']].value if fila[orden['Poliza']].value else '',
         })
     return documentos
 
 def _insert_documentosfha(datos):
+    fecha_hora_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
     errores = []
     doctos = []
     for elemento in datos:
         try:
             credito = Credito.objects.get(numero=elemento['credito'])
+            if not DocumentoFHA.objects.filter(credito=credito, tipo=elemento['tipo'], numero=elemento['numero']):
+                doctos.append(DocumentoFHA(tipo=elemento['tipo'], numero=elemento['numero'], 
+                    ubicacion=elemento['ubicacion'], poliza=elemento['poliza'], credito=credito))
+            else:
+                errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
+                    'error': _('Ya existe el documento.')})
         except Exception as e:
             errores.append({'valor': elemento['credito'], 'error': _('No se encontró el número de crédito')})
 
-        if not DocumentoFHA.objects.filter(credito=credito, tipo=elemento['tipo'], numero=elemento['numero']):
-            doctos.append(DocumentoFHA(tipo=elemento['tipo'], numero=elemento['numero'], 
-                ubicacion=elemento['ubicacion'], poliza=elemento['poliza'], credito=credito))
-        else:
-            errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
-                'error': _('Ya existe el documento.')})
-    
     resultado = bulk_create_with_history(doctos, DocumentoFHA, batch_size=1500)
-    return resultado, errores
+    log_lines = [f"DoctoFHA: {str(r)}" for r in resultado]
+    log_lines.extend([f"Error DoctoFHA: {e['valor']}; {e['error']}" for e in errores])
+    _escribe_log(log_lines, f'{fecha_hora_archivo}-CargaFHA')
+    return '', errores
 
-def creditos_excel(hoja):    
+def _creditos_excel(hoja):    
     orden = {}
     for i in range(len(hoja[1])):
         orden[hoja[1][i].value]=i
 
-    clientes, mises = [], []
-    oficinas, codigos = [], []
-    monedas = []
-    productos = []
-    creditos, numero = [], []
+    lista = []
+    
     for fila in hoja.iter_rows(min_row=2):
-        mis     = int(fila[orden['Cod_Cliente']].value)
-        cliente = fila[orden['Cliente']].value
-        if not mis in mises:
-            mises.append(mis)
-            clientes.append([mis, cliente])
+        CredAnt = fila[orden['Credito_Anterior']].value
+        lista.append({
+            'mis':      int(fila[orden['Cod_Cliente']].value),
+            'cliente':  fila[orden['Cliente']].value,
+            'cod_ofi':  int(fila[orden['Cod_ofi']].value),
+            'oficina':  fila[orden['Oficina']].value,
+            'moneda':   fila[orden['Moneda']].value,
+            'producto': fila[orden['Producto']].value,
+            'credito':  str(fila[orden['Credito']].value),
+            'fecha':    datetime.strptime(fila[orden['Fecha_Ini']].value, "%d/%m/%Y").strftime("%Y-%m-%d"),
+            'monto':    fila[orden['Monto']].value,
+            'credito_anterior': CredAnt if CredAnt else '',
+            'escaneado': True if fila[orden['Escaneado']].value=='Si' else False,
+        })
+    try:
+        _insert_masivo_creditos([lista[i:i + 1000] for i in range(0, len(lista), 1000)]) #segmenta en grupos de 1000
+    except Exception as e:
+        print(e)
+    
+def _insert_masivo_creditos(sublista):
+    fecha_hora_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
+    for lista in sublista:
+        cli, ofi, cred = [], [], []
+        clientes, oficinas, monedas, productos, creditos = [], [], [], [], []
+        for elemento in lista:
+            if not elemento['mis'] in cli:
+                cli.append(elemento['mis'])
+                clientes.append([elemento['mis'], elemento['cliente']])
 
-        cod_ofi = int(fila[orden['Cod_ofi']].value)
-        oficina = fila[orden['Oficina']].value 
-        if not cod_ofi in codigos:
-            codigos.append(cod_ofi)
-            oficinas.append([cod_ofi, oficina])
+            if not elemento['cod_ofi'] in ofi:
+                ofi.append(elemento['cod_ofi'])
+                oficinas.append([elemento['cod_ofi'], elemento['oficina']])
 
-        moneda  = fila[orden['Moneda']].value
-        if not moneda in monedas:
-            monedas.append(moneda)
+            if not elemento['moneda'] in monedas:
+                monedas.append(elemento['moneda'])
 
-        producto = fila[orden['Producto']].value
-        if not producto in productos:
-            productos.append(producto)
+            if not elemento['producto'] in productos:
+                productos.append(elemento['producto'])
 
-        credito = str(fila[orden['Credito']].value)
-        fecha   = datetime.strptime(fila[orden['Fecha_Ini']].value, "%d/%m/%Y").strftime("%Y-%m-%d")
-        monto   = fila[orden['Monto']].value
-        credito_anterior = fila[orden['Credito_Anterior']].value
-        escaneado = True if fila[orden['Escaneado']].value=='Si' else False
-        if not credito in numero:
-            numero.append(credito)
-            creditos.append([credito, fecha, monto, mis, cod_ofi, moneda, producto, credito_anterior, escaneado])
-        
-    return {'clientes': clientes, 'oficinas': oficinas, 'monedas': monedas, 
-        'productos': productos,'creditos': creditos}
+            if not elemento['credito'] in cred:
+                cred.append(elemento['credito'])
+                creditos.append([elemento['credito'], elemento['mis'], elemento['cod_ofi'], elemento['moneda'], 
+                    elemento['producto'], elemento['fecha'], elemento['monto'], elemento['credito_anterior'], 
+                    elemento['escaneado']])
 
-def _insert_masivo_creditos(datos):
-    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y"))
-    monedas = _insert_monedas(datos['monedas'])
-    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y")+" > Monedas: "+str(len(monedas)))
-    productos = _insert_productos(datos['productos'])
-    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y")+" > Productos: "+str(len(productos)))
-    clientes = _insert_clientes(datos['clientes'])
-    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y")+" > Clientes: "+str(len(clientes)))
-    oficinas = _insert_oficinas(datos['oficinas'])
-    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y")+" > Oficinas: "+str(len(oficinas)))
-    creditos = _insert_creditos(datos['creditos'])
-    print(datetime.now().strftime("%H:%M:%S %d-%m-%Y")+" > Creditos: "+str(len(creditos)))
+        resultado = _insert_clientes(clientes)
+        _escribe_log([f"Cliente > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
+        resultado = _insert_oficinas(oficinas)
+        _escribe_log([f"Oficina > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
+        resultado = _insert_monedas(monedas)
+        _escribe_log([f"Moneda > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
+        resultado = _insert_productos(productos)
+        _escribe_log([f"Producto > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
+        resultado = _insert_creditos(creditos)
+        _escribe_log([f"Credito > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
 
 def _insert_clientes(datos):
     clientes = []
@@ -1278,7 +1298,7 @@ def _insert_clientes(datos):
     for dato in datos:
         if not queryset.filter(codigo=dato[0]):
             clientes.append(Cliente(codigo=dato[0], nombre=dato[1]))
-    return Cliente.objects.bulk_create(clientes)#, ignore_conflicts= True
+    return Cliente.objects.bulk_create(clientes, ignore_conflicts= True)
 
 def _insert_oficinas(datos):
     oficinas = []
@@ -1286,7 +1306,7 @@ def _insert_oficinas(datos):
     for dato in datos:
         if not queryset.filter(numero=dato[0]):
             oficinas.append(Oficina(numero=dato[0], descripcion=dato[1]))
-    return Oficina.objects.bulk_create(oficinas)#, ignore_conflicts= True
+    return Oficina.objects.bulk_create(oficinas, ignore_conflicts= True)
 
 def _insert_monedas(datos):
     monedas = []
@@ -1294,7 +1314,7 @@ def _insert_monedas(datos):
     for dato in datos:
         if not queryset.filter(descripcion=dato):
             monedas.append(Moneda(descripcion=dato))
-    return Moneda.objects.bulk_create(monedas)
+    return Moneda.objects.bulk_create(monedas, ignore_conflicts= True)
 
 def _insert_productos(datos):
     productos = []
@@ -1302,27 +1322,28 @@ def _insert_productos(datos):
     for dato in datos:
         if not queryset.filter(descripcion=dato):
             productos.append(Producto(descripcion=dato))
-    return Producto.objects.bulk_create(productos)
+    return Producto.objects.bulk_create(productos, ignore_conflicts= True)
 
 def _insert_creditos(datos):
     queryset = Credito.objects.filter(numero__in=[dato[0] for dato in datos])
-    clientes = Cliente.objects.filter(codigo__in=[dato[3] for dato in datos])
-    oficinas = Oficina.objects.filter(numero__in=[dato[4] for dato in datos])
-    monedas = Moneda.objects.filter(descripcion__in=[dato[5] for dato in datos])
-    productos = Producto.objects.filter(descripcion__in=[dato[6] for dato in datos])
+    clientes = Cliente.objects.filter(codigo__in=[dato[1] for dato in datos])
+    oficinas = Oficina.objects.filter(numero__in=[dato[2] for dato in datos])
+    monedas = Moneda.objects.filter(descripcion__in=[dato[3] for dato in datos])
+    productos = Producto.objects.filter(descripcion__in=[dato[4] for dato in datos])
 
     creditos = []
     for dato in datos:
         if not queryset.filter(numero=dato[0]):
             creditos.append(
                 Credito(
-                    numero=dato[0], fecha_concesion=dato[1], 
-                    monto=dato[2], 
-                    cliente=clientes.get(codigo=int(dato[3])), 
-                    moneda=monedas.get(descripcion=dato[5]), 
-                    oficina=oficinas.get(numero=int(dato[4])), 
-                    producto=productos.get(descripcion=dato[6]),
-                    credito_anterior = dato[7] if dato[7] else '', 
+                    numero=dato[0], 
+                    cliente=clientes.get(codigo=int(dato[1])), 
+                    oficina=oficinas.get(numero=int(dato[2])), 
+                    moneda=monedas.get(descripcion=dato[3]), 
+                    producto=productos.get(descripcion=dato[4]),
+                    fecha_concesion=dato[5], 
+                    monto=dato[6], 
+                    credito_anterior=dato[7], 
                     escaneado=dato[8]
                 )
             )
