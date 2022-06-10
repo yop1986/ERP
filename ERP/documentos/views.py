@@ -64,10 +64,7 @@ class CargaMasiva_Form(FormView_Login):
         doctosfha = _documentosfha(libro[libro.sheetnames[1]])
         if(len(doctosfha)>1):
             if self.request.user.has_perm('documentos.add_documentofha'):
-                resultadofha, erroresfha = _insert_documentosfha(doctosfha)
-                for error in erroresfha:
-                    messages.warning(self.request, f'{error["valor"]}: {error["error"]}')
-                    messages.success(self.request, resultadofha)
+                _insert_documentosfha(doctosfha)
             else:
                 messages.warning(self.request, _('No tiene permisos para cargar documentos fha'))
         return super().form_valid(form)
@@ -1225,6 +1222,7 @@ def _insert_documentosfha(datos):
     resultado = bulk_create_with_history(doctos, DocumentoFHA, batch_size=1500)
     log_lines = [f"DoctoFHA: {str(r)}" for r in resultado]
     log_lines.extend([f"Error DoctoFHA: {e['valor']}; {e['error']}" for e in errores])
+    log_lines.extend(['\nFIN: '+datetime.now().strftime("%Y%m%d_%H%M%S")]) #Agrega fecha y hora de finalización
     _escribe_log(log_lines, f'{fecha_hora_archivo}-CargaFHA')
     return '', errores
 
@@ -1250,10 +1248,7 @@ def _creditos_excel(hoja):
             'credito_anterior': CredAnt if CredAnt else '',
             'escaneado': True if fila[orden['Escaneado']].value=='Si' else False,
         })
-    try:
-        _insert_masivo_creditos([lista[i:i + 1000] for i in range(0, len(lista), 1000)]) #segmenta en grupos de 1000
-    except Exception as e:
-        print(e)
+    return [lista[i:i + 1000] for i in range(0, len(lista), 1000)] #segmenta en grupos de 1000
     
 def _insert_masivo_creditos(sublista):
     fecha_hora_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1289,8 +1284,10 @@ def _insert_masivo_creditos(sublista):
         _escribe_log([f"Moneda > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
         resultado = _insert_productos(productos)
         _escribe_log([f"Producto > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
-        resultado = _insert_creditos(creditos)
+        existentes, resultado = _insert_creditos(creditos)
         _escribe_log([f"Credito > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
+        _escribe_log([f"Credito Existente > {str(r)}" for r in existentes], f'{fecha_hora_archivo}-CargaCreditos')
+        _escribe_log(['\nFIN: '+datetime.now().strftime("%Y%m%d_%H%M%S")], f'{fecha_hora_archivo}-CargaCreditos') #Agrega fecha y hora de finalización
 
 def _insert_clientes(datos):
     clientes = []
@@ -1332,6 +1329,7 @@ def _insert_creditos(datos):
     productos = Producto.objects.filter(descripcion__in=[dato[4] for dato in datos])
 
     creditos = []
+    existentes = []
     for dato in datos:
         if not queryset.filter(numero=dato[0]):
             creditos.append(
@@ -1347,7 +1345,9 @@ def _insert_creditos(datos):
                     escaneado=dato[8]
                 )
             )
-    return bulk_create_with_history(creditos, Credito, batch_size=1500)
+        else:
+            existentes.append(dato[0])
+    return existentes, bulk_create_with_history(creditos, Credito, batch_size=1500)
 
 ##########################################################################
 # Llamadas Ajax

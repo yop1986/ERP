@@ -13,6 +13,7 @@ Packages/
 # CSS y JS de Bootstrap
 ERP/usuarios/static/css/
 ERP/usuarios/static/js/
+ERP/static/
 
 # Varios
 *.sqlite3
