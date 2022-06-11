@@ -39,19 +39,19 @@ urlpatterns = [
     path('tomos/etiquetas/<uuid:pk>/', views.Tomo_Etiqueta.as_view(), name='tomo_labels'),
 
     path('solicitantes/', views.Solicitante_ListView.as_view(), name='solicitante_list'),
-    #path('solicitantes/detail/<uuid:pk>/', views.Solicitante_DetailView.as_view(), name='solicitante_view'),
     path('solicitantes/create/', views.Solicitante_CreateView.as_view(), name='solicitante_create'),
     path('solicitantes/update/<uuid:pk>/', views.Solicitante_UpdateView.as_view(), name='solicitante_update'),
     path('solicitantes/delete/<uuid:pk>/', views.Solicitante_DeleteView.as_view(), name='solicitante_delete'),
 
     path('motivos/', views.Motivo_ListView.as_view(), name='motivo_list'),
-    #path('motivos/detail/<uuid:pk>/', views.Motivo_DetailView.as_view(), name='motivo_view'),
     path('motivos/create/', views.Motivo_CreateView.as_view(), name='motivo_create'),
     path('motivos/update/<uuid:pk>/', views.Motivo_UpdateView.as_view(), name='motivo_update'),
     path('motivos/delete/<uuid:pk>/', views.Motivo_DeleteView.as_view(), name='motivo_delete'),
 
     path('documentosfha/delete/<uuid:pk>/', views.DocumentoFHA_DeleteView.as_view(), name='documentofha_delete'),
 
-    path('solicitudfha/create/<uuid:doc>/', views.SolicitudFHA_CreateView.as_view(), name='solicitudfha_create'),
-    path('solicitudfha/consulta_motivo/', views.ajax_consulta_motivo, name='solicitudfha_consulta_motivo')
+    path('solicitudfha/create/', views.solicitudfha, name='solicitudfha_create'),
+    path('solicitudfha/consulta_motivo/', views.ajax_consulta_motivo, name='solicitudfha_consulta_motivo'),
+    path('solicitudesfha/abiertas/', views.SolicitudFHAAbierta_ListView.as_view(), name='solicitudfha_list'),
+    path('solicitudesfha/delete/<uuid:pk>', views.SolicitudFHA_DeleteView.as_view(), name='solicitudfha_delete'),
 ]

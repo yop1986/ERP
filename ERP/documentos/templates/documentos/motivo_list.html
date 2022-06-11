@@ -16,6 +16,7 @@
         <tr>
           <th scope="col">#</th>
           <th scope="col">{% get_verbose_field_name object_list.0 "nombre" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "area" %}</th>
           <th scope="col">{% get_verbose_field_name object_list.0 "demanda" %}</th>
           <th scope="col">{% get_verbose_field_name object_list.0 "vigente" %}</th>
           <th scope="col">{{ opciones.etiqueta }}</th>
@@ -26,6 +27,7 @@
         <tr>
           <th scope="row">{{ forloop.counter0|add:page_obj.start_index }}</th>
           <td>{{ object }}</td>
+          <td>{{ object.get_area_display }}</td>
           <td>{{ object.get_es_demanda }}</td>
           <td>{{ object.get_estado }}</td>
           <td>

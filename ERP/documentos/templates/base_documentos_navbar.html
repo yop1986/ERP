@@ -18,6 +18,10 @@
         </a>
         <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
           <li><a class="dropdown-item" href="{% url 'documentos:carga' %}">Carga de Créditos</a></li>
+          {% if perms.documentos.view_solicitudfha %}
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="{% url 'documentos:solicitudfha_list' %}">Solicitudes</a></li>
+          {% endif %}
         </ul>
       </li>
       {% endif %}

@@ -310,9 +310,6 @@ class Caja(models.Model):
     def view_url(self):
         return reverse('documentos:caja_view', kwargs={'pk': self.id})
 
-    def update_url(self):
-        return reverse('documentos:caja_update', kwargs={'pk': self.id})
-
     def delete_url(self):
         return reverse('documentos:caja_delete', kwargs={'pk': self.id})
 
@@ -384,6 +381,10 @@ class Tomo(models.Model):
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 #                   INFORMACIÓN FHA
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+class EncargadoDocumentos(models.Model):
+    recibe_correos  = models.BooleanField(_("Encargado que recibe correos"), default=False)
+    usuario         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name=_('Usuario Solicitante'))
+
 class Solicitante(models.Model):
     '''
         Listado de posibles solicitantes de documentos a Boveda 
@@ -538,9 +539,59 @@ class DocumentoFHA(models.Model):
 
     def hard_delete(self):
         super().delete()
+
+    def get_accion(self):
+        return 'Inhabilitar' if self.vigente else 'Habilitar'
+
+    def get_accion_tag(self):
+        return 'danger' if self.vigente else 'success'
+
+    def delete_url(self):
+        return  reverse('documentos:documentofha_delete', kwargs={'pk': self.id})
     
+    def get_documento(self):
+        return f'{self.tipo}: {self.numero}'
+
     def get_estado(self):
         return _('Vigente') if self.vigente else _('No Vigente')
+
+    def existe_solicitud(self):
+        return True if self.solicitudfha_set.filter(vigente=True) else False
+
+class SolicitudFHA(models.Model):
+    '''
+        Ciclo de vida de la solicitud
+    '''
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    fecha_solicitud = models.DateField(_('Fecha'), db_index=True, auto_now_add=True)
+    bufete          = models.CharField(_('Bufete'), max_length=30, default='')
+    fecha_egreso    = models.DateField(_('Egreso de Bóveda'), null=True)
+    poliza_egreso   = models.CharField(_('Póliza de Egreso'), max_length=12)
+    fecha_entrega   = models.DateField(_('Entrega a solicitante'), null=True)
+    fecha_devolución= models.DateField(_('Devolución de solicitante'), null=True)
+    regreso_boveda  = models.BooleanField(default=False)
+    vigente         = models.BooleanField(default=True)
+    documento       = models.ForeignKey(DocumentoFHA, verbose_name=_('Documento'), on_delete=models.PROTECT)
+    solicitante     = models.ForeignKey(Solicitante, verbose_name=_('Solicitante'), on_delete=models.PROTECT)
+    motivo          = models.ForeignKey(Motivo, verbose_name=_('Motivo'), on_delete=models.PROTECT)
+    usuario         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name=_('Usuario'))
+
+    class Meta:
+        permissions = [
+            ("extrae_boveda", "Extracción de documentos solicitados de boveda"),
+            ("devolucion", "Devolución de documento a encargado"),
+            ("ingreso_boveda", "Re-ingreso de documento a boveda"),
+        ]
+
+    def __str__(self):
+        return f'{self.fecha_solicitud} / {self.motivo}'
+
+    def delete(self):
+        self.vigente = False
+        self.save()
+
+    def hard_delete(self):
+        super().delete()
 
     def get_accion(self):
         return 'Inhabilitar' if self.vigente else 'Habilitar'
@@ -549,26 +600,10 @@ class DocumentoFHA(models.Model):
         return 'danger' if self.vigente else 'success'
 
     def list_url(self=None):
-        return reverse('documentos:motivo_list')
+        return reverse('documentos:solicitudfha_list')
+
+    def update_url(self):
+        return reverse('documentos:solicitudfha_update', kwargs={'pk': self.id})
 
     def delete_url(self):
-        return  reverse('documentos:documentofha_delete', kwargs={'pk': self.id})
-
-class SolicitudFHA(models.Model):
-    '''
-        Ciclo de vida de la solicitud
-    '''
-    fecha_solicitud = models.DateField(_('Fecha'), db_index=True, auto_now_add=True)
-    bufete          = models.CharField(_('Bufete'), max_length=30, default='')
-    fecha_egreso    = models.DateField(_('Egreso de Bóveda'), null=True)
-    poliza_egreso   = models.PositiveIntegerField(_('Póliza de Egreso'), default=0)
-    fecha_entrega   = models.DateField(_('Entrega a solicitante'), null=True)
-    fecha_devolución= models.DateField(_('Devolución de solicitante'), null=True)
-    regreso_boveda  = models.BooleanField(default=False)
-    vigente         = models.BooleanField(default=True)
-    documento       = models.ForeignKey(DocumentoFHA, verbose_name=_('Documento'), on_delete=models.PROTECT)
-    solicitante     = models.ForeignKey(Solicitante, verbose_name=_('Solicitante'), on_delete=models.PROTECT)
-    motivo          = models.ForeignKey(Motivo, verbose_name=_('Motivo'), on_delete=models.PROTECT)
-
-    def __str__(self):
-        return f'{self.fecha_solicitud} / {self.motivo}'
+        return reverse('documentos:solicitudfha_delete', kwargs={'pk': self.id})

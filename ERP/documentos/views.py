@@ -72,6 +72,7 @@ class CargaMasiva_Form(FormView_Login):
 class Credito_DetailView(DetailView_Login):
     permission_required = 'documentos.view_credito'
     model = Credito
+    ordering = 'numero'
     extra_context = {
         'title': _('Credito'),
         'sub_titulo': {
@@ -89,7 +90,6 @@ class Credito_DetailView(DetailView_Login):
             'remover_tomo':_('Remover tomo'),
             'extraer':_('Extraer'),
             'guardar':_('Guardar'),
-            'solicitud':_('Solicitud'),
         },
     }
 
@@ -99,7 +99,7 @@ class Credito_DetailView(DetailView_Login):
         self.request.user.has_perm('documentos.delete_tomo'):
             context['egreso_form']=EgresoTomo_Form()
             context['tomos'] = Tomo.objects.filter(credito=self.object, vigente=True)\
-                .order_by('numero').prefetch_related('caja', 'caja__posicion', 
+                .prefetch_related('caja', 'caja__posicion', 
                     'caja__posicion__nivel', 'caja__posicion__nivel__estante', 
                     'caja__posicion__nivel__estante__bodega',
                     'caja__posicion__nivel__estante__bodega__personal')
@@ -808,7 +808,7 @@ class Solicitante_UpdateView(UpdateView_Login):
     permission_required = 'documentos.change_solicitante'
     template_name = 'documentos/form.html'
     model = Solicitante
-    fields = '__all__'
+    fields = ['codigo', 'nombre', 'area']
     success_message = _('Se ha actualizado el solicitante.')
     extra_context = {
         'title': _('Actualizar Solicitante'),
@@ -894,7 +894,7 @@ class Motivo_UpdateView(UpdateView_Login):
     permission_required = 'documentos.change_motivo'
     template_name = 'documentos/form.html'
     model = Motivo
-    fields = '__all__'
+    fields = ['nombre', 'area', 'demanda']
     success_message = _('Se ha actualizado el motivo.')
     extra_context = {
         'title': _('Actualizar Motivo'),
@@ -927,18 +927,6 @@ class Motivo_DeleteView(DeleteView_Login):
         return context 
 
 
-class DocumentoFHA_ListView(ListView_Login):
-    pass
-    
-class DocumentoFHA_DetailView(DetailView_Login):
-    pass
-    
-class DocumentoFHA_CreateView(CreateView_Login):
-    pass
-    
-class DocumentoFHA_UpdateView(UpdateView_Login):
-    pass
-    
 class DocumentoFHA_DeleteView(DeleteView_Login):
     permission_required = 'documentos.delete_documentofha'
     template_name = 'documentos/confirmation_form.html'
@@ -962,35 +950,69 @@ class DocumentoFHA_DeleteView(DeleteView_Login):
         return self.object.credito.view_url()
 
 
-class SolicitudFHA_ListView(ListView_Login):
-    pass
-    
-class SolicitudFHA_DetailView(DetailView_Login):
-    pass
-    
-class SolicitudFHA_CreateView(CreateView_Login):
-    permission_required = 'documentos.add_solicitudfha'
-    template_name = 'documentos/solicitud_form.html'
+class SolicitudFHAAbierta_ListView(ListView_Login):
+    permission_required = 'documentos.view_solicitudfha'
     model = SolicitudFHA
-    form_class = SolicitudFHA_CreateForm
-    success_message = _('Se ha iniciado el proceso de solicitud.')
+    paginate_by = 15
+    ordering = ['fecha_solicitud', 'documento__credito__numero']
     extra_context = {
-        'title': _('Nueva Solicitud'),
+        'title': _('Solicitudes Abiertas'),
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'editar': _('Extraer'),
+            'anular': _('Anular'),
+        },
         'botones': {
-            'guardar': _('Crear'),
-            'cancelar': _('Cancelar'),
-        }
+            'buscar': _('Buscar'),
+            'limpiar': _('Limpiar'),
+        },
+        'mensaje_vacio': _('No hay "solicitudes" para mostrar'),
     }
 
-    def form_valid(self, form):
-        form = form.save(commit=False)
-        print(f'>>>>>>>>>>>>>>>>>>>>>>{form}')
-        
-class SolicitudFHA_UpdateView(UpdateView_Login):
-    pass
-    
+    def get_context_data(self, *args, **kwargs):
+        busqueda = self.request.GET.get('valor')
+
+        context = super().get_context_data(*args, **kwargs)
+        context['url_lista'] = Motivo.list_url()
+        if busqueda:
+            context['form'] = Busqueda(self.request.GET)
+            context['object_list'] = Motivo.objects.filter(nombre__icontains=busqueda).order_by('nombre')
+        else:
+            context['form'] = Busqueda()
+        return context
+
+    def get_queryset(self, *args, **kwargs):
+        return super().get_queryset(*args, **kwargs).filter(vigente=True, fecha_egreso__isnull=True)\
+            .prefetch_related('documento', 'documento__credito')
+
+
 class SolicitudFHA_DeleteView(DeleteView_Login):
-    pass 
+    permission_required = 'documentos.delete_solicitudfha'
+    model = SolicitudFHA
+    template_name = 'documentos/confirmation_form.html'
+    extra_context = {
+        'title': _('Anular solicitud'),
+    }
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['list_url'] = SolicitudFHA.list_url()
+        context['botones']={
+            'cancelar': _('Cancelar'),
+        }
+        context['mensajes']={
+            'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
+        }
+        return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_superuser:
+            return queryset
+        else:
+            return queryset.filter(
+                Q(personal=self.request.user)
+                |Q(encargado=self.request.user)).distinct()
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 #                      INFORMACIÓN FHA
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
@@ -1148,6 +1170,21 @@ def salida_tomo(request):
         finally:
             return redirect(Tomo.envio_url())
 
+def solicitudfha(request):
+    if 'agregar' in request.POST and request.user.has_perm('documentos.add_solicitudfha'):
+        documento = DocumentoFHA.objects.get(id=request.POST['documento-id'])
+        bufete = request.POST['bufete'] if 'bufete' in request.POST else ''
+        solicitud = SolicitudFHA.objects.filter(documento=documento, vigente=True)
+
+        if not solicitud: #No hay solicitud abierta
+            SolicitudFHA(documento=documento, solicitante_id=request.POST['solicitante'], 
+                motivo_id=request.POST['motivo'], bufete=bufete, usuario=request.user).save()
+            messages.success(request, _('Solicitud ingresada'))
+        else:
+            messages.warning(request, _('El documento tiene una solicitud activa.')+str(solicitud.documento))
+        return redirect(documento.credito.view_url())
+
+          
 
 
 ##########################################################################
@@ -1178,14 +1215,24 @@ def envia_correo(mail):
 ##########################################################################
 # Extrae los datos de excel a un dataset
 ##########################################################################
-def _escribe_log(datos, file_name):
-    output_file = Path(f'{settings.STATIC_ROOT}\\logs\\{file_name}.log')
+def _escribe_log(datos, nombre):
+    ''' 
+        Escritura de logs
+            datos:  arreglo con la información a guardar en el archivo
+            nombre: nombre del archivo
+    '''
+    output_file = Path(f'{settings.STATIC_ROOT}\\logs\\{nombre}.log')
     output_file.parent.mkdir(exist_ok=True, parents=True)
     f = open(output_file, 'a+')
     f.writelines([d+'\n' for d in datos])
     f.close()
     
 def _documentosfha(hoja):
+    '''
+        DocumentosFHA
+            hoja: openpyxl.load_workbook, hoja del archivo leído
+        return: arreglo de documentos en la hoja
+    '''
     orden = {}
     for i in range(len(hoja[1])):
         orden[hoja[1][i].value]=i
@@ -1204,9 +1251,12 @@ def _documentosfha(hoja):
     return documentos
 
 def _insert_documentosfha(datos):
+    '''
+        Insert de documentos
+            datos: arreglo con la información a insertar de documentos
+    '''
     fecha_hora_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
-    errores = []
-    doctos = []
+    errores, doctos= [], []
     for elemento in datos:
         try:
             credito = Credito.objects.get(numero=elemento['credito'])
@@ -1224,15 +1274,18 @@ def _insert_documentosfha(datos):
     log_lines.extend([f"Error DoctoFHA: {e['valor']}; {e['error']}" for e in errores])
     log_lines.extend(['\nFIN: '+datetime.now().strftime("%Y%m%d_%H%M%S")]) #Agrega fecha y hora de finalización
     _escribe_log(log_lines, f'{fecha_hora_archivo}-CargaFHA')
-    return '', errores
 
-def _creditos_excel(hoja):    
+def _creditos_excel(hoja):
+    '''
+        CreditosExcel
+            hoja: openpyxl.load_workbook, hoja del archivo leído
+        Return: lista de listas con los datos de los créditos
+    '''  
     orden = {}
     for i in range(len(hoja[1])):
         orden[hoja[1][i].value]=i
 
     lista = []
-    
     for fila in hoja.iter_rows(min_row=2):
         CredAnt = fila[orden['Credito_Anterior']].value
         lista.append({
@@ -1251,6 +1304,10 @@ def _creditos_excel(hoja):
     return [lista[i:i + 1000] for i in range(0, len(lista), 1000)] #segmenta en grupos de 1000
     
 def _insert_masivo_creditos(sublista):
+    '''
+        InsertMasivoCreditos
+            sublista: lista de listas con la información a cargar
+    '''
     fecha_hora_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
     for lista in sublista:
         cli, ofi, cred = [], [], []
@@ -1290,6 +1347,11 @@ def _insert_masivo_creditos(sublista):
         _escribe_log(['\nFIN: '+datetime.now().strftime("%Y%m%d_%H%M%S")], f'{fecha_hora_archivo}-CargaCreditos') #Agrega fecha y hora de finalización
 
 def _insert_clientes(datos):
+    '''
+        InsertClientes
+            datos: información de clientes a validar y/o insertar
+        Return: listado de clientes insertados
+    '''
     clientes = []
     queryset = Cliente.objects.filter(codigo__in=[dato[0] for dato in datos])
     for dato in datos:
@@ -1298,6 +1360,11 @@ def _insert_clientes(datos):
     return Cliente.objects.bulk_create(clientes, ignore_conflicts= True)
 
 def _insert_oficinas(datos):
+    '''
+        InsertOficinas
+            datos: información de oficinas a validar y/o insertar
+        Return: listado de oficinas insertadas
+    '''
     oficinas = []
     queryset = Oficina.objects.filter(numero__in=[dato[0] for dato in datos])
     for dato in datos:
@@ -1306,6 +1373,11 @@ def _insert_oficinas(datos):
     return Oficina.objects.bulk_create(oficinas, ignore_conflicts= True)
 
 def _insert_monedas(datos):
+    '''
+        InsertMonedas
+            datos: información de monedas a validar y/o insertar
+        Return: listado de monedas insertados
+    '''
     monedas = []
     queryset = Moneda.objects.filter(descripcion__in=datos)
     for dato in datos:
@@ -1314,6 +1386,11 @@ def _insert_monedas(datos):
     return Moneda.objects.bulk_create(monedas, ignore_conflicts= True)
 
 def _insert_productos(datos):
+    '''
+        InsertProductos
+            datos: información de productos a validar y/o insertar
+        Return: listado de productos insertados
+    '''
     productos = []
     queryset = Producto.objects.filter(descripcion__in=datos)
     for dato in datos:
@@ -1322,6 +1399,11 @@ def _insert_productos(datos):
     return Producto.objects.bulk_create(productos, ignore_conflicts= True)
 
 def _insert_creditos(datos):
+    '''
+        InsertCreditos
+            datos: información de creditos a validar y/o insertar
+        Return: listado de creditos insertados
+    '''
     queryset = Credito.objects.filter(numero__in=[dato[0] for dato in datos])
     clientes = Cliente.objects.filter(codigo__in=[dato[1] for dato in datos])
     oficinas = Oficina.objects.filter(numero__in=[dato[2] for dato in datos])

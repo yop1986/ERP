@@ -31,9 +31,6 @@ class GeneraEstructura(forms.Form):
     posiciones = forms.IntegerField(required=True, min_value=1)
     cajas = forms.IntegerField(required=True, min_value=1)
 
-class GeneraEtiquetas_Form(forms.Form):
-    posicion = forms.IntegerField(min_value=1, max_value=26)
-
 class Bodega_From(forms.ModelForm):
     class Meta:
         model = Bodega
@@ -101,8 +98,8 @@ class SolicitudFHA_CreateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['solicitante'].queryset = self.fields['solicitante'].queryset.filter(vigente=True).order_by('nombre')
-        self.fields['motivo'].queryset = self.fields['motivo'].queryset.filter(vigente=True).order_by('nombre')
+        self.fields['solicitante'].queryset = self.fields['solicitante'].queryset.filter(vigente=True, area='FHA').order_by('nombre')
+        self.fields['motivo'].queryset = self.fields['motivo'].queryset.filter(vigente=True, area='FHA').order_by('nombre')
 
 
 ##########################################################################

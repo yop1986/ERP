@@ -151,7 +151,7 @@
                 <a href="{{ tomo.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
                 {% endif %}
                 {% if perms.documentos.change_tomo and tomo.caja and request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
-                  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#extraerForm" data-bs-whatever="{{ tomo.id }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
+                  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#extraerForm" data-bs-object="{{ tomo.id }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
                 {% endif %}
               </td>
             </tr>
@@ -199,13 +199,12 @@
               <td>{{ documento.poliza }}</td>
               <td>{{ documento.get_estado }}</td>
               <td>
-                {% if perms.documentos.add_solicitudfha %}
-                <a href="{% url 'documentos:solicitudfha_create' documento.id %}" class="btn btn-dark">{{ opciones.solicitud }}</a>
-                {% endif %}
                 {% if perms.documentos.delete_documentofha %}
                 <a href="{{ documento.delete_url }}" class="btn btn-{{documento.get_accion_tag}}"><img src="{% static 'images/documentos_remove.png' %}" alt="{{ documento.get_accion }}" title="{{ documento.get_accion }}" width="25px"></a>
+                {% endif %}
 
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#solicitudForm" data-bs-whatever="{{ tomo.id }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
+                {% if perms.documentos.add_solicitudfha and not documento.existe_solicitud %}
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#solicitudForm" data-bs-object="{{ documento.id }}" data-bs-docto="{{ documento.get_documento }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.solicitud }}" title="{{ opciones.solicitud }}" height="32"></button>
                 {% endif %}
               </td>
             </tr>
@@ -223,7 +222,7 @@
 
 
 <!-- Modal - Ventana emergente para egresos de tomos -->
-{% if perms.documentos.change_tomo %}
+{% if perms.documentos.change_tomo and tomo.caja and request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
 <div class="modal fade" id="extraerForm" tabindex="-1" aria-labelledby="extraerModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -233,11 +232,11 @@
       </div>
       <div class="modal-body">
         <form method="post" action="{% url 'documentos:opera_tomo' %}" autocomplete="off">
+          {% csrf_token %}
           <input type="hidden" class="form-control" id="tomo-id" name="tomo-id">
           <div class="mb-3">
             {{ egreso_form|crispy }}
           </div>
-          {% csrf_token %}
           <input type="submit" name="agregar" value="{{ opciones.guardar }}" class="btn btn-primary">
         </form>
       </div>
@@ -252,17 +251,17 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="solicitudFHAModalLabel">{{ opciones.extraer }}</h5>
+        <h5 class="modal-title" id="solicitudFHAModalLabel">-</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form method="post" autocomplete="off">
+        <form method="post" autocomplete="off" action="{% url 'documentos:solicitudfha_create' %}">
+          {% csrf_token %}
           <input type="hidden" class="form-control" id="documento-id" name="documento-id">
           <div class="mb-3">
             {{ solicitudfha_form|crispy }}
             <div id="div_id_bufete" class="mb-3">
           </div>
-          {% csrf_token %}
           <input type="submit" name="agregar" value="{{ opciones.guardar }}" class="btn btn-primary">
         </form>
       </div>
@@ -279,27 +278,36 @@
 {% block js %}
 <script src="{% static 'js/jquery.min.js' %}"></script>
 <script type="text/javascript">
-{% if perms.documentos.change_tomo %}
+{% if perms.documentos.change_tomo and tomo.caja and request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
   var extraerForm = document.getElementById('extraerForm')
   
   extraerForm.addEventListener('show.bs.modal', function (event) {
-  // Button that triggered the modal
-  var button = event.relatedTarget
-  // Extract info from data-bs-* attributes
-  var recipient = button.getAttribute('data-bs-whatever')
-  // If necessary, you could initiate an AJAX request here
-  // and then do the updating in a callback.
-  //
-  // Update the modal's content.
-  var modalBodyInput = extraerForm.querySelector('.modal-body input')
-  modalBodyInput.value = recipient
-  
-  //var modalTitle = extraerForm.querySelector('.modal-title')
-  //modalTitle.textContent = 'New message to ' + recipient
-})
+    // Button that triggered the modal
+    var button = event.relatedTarget;
+    // Extract info from data-bs-* attributes
+    var object_id = button.getAttribute('data-bs-object');
+    
+    var modalBodyInput = extraerForm.querySelector('#tomo-id');
+    modalBodyInput.value = object_id;
+    
+    //var modalTitle = extraerForm.querySelector('.modal-title')
+    //modalTitle.textContent = 'New message to ' + object_id
+  })
 {% endif %}
 
 {% if perms.documentos.add_solicitudfha %}
+  var solicitudForm = document.getElementById('solicitudForm')
+  
+  solicitudForm.addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget;
+
+    //var modalBodyInput = solicitudForm.querySelector('.modal-body input');
+    var modalBodyInput = solicitudForm.querySelector('#documento-id');
+    modalBodyInput.value = button.getAttribute('data-bs-object');
+    $('#solicitudFHAModalLabel').html(button.getAttribute('data-bs-docto'));
+  })
+
+
   $("#id_motivo").on("change", function() {
     //obtiene la url que consulta el detalle de origenes
     var url = "{% url 'documentos:solicitudfha_consulta_motivo' %}"
