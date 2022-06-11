@@ -1,5 +1,7 @@
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import views as views_auth
+from django.contrib.messages.views import SuccessMessageMixin
 from django.utils.translation import gettext as _
 from django.views.generic import TemplateView
 from django.urls import reverse_lazy
@@ -58,10 +60,9 @@ class Login(views_auth.LoginView):
         }
     }
 
-
 class Perfil_Login(DetailView_Login):
-    template_name = 'registration/perfil.html'
     permission_required = 'usuarios.view_usuario'
+    template_name = 'registration/perfil.html'
     extra_context = {
         'title': _('Perfil'),
         'etiquetas': {
@@ -74,12 +75,11 @@ class Perfil_Login(DetailView_Login):
     def get_object(self):
         return Usuario.objects.get(pk=self.request.user.id)
 
-
 class Perfil_Update(UpdateView_Login):
+    permission_required = 'usuarios.change_usuario'
     template_name = 'registration/form.html'
     model = Usuario
     fields = ['first_name', 'last_name', 'email']
-    permission_required = 'usuarios.change_usuario'
     extra_context = {
         'title': _('Actualizar Perfil'),
         'botones': {
@@ -94,7 +94,7 @@ class Perfil_Update(UpdateView_Login):
         return self.object.get_absolute_url()
 
 class PasswordChangeView(views_auth.PasswordChangeView):
-    template_name='registration/change_password.html'
+    template_name='registration/form.html'
     success_url = reverse_lazy('perfil')
     extra_context = {
         'title': _('Cambio de Contraseña'),
@@ -102,3 +102,29 @@ class PasswordChangeView(views_auth.PasswordChangeView):
             'guardar': _('Cambiar'),
         }
     }
+
+class PasswordResetView(SuccessMessageMixin, views_auth.PasswordResetView):
+    template_name = 'registration/form.html'
+    extra_context = {
+        'title': _('Recuperar Contraseña'),
+        'botones': {
+            'guardar': _('Recuperar'),
+        }
+    }
+    subject_template_name = "registration/pass_reset_subject.txt"
+    email_template_name = "registration/pass_reset_email.html"
+    success_message = _('Se envio un correo con instrucciones, por favor revise.')
+    success_url = reverse_lazy("usuarios:index")
+
+class PasswordResetConfirmView(views_auth.PasswordResetConfirmView):
+    pass
+
+class PasswordResetDoneView(views_auth.PasswordResetDoneView):
+    #template_name = 'registration/form.html'
+    extra_context = {
+        'title': _('Recuperar Contraseña'),
+        'botones': {
+            'guardar': _('Recuperar'),
+        }
+    }
+    

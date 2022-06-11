@@ -14,7 +14,7 @@
       <p><input type="submit" name="{{ botones.ingresar }}" value="{{ botones.ingresar }}" class="btn btn-dark"></p>
     </form>
 
-    <a href="#">Recuperar contraseña</a>
+    <a href="{% url 'usuarios:password_reset' %}">Recuperar contraseña</a>
   {% endif %}
 </main>
 {% endblock %}

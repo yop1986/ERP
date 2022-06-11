@@ -3,4 +3,4 @@ from django.urls import reverse
 
 class Usuario(AbstractUser):
     def get_absolute_url(self):
-        return reverse('perfil')
+        return reverse('usuarios:perfil')
