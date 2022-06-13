@@ -22,7 +22,8 @@ from django.urls import reverse_lazy
 from .models import (Bodega, Estante, Nivel, Posicion, Caja, Cliente, Moneda,
     Producto, Oficina, Credito, Tomo, Solicitante, Motivo, DocumentoFHA, SolicitudFHA)
 from .forms import (Busqueda, GeneraEstructura, CargaCreditos_Form, IngresoTomo_Form, 
-    EgresoTomo_Form, Bodega_From, TrasladoTomos_Form, SalidaTomos_Form, SolicitudFHA_CreateForm)
+    EgresoTomo_Form, Bodega_From, TrasladoTomos_Form, SalidaTomos_Form, SolicitudFHA_CreateForm,
+    ExtraeBoveda_Form)
 from usuarios.views_base import (ListView_Login, DetailView_Login, TemplateView_Login, 
     CreateView_Login, UpdateView_Login, DeleteView_Login, FormView_Login)
 
@@ -64,7 +65,7 @@ class CargaMasiva_Form(FormView_Login):
         doctosfha = _documentosfha(libro[libro.sheetnames[1]])
         if(len(doctosfha)>1):
             if self.request.user.has_perm('documentos.add_documentofha'):
-                _insert_documentosfha(doctosfha)
+                _insert_documentosfha(self, doctosfha)
             else:
                 messages.warning(self.request, _('No tiene permisos para cargar documentos fha'))
         return super().form_valid(form)
@@ -89,6 +90,7 @@ class Credito_DetailView(DetailView_Login):
             'agregar_tomo':_('Agregar tomo'),
             'remover_tomo':_('Remover tomo'),
             'extraer':_('Extraer'),
+            'solicitud': _('Solicitud'),
             'guardar':_('Guardar'),
         },
     }
@@ -961,6 +963,7 @@ class SolicitudFHAAbierta_ListView(ListView_Login):
             'etiqueta': _('Opciones'),
             'editar': _('Extraer'),
             'anular': _('Anular'),
+            'guardar': _('Guardar'), 
         },
         'botones': {
             'buscar': _('Buscar'),
@@ -970,21 +973,33 @@ class SolicitudFHAAbierta_ListView(ListView_Login):
     }
 
     def get_context_data(self, *args, **kwargs):
-        busqueda = self.request.GET.get('valor')
-
         context = super().get_context_data(*args, **kwargs)
-        context['url_lista'] = Motivo.list_url()
-        if busqueda:
-            context['form'] = Busqueda(self.request.GET)
-            context['object_list'] = Motivo.objects.filter(nombre__icontains=busqueda).order_by('nombre')
-        else:
-            context['form'] = Busqueda()
+        context['extraeBoveda_form'] = ExtraeBoveda_Form()
         return context
 
     def get_queryset(self, *args, **kwargs):
         return super().get_queryset(*args, **kwargs).filter(vigente=True, fecha_egreso__isnull=True)\
             .prefetch_related('documento', 'documento__credito')
 
+class SolicitudFHAFueraBoveda_ListView(ListView_Login):
+    permission_required = 'documentos.view_solicitudfha'
+    template_name = 'documentos//solicitudfhafueraboveda_list.html'
+    model = SolicitudFHA
+    paginate_by = 15
+    ordering = ['fecha_solicitud', 'documento__credito__numero']
+    extra_context = {
+        'title': _('Documentos fuera de bóveda'),
+        'opciones': {
+            'etiqueta': _('Opciones'),
+            'entregar': _('Entregar'),
+            'recibir': _('Recibir'),
+        },
+        'mensaje_vacio': _('No hay "solicitudes" pendiente de entregar o recibir.'),
+    }
+
+    def get_queryset(self, *args, **kwargs):
+        return super().get_queryset(*args, **kwargs).filter(vigente=True, fecha_egreso__isnull=False)\
+        .prefetch_related('documento', 'documento__credito')            
 
 class SolicitudFHA_DeleteView(DeleteView_Login):
     permission_required = 'documentos.delete_solicitudfha'
@@ -1005,14 +1020,6 @@ class SolicitudFHA_DeleteView(DeleteView_Login):
         }
         return context
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.user.is_superuser:
-            return queryset
-        else:
-            return queryset.filter(
-                Q(personal=self.request.user)
-                |Q(encargado=self.request.user)).distinct()
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 #                      INFORMACIÓN FHA
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
@@ -1170,19 +1177,55 @@ def salida_tomo(request):
         finally:
             return redirect(Tomo.envio_url())
 
-def solicitudfha(request):
+def opera_solicitudfha(request):
     if 'agregar' in request.POST and request.user.has_perm('documentos.add_solicitudfha'):
         documento = DocumentoFHA.objects.get(id=request.POST['documento-id'])
         bufete = request.POST['bufete'] if 'bufete' in request.POST else ''
         solicitud = SolicitudFHA.objects.filter(documento=documento, vigente=True)
 
         if not solicitud: #No hay solicitud abierta
-            SolicitudFHA(documento=documento, solicitante_id=request.POST['solicitante'], 
-                motivo_id=request.POST['motivo'], bufete=bufete, usuario=request.user).save()
-            messages.success(request, _('Solicitud ingresada'))
+            solicitud = SolicitudFHA(documento=documento, solicitante_id=request.POST['solicitante'], 
+                motivo_id=request.POST['motivo'], bufete=bufete, usuario=request.user)
+            solicitud._history_user = request.user
+            solicitud._change_reason = 'Creación de solicitud'
+            solicitud.save()
+
+            messages.success(request, _('Solicitud ingresada.'))
         else:
             messages.warning(request, _('El documento tiene una solicitud activa.')+str(solicitud.documento))
         return redirect(documento.credito.view_url())
+    elif 'extraer' in request.POST and request.user.has_perm('documentos.extrae_boveda'):
+        solicitud = SolicitudFHA.objects.get(id=request.POST['solicitudfha-id'])
+        solicitud.poliza_egreso=request.POST['poliza_egreso']
+        solicitud.fecha_egreso=datetime.now().strftime("%Y-%m-%d")
+        solicitud._history_user = request.user
+        solicitud._change_reason = 'Entrega de boveda'
+        solicitud.save()
+        messages.success(request, _('Se recibió de boveda el documento.')+str(solicitud.documento))
+        return redirect(solicitud.list_url())
+    elif 'entregar.x' in request.POST and request.user.has_perm('documentos.extrae_boveda'):
+        solicitud = SolicitudFHA.objects.get(id=request.POST['solicitud'])
+        solicitud.fecha_entrega=datetime.now().strftime("%Y-%m-%d")
+        solicitud._history_user = request.user
+        solicitud._change_reason = 'Entrega a usuario'
+        solicitud.save()
+        messages.success(request, _('Se entregó el documento. ')+str(solicitud.documento))
+        return redirect(solicitud.listfueraboveda_url())
+    elif 'recibir.x' in request.POST and request.user.has_perm('documentos.extrae_boveda'):
+        solicitud = SolicitudFHA.objects.get(id=request.POST['solicitud'])
+        if str(solicitud.fecha_entrega)==datetime.now().strftime("%Y-%m-%d"):
+            solicitud.fecha_entrega=None;
+            solicitud._change_reason = 'Se reingresó el mismo día.'
+            messages.warning(request, _('Se reingresó el documento. ')+str(solicitud.documento))
+        else:
+            solicitud.fecha_devolucion=datetime.now().strftime("%Y-%m-%d")
+            solicitud._change_reason = 'Se recibió del usuario.'
+            messages.success(request, _('Se recibió el documento. ')+str(solicitud.documento))
+        solicitud._history_user = request.user
+        solicitud.save()
+        return redirect(solicitud.listfueraboveda_url())
+    else:
+        print(request.POST)
 
           
 
@@ -1226,6 +1269,8 @@ def _escribe_log(datos, nombre):
     f = open(output_file, 'a+')
     f.writelines([d+'\n' for d in datos])
     f.close()
+
+    return output_file
     
 def _documentosfha(hoja):
     '''
@@ -1240,40 +1285,79 @@ def _documentosfha(hoja):
     documentos = []
 
     for fila in hoja.iter_rows(min_row=2):
-        #Credito Tipo    Número  Ubicación   Poliza
-        documentos.append({
-            'credito':  fila[orden['Credito']].value,
-            'tipo':     fila[orden['Tipo']].value,
-            'numero':   fila[orden['Numero']].value,
-            'ubicacion':fila[orden['Ubicacion']].value,
-            'poliza':   fila[orden['Poliza']].value if fila[orden['Poliza']].value else '',
-        })
+        if fila[orden['Credito']].value:
+            documentos.append({
+                'credito':  fila[orden['Credito']].value,
+                'tipo':     fila[orden['Tipo']].value,
+                'numero':   fila[orden['Numero']].value,
+                'ubicacion':fila[orden['Ubicacion']].value,
+                'poliza':   fila[orden['Poliza']].value if fila[orden['Poliza']].value else '',
+            })
     return documentos
 
-def _insert_documentosfha(datos):
+def _insert_documentosfha(self, datos):
     '''
         Insert de documentos
             datos: arreglo con la información a insertar de documentos
     '''
     fecha_hora_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
-    errores, doctos= [], []
+    errores, doctos_nuevos, doc_existente, sol_existente = [], [], [], []
     for elemento in datos:
         try:
             credito = Credito.objects.get(numero=elemento['credito'])
-            if not DocumentoFHA.objects.filter(credito=credito, tipo=elemento['tipo'], numero=elemento['numero']):
-                doctos.append(DocumentoFHA(tipo=elemento['tipo'], numero=elemento['numero'], 
-                    ubicacion=elemento['ubicacion'], poliza=elemento['poliza'], credito=credito))
+            documento = DocumentoFHA.objects.filter(credito=credito, tipo=elemento['tipo'], numero=elemento['numero'])
+            
+            if not documento:
+                documento = DocumentoFHA(tipo=elemento['tipo'], numero=elemento['numero'], 
+                    ubicacion=elemento['ubicacion'], poliza=elemento['poliza'], credito=credito)
+                documento._change_reason='Regreso a boveda'
+                documento._history_user = self.request.user
+                doctos_nuevos.append(documento)
             else:
-                errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
-                    'error': _('Ya existe el documento.')})
+                solicitud = SolicitudFHA.objects.filter(documento=documento[0], vigente=True)
+                if len(solicitud)>1:
+                    errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
+                    'error': _('Existen dos solicitudes, por favor anule una.')})
+                    messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : Existen dos solicitudes, por favor anule una.")
+                if solicitud.filter(fecha_egreso__isnull=True):
+                    #No ha salido de boveda
+                    errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
+                    'error': _('Existe una solicitud pendiente ingresada sobre el documento.')})
+                    messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : Existe una solicitud pendiente ingresada sobre el documento.")
+                elif solicitud.filter(Q(fecha_entrega__isnull=True)|Q(fecha_devolucion__isnull=False)):
+                    #Salió de boveda y (no se entrego al usuario o fue devuelta)
+                    solicitud[0].regreso_boveda=True
+                    solicitud[0].vigente=False
+                    solicitud[0]._change_reason='Regreso a boveda'
+                    solicitud[0]._history_user = self.request.user
+                    sol_existente.append(solicitud[0])
+
+                    documento[0].ubicacion = elemento['ubicacion']
+                    documento[0].poliza = elemento['poliza']
+                    documento[0]._change_reason='Ingreso a boveda'
+                    documento[0]._history_user = self.request.user
+                    doc_existente.append(documento[0])
+                elif solicitud.filter(Q(fecha_entrega__isnull=True)|Q(fecha_devolucion__isnull=True)):
+                    errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
+                    'error': _('No se ha registrado la devolución del documento.')})
+                    messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : No se ha registrado la devolución del documento.")
+                else:
+                    errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
+                    'error': _('Ya existe el documento y no hay solicitudes abiertas.')})
+                    messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : Ya existe el documento y no hay solicitudes abiertas.")
         except Exception as e:
             errores.append({'valor': elemento['credito'], 'error': _('No se encontró el número de crédito')})
 
-    resultado = bulk_create_with_history(doctos, DocumentoFHA, batch_size=1500)
-    log_lines = [f"DoctoFHA: {str(r)}" for r in resultado]
+    resultado = bulk_create_with_history(doctos_nuevos, DocumentoFHA, batch_size=1500)
+    log_lines = [f"DoctoFHA (nuevo): {str(r)}" for r in doctos_nuevos]
+    resultado = bulk_update_with_history(sol_existente, SolicitudFHA, ['regreso_boveda', 'vigente'], batch_size=1500)
+    log_lines = [f"DoctoFHA (reingreso): {str(r)}" for r in sol_existente]
+    resultado = bulk_update_with_history(doc_existente, DocumentoFHA, ['ubicacion', 'poliza'], batch_size=1500)
+    log_lines = [f"DoctoFHA (documento): {str(r)}" for r in doc_existente]
     log_lines.extend([f"Error DoctoFHA: {e['valor']}; {e['error']}" for e in errores])
     log_lines.extend(['\nFIN: '+datetime.now().strftime("%Y%m%d_%H%M%S")]) #Agrega fecha y hora de finalización
-    _escribe_log(log_lines, f'{fecha_hora_archivo}-CargaFHA')
+    file = _escribe_log(log_lines, f'{fecha_hora_archivo}-CargaFHA')
+
 
 def _creditos_excel(hoja):
     '''
@@ -1287,20 +1371,21 @@ def _creditos_excel(hoja):
 
     lista = []
     for fila in hoja.iter_rows(min_row=2):
-        CredAnt = fila[orden['Credito_Anterior']].value
-        lista.append({
-            'mis':      int(fila[orden['Cod_Cliente']].value),
-            'cliente':  fila[orden['Cliente']].value,
-            'cod_ofi':  int(fila[orden['Cod_ofi']].value),
-            'oficina':  fila[orden['Oficina']].value,
-            'moneda':   fila[orden['Moneda']].value,
-            'producto': fila[orden['Producto']].value,
-            'credito':  str(fila[orden['Credito']].value),
-            'fecha':    datetime.strptime(fila[orden['Fecha_Ini']].value, "%d/%m/%Y").strftime("%Y-%m-%d"),
-            'monto':    fila[orden['Monto']].value,
-            'credito_anterior': CredAnt if CredAnt else '',
-            'escaneado': True if fila[orden['Escaneado']].value=='Si' else False,
-        })
+        if fila[orden['Credito']].value:
+            CredAnt = fila[orden['Credito_Anterior']].value
+            lista.append({
+                'mis':      int(fila[orden['Cod_Cliente']].value),
+                'cliente':  fila[orden['Cliente']].value,
+                'cod_ofi':  int(fila[orden['Cod_ofi']].value),
+                'oficina':  fila[orden['Oficina']].value,
+                'moneda':   fila[orden['Moneda']].value,
+                'producto': fila[orden['Producto']].value,
+                'credito':  str(fila[orden['Credito']].value),
+                'fecha':    datetime.strptime(fila[orden['Fecha_Ini']].value, "%d/%m/%Y").strftime("%Y-%m-%d"),
+                'monto':    fila[orden['Monto']].value,
+                'credito_anterior': CredAnt if CredAnt else '',
+                'escaneado': True if fila[orden['Escaneado']].value=='Si' else False,
+            })
     return [lista[i:i + 1000] for i in range(0, len(lista), 1000)] #segmenta en grupos de 1000
     
 def _insert_masivo_creditos(sublista):

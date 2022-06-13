@@ -1,0 +1,62 @@
+{% extends "base_documentos.html" %}
+{% load static verbose_names crispy_forms_tags%}
+
+{% block inner_content %}
+    {% include 'base_documentos_search_form.html' %}
+
+  {% if object_list %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "fecha_solicitud" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0.documento "credito" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "documento" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "solicitante" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "motivo" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "usuario" %}</th>
+          <th scope="col">{{ opciones.etiqueta }}</th>
+        </tr>
+      </thead>
+      <tbody>
+    {% for object in object_list %}
+        <tr>
+          <th scope="row">{{ forloop.counter0|add:page_obj.start_index }}</th>
+          <td>{{ object.fecha_solicitud|date:"d/m/Y" }}</td>
+          <td><a href="{{ object.documento.credito.view_url }}">{{ object.documento.credito.numero }}</a></td>
+          <td>{{ object.documento.get_documento }}</td>
+          <td>{{ object.solicitante }}</td>
+          <td class="position-relative">{{ object.motivo }}
+          {% if object.bufete %}
+            <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle" title="{{ object.bufete }}"><span class="visually-hidden">{{ object.bufete }}</span></span>
+          {%endif%}
+          </td>
+          <td>{{ object.usuario }}</td>
+          
+          <td>
+            {% if perms.documentos.extrae_boveda %}
+             <form method="post" action="{% url 'documentos:opera_solicitudfha' %}">
+              {% csrf_token %}
+              <input type="hidden" name="solicitud" value="{{ object.id }}">
+
+              {% if not object.fecha_entrega or object.fecha_devolucion %}
+              <input type="image" src="{% static 'images/documentos_entregar.png' %}" name="entregar" width="60" class="btn btn-success" alt="{{ opciones.entregar }}" title="{{ opciones.entregar }}">
+              {% else %}
+              <input type="image" src="{% static 'images/documentos_recibir.png' %}" name="recibir" width="60" class="btn btn-primary" alt="{{ opciones.recibir }}" title="{{ opciones.recibir }}">
+              {% endif %}
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+    {% endfor %}
+      </tbody>
+    </table>
+{% else %}
+    <div class="alert alert-warning" role="alert">{{ mensaje_vacio }}</div>
+{% endif %}
+
+{% endblock %}
+
+{% block pagination %}
+  {% include 'base_pagination.html' %}
+{% endblock %}

@@ -101,6 +101,14 @@ class SolicitudFHA_CreateForm(forms.ModelForm):
         self.fields['solicitante'].queryset = self.fields['solicitante'].queryset.filter(vigente=True, area='FHA').order_by('nombre')
         self.fields['motivo'].queryset = self.fields['motivo'].queryset.filter(vigente=True, area='FHA').order_by('nombre')
 
+class ExtraeBoveda_Form(forms.ModelForm):
+    '''
+        ExtraeBoveda_Form
+        Formulario para registrar salida de bóveda
+    '''
+    class Meta:
+        model = SolicitudFHA
+        fields = ['poliza_egreso']
 
 ##########################################################################
 # Funciones adicionales

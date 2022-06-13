@@ -57,7 +57,7 @@ class Credito(models.Model):
     producto= models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='credito_producto')
     credito_anterior = models.CharField(max_length=60, blank=True)
     history = HistoricalRecords(excluded_fields=['numero', 'monto', 'fecha_concesion', 
-        'fecha_ingreso', 'cliente', 'moneda', 'oficina', 'producto'],
+        'fecha_ingreso', 'cliente', 'moneda', 'oficina', 'producto', 'credito_anterior'],
         user_model=settings.AUTH_USER_MODEL)
     
     class Meta:
@@ -568,18 +568,24 @@ class SolicitudFHA(models.Model):
     fecha_egreso    = models.DateField(_('Egreso de Bóveda'), null=True)
     poliza_egreso   = models.CharField(_('Póliza de Egreso'), max_length=12)
     fecha_entrega   = models.DateField(_('Entrega a solicitante'), null=True)
-    fecha_devolución= models.DateField(_('Devolución de solicitante'), null=True)
+    fecha_devolucion= models.DateField(_('Devolución de solicitante'), null=True)
     regreso_boveda  = models.BooleanField(default=False)
     vigente         = models.BooleanField(default=True)
     documento       = models.ForeignKey(DocumentoFHA, verbose_name=_('Documento'), on_delete=models.PROTECT)
     solicitante     = models.ForeignKey(Solicitante, verbose_name=_('Solicitante'), on_delete=models.PROTECT)
     motivo          = models.ForeignKey(Motivo, verbose_name=_('Motivo'), on_delete=models.PROTECT)
     usuario         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name=_('Usuario'))
+    history = HistoricalRecords(
+        history_id_field = models.BigAutoField(),
+        excluded_fields = ['fecha_solicitud', 'bufete', 'fecha_egreso', 'poliza_egreso', 'regreso_boveda', 'vigente',
+        'documento', 'solicitante', 'motivo', 'usuario'],
+        user_model = settings.AUTH_USER_MODEL,
+        )
+
 
     class Meta:
         permissions = [
             ("extrae_boveda", "Extracción de documentos solicitados de boveda"),
-            ("devolucion", "Devolución de documento a encargado"),
             ("ingreso_boveda", "Re-ingreso de documento a boveda"),
         ]
 
@@ -602,8 +608,8 @@ class SolicitudFHA(models.Model):
     def list_url(self=None):
         return reverse('documentos:solicitudfha_list')
 
-    def update_url(self):
-        return reverse('documentos:solicitudfha_update', kwargs={'pk': self.id})
+    def listfueraboveda_url(self=None):
+        return reverse('documentos:solicitudfhafuera_list')
 
     def delete_url(self):
         return reverse('documentos:solicitudfha_delete', kwargs={'pk': self.id})

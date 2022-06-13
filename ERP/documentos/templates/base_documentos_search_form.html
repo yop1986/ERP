@@ -1,3 +1,4 @@
+{% if form %}
 <form method="get" autocomplete="off" class="row row-cols-lg-auto g-3 align-items-center">
   <div class="col-8">
     {{ form }}
@@ -7,3 +8,4 @@
     <a href="{{ url_lista }}" class="btn btn-primary">{{ botones.limpiar }}</a>
   </div>
 </form>
+{% endif %}

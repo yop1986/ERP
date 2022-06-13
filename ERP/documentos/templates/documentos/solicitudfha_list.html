@@ -1,5 +1,5 @@
 {% extends "base_documentos.html" %}
-{% load static verbose_names %}
+{% load static verbose_names crispy_forms_tags%}
 
 {% block inner_content %}
     {% include 'base_documentos_search_form.html' %}
@@ -23,7 +23,7 @@
         <tr>
           <th scope="row">{{ forloop.counter0|add:page_obj.start_index }}</th>
           <td>{{ object.fecha_solicitud|date:"d/m/Y" }}</td>
-          <td>{{ object.documento.credito }}</td>
+          <td><a href="{{ object.documento.credito.view_url }}">{{ object.documento.credito.numero }}</a></td>
           <td>{{ object.documento.get_documento }}</td>
           <td>{{ object.solicitante }}</td>
           <td class="position-relative">{{ object.motivo }}
@@ -34,11 +34,11 @@
           <td>{{ object.usuario }}</td>
           
           <td>
-            {% if perms.documentos.change_solicitudfha %}
-            <a href="" class="btn btn-dark">{{ opciones.editar }}</a>
+            {% if perms.documentos.extrae_boveda %}
+              <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#extraeBoveda" data-bs-object="{{ object.id }}" data-bs-desc="{{ object.documento }}"><img src="{% static 'images/documentos_entrega.png' %}" alt="{{ opciones.editar }}" title="{{ opciones.editar }}" height="25"></button>
             {% endif %}
             {% if perms.documentos.delete_solicitudfha %}
-            <a href="{{ object.delete_url }}" class="btn btn-danger">{{ opciones.anular }}</a>
+            <a href="{{ object.delete_url }}" class="btn btn-danger"><img src="{% static 'images/documentos_remove.png' %}" alt="{{ opciones.anular }}" title="{{ opciones.anular }}" width="25px"></a>
             {% endif %}
           </td>
         </tr>
@@ -48,8 +48,50 @@
 {% else %}
     <div class="alert alert-warning" role="alert">{{ mensaje_vacio }}</div>
 {% endif %}
+
+{% if perms.documentos.extrae_boveda %}
+<!-- Modal - Ventana emergente para registrar la salida de boveda -->
+<div class="modal fade" id="extraeBoveda" tabindex="-1" aria-labelledby="extraerModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="extraerModalLabel">-</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{% url 'documentos:opera_solicitudfha' %}" autocomplete="off">
+          {% csrf_token %}
+          <input type="hidden" class="form-control" id="solicitudfha-id" name="solicitudfha-id">
+          <div class="mb-3">
+            {{ extraeBoveda_form|crispy }}
+          </div>
+          <input type="submit" name="extraer" value="{{ opciones.guardar }}" class="btn btn-primary">
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block pagination %}
   {% include 'base_pagination.html' %}
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/jquery.min.js' %}"></script>
+<script type="text/javascript">
+  var extraeBoveda = document.getElementById('extraeBoveda');
+  
+  extraeBoveda.addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget;
+
+    //var modalBodyInput = solicitudForm.querySelector('.modal-body input');
+    var modalBodyInput = extraeBoveda.querySelector('#solicitudfha-id');
+    modalBodyInput.value = button.getAttribute('data-bs-object');
+
+    $('#extraerModalLabel').html(button.getAttribute('data-bs-desc'));
+  });
+</script>
 {% endblock %}

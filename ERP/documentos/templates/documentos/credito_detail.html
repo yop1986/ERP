@@ -200,11 +200,13 @@
               <td>{{ documento.get_estado }}</td>
               <td>
                 {% if perms.documentos.delete_documentofha %}
-                <a href="{{ documento.delete_url }}" class="btn btn-{{documento.get_accion_tag}}"><img src="{% static 'images/documentos_remove.png' %}" alt="{{ documento.get_accion }}" title="{{ documento.get_accion }}" width="25px"></a>
+                <a href="{{ documento.delete_url }}" class="btn btn-{{documento.get_accion_tag}}"><img src="{% static 'images/documentos_remove.png' %}" alt="{{ documento.get_accion }}" title="{{ documento.get_accion }}" width="30px"></a>
                 {% endif %}
 
                 {% if perms.documentos.add_solicitudfha and not documento.existe_solicitud %}
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#solicitudForm" data-bs-object="{{ documento.id }}" data-bs-docto="{{ documento.get_documento }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.solicitud }}" title="{{ opciones.solicitud }}" height="32"></button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#solicitudForm" data-bs-object="{{ documento.id }}" data-bs-docto="{{ documento.get_documento }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
+                {% elif perms.documentos.extrae_boveda %}
+                <a href="" class="btn btn-info"><img src="{% static 'images/documentos_solicitud.png' %}" alt="{{ opciones.solicitud }}" title="{{ opciones.solicitud }}" width="30px"></a>
                 {% endif %}
               </td>
             </tr>
@@ -221,8 +223,8 @@
 
 
 
-<!-- Modal - Ventana emergente para egresos de tomos -->
 {% if perms.documentos.change_tomo and tomo.caja and request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
+<!-- Modal - Ventana emergente para egresos de tomos -->
 <div class="modal fade" id="extraerForm" tabindex="-1" aria-labelledby="extraerModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -245,8 +247,8 @@
 </div>
 {% endif %}
 
-<!-- Modal - Ventana emergente creación de solicitud -->
 {% if perms.documentos.add_solicitudfha %}
+<!-- Modal - Ventana emergente creación de solicitud -->
 <div class="modal fade" id="solicitudForm" tabindex="-1" aria-labelledby="solicitudFHAModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -255,7 +257,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form method="post" autocomplete="off" action="{% url 'documentos:solicitudfha_create' %}">
+        <form method="post" autocomplete="off" action="{% url 'documentos:opera_solicitudfha' %}">
           {% csrf_token %}
           <input type="hidden" class="form-control" id="documento-id" name="documento-id">
           <div class="mb-3">
@@ -279,7 +281,7 @@
 <script src="{% static 'js/jquery.min.js' %}"></script>
 <script type="text/javascript">
 {% if perms.documentos.change_tomo and tomo.caja and request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
-  var extraerForm = document.getElementById('extraerForm')
+  var extraerForm = document.getElementById('extraerForm');
   
   extraerForm.addEventListener('show.bs.modal', function (event) {
     // Button that triggered the modal
@@ -296,7 +298,7 @@
 {% endif %}
 
 {% if perms.documentos.add_solicitudfha %}
-  var solicitudForm = document.getElementById('solicitudForm')
+  var solicitudForm = document.getElementById('solicitudForm');
   
   solicitudForm.addEventListener('show.bs.modal', function (event) {
     var button = event.relatedTarget;
@@ -305,7 +307,7 @@
     var modalBodyInput = solicitudForm.querySelector('#documento-id');
     modalBodyInput.value = button.getAttribute('data-bs-object');
     $('#solicitudFHAModalLabel').html(button.getAttribute('data-bs-docto'));
-  })
+  });
 
 
   $("#id_motivo").on("change", function() {

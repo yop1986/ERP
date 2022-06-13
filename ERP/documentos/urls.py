@@ -50,8 +50,11 @@ urlpatterns = [
 
     path('documentosfha/delete/<uuid:pk>/', views.DocumentoFHA_DeleteView.as_view(), name='documentofha_delete'),
 
-    path('solicitudfha/create/', views.solicitudfha, name='solicitudfha_create'),
+    path('solicitudfha/create/', views.opera_solicitudfha, name='opera_solicitudfha'),
     path('solicitudfha/consulta_motivo/', views.ajax_consulta_motivo, name='solicitudfha_consulta_motivo'),
     path('solicitudesfha/abiertas/', views.SolicitudFHAAbierta_ListView.as_view(), name='solicitudfha_list'),
+    path('solicitudesfha/fueraboveda/', views.SolicitudFHAFueraBoveda_ListView.as_view(), name='solicitudfhafuera_list'),
     path('solicitudesfha/delete/<uuid:pk>', views.SolicitudFHA_DeleteView.as_view(), name='solicitudfha_delete'),
+    
+    
 ]
