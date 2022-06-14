@@ -214,9 +214,6 @@ class Nivel(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['estante', 'numero'], name='unq_estante_numero'),
         ]
-        permissions = [
-            ("label_nivel", "Permite la impresión de todas las etiquetas del nivel"),
-        ]
 
     def __str__(self):
         return f"{self.estante}-{self.numero:02d}"
@@ -557,6 +554,15 @@ class DocumentoFHA(models.Model):
 
     def existe_solicitud(self):
         return True if self.solicitudfha_set.filter(vigente=True) else False
+
+    def list_url(self=None):
+        return self.credito.view_url()
+
+    def find_solicitud(self):
+        if self and self.solicitudfha_set.filter(vigente=True, fecha_egreso__isnull=True):
+            return reverse('documentos:solicitudfha_list')
+        else:
+            return reverse('documentos:solicitudfhafuera_list')
 
 class SolicitudFHA(models.Model):
     '''

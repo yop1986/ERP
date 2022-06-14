@@ -97,9 +97,9 @@ class Credito_DetailView(DetailView_Login):
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        if self.request.user.has_perm('documentos.view_tomo') or self.request.user.has_perm('documentos.add_tomo') or \
-        self.request.user.has_perm('documentos.delete_tomo'):
+        if self.request.user.has_perm('documentos.add_tomo') or self.request.user.has_perm('documentos.delete_tomo'):
             context['egreso_form']=EgresoTomo_Form()
+        if self.request.user.has_perm('documentos.view_tomo'):
             context['tomos'] = Tomo.objects.filter(credito=self.object, vigente=True)\
                 .prefetch_related('caja', 'caja__posicion', 
                     'caja__posicion__nivel', 'caja__posicion__nivel__estante', 
@@ -778,20 +778,6 @@ class Solicitante_ListView(ListView_Login):
             context['form'] = Busqueda()
         return context
 
-class Solicitante_DetailView(DetailView_Login):
-    permission_required = 'documentos.view_solicitante'
-    model = Solicitante
-    extra_context = {
-        'title': _('Solicitante'),
-        'sub_titulo': {
-            'documentosfha': _('Documentos FHA'),
-        },
-        'opciones': {
-            'etiqueta': _('Opciones'),
-            'editar': _('Editar'),
-        },
-    }
-    
 class Solicitante_CreateView(CreateView_Login):
     permission_required = 'documentos.add_solicitante'
     template_name = 'documentos/form.html'
@@ -939,7 +925,7 @@ class DocumentoFHA_DeleteView(DeleteView_Login):
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context['list_url'] = DocumentoFHA.list_url()
+        context['list_url'] = self.object.list_url()
         context['botones']={
             'cancelar': _('Cancelar'),
         }
@@ -1194,7 +1180,7 @@ def opera_solicitudfha(request):
         else:
             messages.warning(request, _('El documento tiene una solicitud activa.')+str(solicitud.documento))
         return redirect(documento.credito.view_url())
-    elif 'extraer' in request.POST and request.user.has_perm('documentos.extrae_boveda'):
+    elif 'extraer' in request.POST and request.user.has_perm('documentos.change_solicitudfha'):
         solicitud = SolicitudFHA.objects.get(id=request.POST['solicitudfha-id'])
         solicitud.poliza_egreso=request.POST['poliza_egreso']
         solicitud.fecha_egreso=datetime.now().strftime("%Y-%m-%d")
@@ -1203,7 +1189,7 @@ def opera_solicitudfha(request):
         solicitud.save()
         messages.success(request, _('Se recibió de boveda el documento.')+str(solicitud.documento))
         return redirect(solicitud.list_url())
-    elif 'entregar.x' in request.POST and request.user.has_perm('documentos.extrae_boveda'):
+    elif 'entregar.x' in request.POST and request.user.has_perm('documentos.change_solicitudfha'):
         solicitud = SolicitudFHA.objects.get(id=request.POST['solicitud'])
         solicitud.fecha_entrega=datetime.now().strftime("%Y-%m-%d")
         solicitud._history_user = request.user
@@ -1211,7 +1197,7 @@ def opera_solicitudfha(request):
         solicitud.save()
         messages.success(request, _('Se entregó el documento. ')+str(solicitud.documento))
         return redirect(solicitud.listfueraboveda_url())
-    elif 'recibir.x' in request.POST and request.user.has_perm('documentos.extrae_boveda'):
+    elif 'recibir.x' in request.POST and request.user.has_perm('documentos.change_solicitudfha'):
         solicitud = SolicitudFHA.objects.get(id=request.POST['solicitud'])
         if str(solicitud.fecha_entrega)==datetime.now().strftime("%Y-%m-%d"):
             solicitud.fecha_entrega=None;
@@ -1386,7 +1372,7 @@ def _creditos_excel(hoja):
                 'credito_anterior': CredAnt if CredAnt else '',
                 'escaneado': True if fila[orden['Escaneado']].value=='Si' else False,
             })
-    return [lista[i:i + 1000] for i in range(0, len(lista), 1000)] #segmenta en grupos de 1000
+    return [lista[i:i + 200] for i in range(0, len(lista), 200)] #segmenta en grupos de 200
     
 def _insert_masivo_creditos(sublista):
     '''
