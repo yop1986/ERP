@@ -8,6 +8,7 @@ from simple_history.utils import bulk_create_with_history, bulk_update_with_hist
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.models import Permission
 from django.core.mail import EmailMultiAlternatives
 from django.db.models import Q, Max
 from django.db.models.functions import Length
@@ -19,6 +20,7 @@ from django.views.generic import TemplateView
 from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
 
+from usuarios.models import Usuario
 from .models import (Bodega, Estante, Nivel, Posicion, Caja, Cliente, Moneda,
     Producto, Oficina, Credito, Tomo, Solicitante, Motivo, DocumentoFHA, SolicitudFHA)
 from .forms import (Busqueda, GeneraEstructura, CargaCreditos_Form, IngresoTomo_Form, 
@@ -63,7 +65,7 @@ class CargaMasiva_Form(FormView_Login):
         libro = openpyxl.load_workbook(archivo)
         _insert_masivo_creditos(_creditos_excel(libro[libro.sheetnames[0]]))
         doctosfha = _documentosfha(libro[libro.sheetnames[1]])
-        if(len(doctosfha)>1):
+        if(len(doctosfha)>0):
             if self.request.user.has_perm('documentos.add_documentofha'):
                 _insert_documentosfha(self, doctosfha)
             else:
@@ -1127,8 +1129,8 @@ def salida_tomo(request):
                     'message': _(f'Se han enviado, a {bodega}, los siguientes tomos:'),
                     'object_list': {tomo for tomo in tomos},
                 }
-                correo = crea_correo('Traslado de Expedientes', request.user.email, [bodega.encargado.email], 'mails/egresos.html', context)
-                envia_correo(correo)
+                correo = _crea_correo('Traslado de Expedientes', request.user.email, [bodega.encargado.email], 'mails/egresos.html', context)
+                _envia_correo(correo)
         finally:
             return redirect(Tomo.envio_url())
     elif 'egresar' in request.POST:
@@ -1158,8 +1160,8 @@ def salida_tomo(request):
                     'object_list': {tomo for tomo in tomos},
                     'comentario': comentario_final,
                 }
-                correo = crea_correo('Egreso por solicitud', request.user.email, [request.user.email,correo_form], 'mails/egresos.html', context)
-                envia_correo(correo)
+                correo = _crea_correo('Egreso por solicitud', request.user.email, [request.user.email,correo_form], 'mails/egresos.html', context)
+                _envia_correo(correo)
         finally:
             return redirect(Tomo.envio_url())
 
@@ -1176,6 +1178,18 @@ def opera_solicitudfha(request):
             solicitud._change_reason = 'Creación de solicitud'
             solicitud.save()
 
+            #_crea_correo(subject, from_email, to_email, template, context):
+            perm = Permission.objects.get(codename='change_solicitudfha')
+            usuarios = Usuario.objects.filter(groups__permissions=perm).distinct()
+            context = {
+                    'title': _('Nueva solicitud'),
+                    'message': _(f'Se ha ingresado una solicitud de documento, por favor verifique.'),
+                    'object': solicitud,
+                }
+            correo = _crea_correo(_('Solicitud ingresada'), request.user.email, 
+                [u.email for u in usuarios], 'mails/solicitud.html', context)
+            correo.send(fail_silently=False)
+            
             messages.success(request, _('Solicitud ingresada.'))
         else:
             messages.warning(request, _('El documento tiene una solicitud activa.')+str(solicitud.documento))
@@ -1219,7 +1233,7 @@ def opera_solicitudfha(request):
 ##########################################################################
 #
 ##########################################################################
-def crea_correo(subject, from_email, to_email, template, context):
+def _crea_correo(subject, from_email, to_email, template, context):
     template = get_template(template)
     content = template.render(context)
 
@@ -1234,7 +1248,7 @@ def crea_correo(subject, from_email, to_email, template, context):
     mail.attach_alternative(content, 'text/html')
     return mail
 
-def envia_correo(mail):
+def _envia_correo(mail):
     ''' Envío asincrono de correos '''
     thread = threading.Thread(
         mail.send(fail_silently=False)
@@ -1279,7 +1293,7 @@ def _documentosfha(hoja):
                 'ubicacion':fila[orden['Ubicacion']].value,
                 'poliza':   fila[orden['Poliza']].value if fila[orden['Poliza']].value else '',
             })
-    return documentos
+    return [documentos[i:i + 200] for i in range(0, len(documentos), 200)] #segmenta en grupos de 200 ##documentos
 
 def _insert_documentosfha(self, datos):
     '''
@@ -1288,58 +1302,58 @@ def _insert_documentosfha(self, datos):
     '''
     fecha_hora_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
     errores, doctos_nuevos, doc_existente, sol_existente = [], [], [], []
-    for elemento in datos:
-        try:
-            credito = Credito.objects.get(numero=elemento['credito'])
-            documento = DocumentoFHA.objects.filter(credito=credito, tipo=elemento['tipo'], numero=elemento['numero'])
-            
-            if not documento:
-                documento = DocumentoFHA(tipo=elemento['tipo'], numero=elemento['numero'], 
-                    ubicacion=elemento['ubicacion'], poliza=elemento['poliza'], credito=credito)
-                documento._change_reason='Regreso a boveda'
-                documento._history_user = self.request.user
-                doctos_nuevos.append(documento)
-            else:
-                solicitud = SolicitudFHA.objects.filter(documento=documento[0], vigente=True)
-                if len(solicitud)>1:
-                    errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
-                    'error': _('Existen dos solicitudes, por favor anule una.')})
-                    messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : Existen dos solicitudes, por favor anule una.")
-                if solicitud.filter(fecha_egreso__isnull=True):
-                    #No ha salido de boveda
-                    errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
-                    'error': _('Existe una solicitud pendiente ingresada sobre el documento.')})
-                    messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : Existe una solicitud pendiente ingresada sobre el documento.")
-                elif solicitud.filter(Q(fecha_entrega__isnull=True)|Q(fecha_devolucion__isnull=False)):
-                    #Salió de boveda y (no se entrego al usuario o fue devuelta)
-                    solicitud[0].regreso_boveda=True
-                    solicitud[0].vigente=False
-                    solicitud[0]._change_reason='Regreso a boveda'
-                    solicitud[0]._history_user = self.request.user
-                    sol_existente.append(solicitud[0])
-
-                    documento[0].ubicacion = elemento['ubicacion']
-                    documento[0].poliza = elemento['poliza']
-                    documento[0]._change_reason='Ingreso a boveda'
-                    documento[0]._history_user = self.request.user
-                    doc_existente.append(documento[0])
-                elif solicitud.filter(Q(fecha_entrega__isnull=True)|Q(fecha_devolucion__isnull=True)):
-                    errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
-                    'error': _('No se ha registrado la devolución del documento.')})
-                    messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : No se ha registrado la devolución del documento.")
+    for sublista in datos:
+        for elemento in sublista:
+            try:
+                credito = Credito.objects.get(numero=elemento['credito'])
+                documento = DocumentoFHA.objects.filter(credito=credito, tipo=elemento['tipo'], numero=elemento['numero'])
+                if not documento:
+                    documento = DocumentoFHA(tipo=elemento['tipo'], numero=elemento['numero'], 
+                        ubicacion=elemento['ubicacion'], poliza=elemento['poliza'], credito=credito)
+                    documento._change_reason='Regreso a boveda'
+                    documento._history_user = self.request.user
+                    doctos_nuevos.append(documento)
                 else:
-                    errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
-                    'error': _('Ya existe el documento y no hay solicitudes abiertas.')})
-                    messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : Ya existe el documento y no hay solicitudes abiertas.")
-        except Exception as e:
-            errores.append({'valor': elemento['credito'], 'error': _('No se encontró el número de crédito')})
+                    solicitud = SolicitudFHA.objects.filter(documento=documento[0], vigente=True)
+                    if len(solicitud)>1:
+                        errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
+                        'error': _('Existen dos solicitudes, por favor anule una.')})
+                        messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : Existen dos solicitudes, por favor anule una.")
+                    if solicitud.filter(fecha_egreso__isnull=True):
+                        #No ha salido de boveda
+                        errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
+                        'error': _('Existe una solicitud pendiente ingresada sobre el documento.')})
+                        messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : Existe una solicitud pendiente ingresada sobre el documento.")
+                    elif solicitud.filter(Q(fecha_entrega__isnull=True)|Q(fecha_devolucion__isnull=False)):
+                        #Salió de boveda y (no se entrego al usuario o fue devuelta)
+                        solicitud[0].regreso_boveda=True
+                        solicitud[0].vigente=False
+                        solicitud[0]._change_reason='Regreso a boveda'
+                        solicitud[0]._history_user = self.request.user
+                        sol_existente.append(solicitud[0])
 
-    resultado = bulk_create_with_history(doctos_nuevos, DocumentoFHA, batch_size=1500)
+                        documento[0].ubicacion = elemento['ubicacion']
+                        documento[0].poliza = elemento['poliza']
+                        documento[0]._change_reason='Ingreso a boveda'
+                        documento[0]._history_user = self.request.user
+                        doc_existente.append(documento[0])
+                    elif solicitud.filter(Q(fecha_entrega__isnull=True)|Q(fecha_devolucion__isnull=True)):
+                        errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
+                        'error': _('No se ha registrado la devolución del documento.')})
+                        messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : No se ha registrado la devolución del documento.")
+                    else:
+                        errores.append({'valor': f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']}", 
+                        'error': _('Ya existe el documento y no hay solicitudes abiertas.')})
+                        messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : Ya existe el documento y no hay solicitudes abiertas.")
+            except Exception as e:
+                errores.append({'valor': elemento['credito'], 'error': _('No se encontró el número de crédito')})
+
+    bulk_create_with_history(doctos_nuevos, DocumentoFHA, batch_size=1500)
     log_lines = [f"DoctoFHA (nuevo): {str(r)}" for r in doctos_nuevos]
-    resultado = bulk_update_with_history(sol_existente, SolicitudFHA, ['regreso_boveda', 'vigente'], batch_size=1500)
-    log_lines = [f"DoctoFHA (reingreso): {str(r)}" for r in sol_existente]
-    resultado = bulk_update_with_history(doc_existente, DocumentoFHA, ['ubicacion', 'poliza'], batch_size=1500)
-    log_lines = [f"DoctoFHA (documento): {str(r)}" for r in doc_existente]
+    bulk_update_with_history(sol_existente, SolicitudFHA, ['regreso_boveda', 'vigente'], batch_size=1500)
+    log_lines.extend([f"DoctoFHA (reingreso): {str(r)}" for r in sol_existente])
+    bulk_update_with_history(doc_existente, DocumentoFHA, ['ubicacion', 'poliza'], batch_size=1500)
+    log_lines.extend([f"DoctoFHA (documento): {str(r)}" for r in doc_existente])
     log_lines.extend([f"Error DoctoFHA: {e['valor']}; {e['error']}" for e in errores])
     log_lines.extend(['\nFIN: '+datetime.now().strftime("%Y%m%d_%H%M%S")]) #Agrega fecha y hora de finalización
     file = _escribe_log(log_lines, f'{fecha_hora_archivo}-CargaFHA')
