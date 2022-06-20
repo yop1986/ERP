@@ -508,7 +508,7 @@ class DocumentoFHA(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     fecha   = models.DateField(_('Fecha'), auto_now=True)
     tipo    = models.CharField(_('Tipo'), max_length=3,choices=TIPO_DOCUMENTO_FHA) #get_tipo_display
-    numero  = models.PositiveIntegerField(_('Número'))
+    numero  = models.CharField(_('Número'), max_length=30, db_index=True)
     ubicacion = models.CharField(_('Ubicación'), max_length=12, db_index=True)
     poliza  = models.CharField(_('Póliza de Ingreso'), max_length=12, db_index=True, default='')
     vigente = models.BooleanField(_('Estado'), default=True)
