@@ -29,6 +29,22 @@ from .forms import (Busqueda, GeneraEstructura, CargaCreditos_Form, IngresoTomo_
 from usuarios.views_base import (ListView_Login, DetailView_Login, TemplateView_Login, 
     CreateView_Login, UpdateView_Login, DeleteView_Login, FormView_Login)
 
+# Textos comunes
+OPCIONES = {
+    'etiqueta': _('Opciones'),
+    'ver': _('Ver'),
+    'editar': _('Editar'),
+    'nuevo': _('Nuevo'),
+}
+BUSCAR_BTN = {
+    'buscar': _('Buscar'),
+    'limpiar': _('Limpiar'),
+}
+CREATE_BTN = {
+    'guardar': _('Guardar'),
+    'cancelar': _('Cancelar'),
+}
+
 # Create your views here.
 class Inicio_Template(TemplateView):
     template_name = 'documentos/index.html'
@@ -140,16 +156,8 @@ class Bodega_ListView(ListView_Login):
     ordering = ['-vigente', 'nombre']
     extra_context = {
         'title': _('Bodegas'),
-        'opciones': {
-            'etiqueta': _('Opciones'),
-            'ver': _('Ver'),
-            'editar': _('Editar'),
-            'nuevo': _('Nuevo'),
-        },
-        'botones': {
-            'buscar': _('Buscar'),
-            'limpiar': _('Limpiar'),
-        },
+        'opciones': OPCIONES,
+        'botones': BUSCAR_BTN,
         'mensaje_vacio': _('No hay "Bodegas" para mostrar'),
     }
 
@@ -299,10 +307,7 @@ class Bodega_CreateView(CreateView_Login):
     template_name = 'documentos/form.html'
     extra_context = {
         'title': _('Nueva Bodega'),
-        'botones': {
-            'guardar': _('Guardar'),
-            'cancelar': _('Cancelar'),
-        },
+        'botones': CREATE_BTN,
     }
 
     def get_context_data(self, *args, **kwargs):
@@ -317,10 +322,7 @@ class Bodega_UpdateView(UpdateView_Login):
     template_name = 'documentos/form.html'
     extra_context = {
         'title': _('Modificar Bodega'),
-        'botones': {
-            'guardar': _('Guardar'),
-            'cancelar': _('Cancelar'),
-        },
+        'botones': CREATE_BTN,
     }
 
     def get_context_data(self, *args, **kwargs):
@@ -364,6 +366,12 @@ class Bodega_DeleteView(DeleteView_Login):
             return queryset.filter(
                 Q(personal=self.request.user)
                 |Q(encargado=self.request.user)).distinct()
+
+    def get_object(self):
+        obj = super().get_object()
+        obj._change_reason = 'Cambio de estado'
+        obj._history_user = self.request.user
+        return obj
 
 
 class Estante_DetailView(DetailView_Login):
@@ -624,6 +632,12 @@ class Caja_DeleteView(DeleteView_Login):
     def get_success_url(self, *args, **kwargs):
         return self.object.view_url()
 
+    def get_object(self):
+        obj = super().get_object()
+        obj._change_reason = 'Cambio de estado'
+        obj._history_user = self.request.user
+        return obj
+
 class Caja_Etiqueta(DetailView_Login):
     permission_required = 'documentos.label_estante'
     template_name = 'documentos/etiqueta.html'
@@ -646,14 +660,11 @@ class Tomo_Ingreso(FormView_Login):
     template_name = 'documentos/form.html'
     extra_context = {
         'title': _('Ingreso a Bodega'),
-        'botones': {
-            'guardar': _('Guardar'),
-            'cancelar': _('Cancelar'),
-        },
+        'botones': CREATE_BTN,
         'list_url': reverse_lazy('documentos:index'),
     }
     success_url = reverse_lazy('documentos:index')
-    success_message ='' # se remueve el mensaje default agregado en formview_login
+    success_message = '' # se remueve el mensaje default agregado en formview_login
 
     def post(self, request, *args, **kwargs):
         if 'Guardar' in request.POST:
@@ -758,10 +769,7 @@ class Solicitante_ListView(ListView_Login):
             'editar': _('Editar'),
             'nuevo': _('Nuevo'),
         },
-        'botones': {
-            'buscar': _('Buscar'),
-            'limpiar': _('Limpiar'),
-        },
+        'botones': BUSCAR_BTN,
         'mensaje_vacio': _('No hay "Solicitantes" para mostrar'),
     }
 
@@ -788,10 +796,7 @@ class Solicitante_CreateView(CreateView_Login):
     success_message = _('Se ha guardado el solicitante.')
     extra_context = {
         'title': _('Agregar Solicitante'),
-        'botones': {
-            'guardar': _('Agregar'),
-            'cancelar': _('Cancelar'),
-        }
+        'botones': CREATE_BTN,
     }
 
 class Solicitante_UpdateView(UpdateView_Login):
@@ -802,10 +807,7 @@ class Solicitante_UpdateView(UpdateView_Login):
     success_message = _('Se ha actualizado el solicitante.')
     extra_context = {
         'title': _('Actualizar Solicitante'),
-        'botones': {
-            'guardar': _('Actualizar'),
-            'cancelar': _('Cancelar'),
-        }
+        'botones': CREATE_BTN,
     }
 
     def get_success_url(self):
@@ -830,6 +832,12 @@ class Solicitante_DeleteView(DeleteView_Login):
         }
         return context
 
+    def get_object(self):
+        obj = super().get_object()
+        obj._change_reason = 'Cambio de estado'
+        obj._history_user = self.request.user
+        return obj
+
 
 class Motivo_ListView(ListView_Login):
     permission_required = 'documentos.view_motivo'
@@ -844,10 +852,7 @@ class Motivo_ListView(ListView_Login):
             'editar': _('Editar'),
             'nuevo': _('Nuevo'),
         },
-        'botones': {
-            'buscar': _('Buscar'),
-            'limpiar': _('Limpiar'),
-        },
+        'botones': BUSCAR_BTN,
         'mensaje_vacio': _('No hay "Motivos" para mostrar'),
     }
 
@@ -863,9 +868,6 @@ class Motivo_ListView(ListView_Login):
             context['form'] = Busqueda()
         return context
     
-class Motivo_DetailView(DetailView_Login):
-    pass
-    
 class Motivo_CreateView(CreateView_Login):
     permission_required = 'documentos.add_motivo'
     template_name = 'documentos/form.html'
@@ -874,10 +876,7 @@ class Motivo_CreateView(CreateView_Login):
     success_message = _('Se ha guardado el motivo.')
     extra_context = {
         'title': _('Agregar Motivo'),
-        'botones': {
-            'guardar': _('Agregar'),
-            'cancelar': _('Cancelar'),
-        }
+        'botones': CREATE_BTN,
     }
     
 class Motivo_UpdateView(UpdateView_Login):
@@ -888,10 +887,7 @@ class Motivo_UpdateView(UpdateView_Login):
     success_message = _('Se ha actualizado el motivo.')
     extra_context = {
         'title': _('Actualizar Motivo'),
-        'botones': {
-            'guardar': _('Actualizar'),
-            'cancelar': _('Cancelar'),
-        }
+        'botones': CREATE_BTN,
     }
 
     def get_success_url(self):
@@ -914,7 +910,13 @@ class Motivo_DeleteView(DeleteView_Login):
         context['mensajes']={
             'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
         }
-        return context 
+        return context
+
+    def get_object(self):
+        obj = super().get_object()
+        obj._change_reason = 'Cambio de estado'
+        obj._history_user = self.request.user
+        return obj
 
 
 class DocumentoFHA_DeleteView(DeleteView_Login):
@@ -939,6 +941,12 @@ class DocumentoFHA_DeleteView(DeleteView_Login):
     def get_success_url(self):
         return self.object.credito.view_url()
 
+    def get_object(self):
+        obj = super().get_object()
+        obj._change_reason = 'Cambio de estado'
+        obj._history_user = self.request.user
+        return obj
+
 
 class SolicitudFHAAbierta_ListView(ListView_Login):
     permission_required = 'documentos.view_solicitudfha'
@@ -952,10 +960,6 @@ class SolicitudFHAAbierta_ListView(ListView_Login):
             'editar': _('Extraer'),
             'anular': _('Anular'),
             'guardar': _('Guardar'), 
-        },
-        'botones': {
-            'buscar': _('Buscar'),
-            'limpiar': _('Limpiar'),
         },
         'mensaje_vacio': _('No hay "solicitudes" para mostrar'),
     }
@@ -1007,6 +1011,13 @@ class SolicitudFHA_DeleteView(DeleteView_Login):
             'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
         }
         return context
+
+    def get_object(self):
+        obj = super().get_object()
+        obj._change_reason = 'Anulación de solicitud'
+        obj._history_user = self.request.user
+        return obj
+    
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 #                      INFORMACIÓN FHA
