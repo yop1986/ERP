@@ -961,12 +961,22 @@ class SolicitudFHAAbierta_ListView(ListView_Login):
             'anular': _('Anular'),
             'guardar': _('Guardar'), 
         },
+        'botones': BUSCAR_BTN,
         'mensaje_vacio': _('No hay "solicitudes" para mostrar'),
     }
 
     def get_context_data(self, *args, **kwargs):
+        busqueda = self.request.GET.get('valor')
+
         context = super().get_context_data(*args, **kwargs)
+        context['url_lista'] = SolicitudFHA.list_url()
         context['extraeBoveda_form'] = ExtraeBoveda_Form()
+        if busqueda:
+            context['object_list'] = SolicitudFHA.objects.filter(documento__credito__numero=busqueda\
+                    .replace(' ','').replace('\t', '')).order_by('documento__tipo', 'documento__numero')
+            context['form'] = Busqueda(self.request.GET)
+        else:
+            context['form'] = Busqueda()
         return context
 
     def get_queryset(self, *args, **kwargs):
@@ -1537,3 +1547,8 @@ def ajax_consulta_motivo(request):
     '''
     motivo = Motivo.objects.get(id=request.GET.get('motivo_id'))
     return HttpResponse(motivo.demanda)
+
+
+#tipo_objeto = request.GET.get('tipo_objeto')
+#objetos = globals()[tipo_objeto].objects.all().order_by('nombre')
+#return render(request, 'qlik/permiso_form_objetos.html', {'objetos': objetos})

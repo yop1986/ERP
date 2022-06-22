@@ -206,7 +206,7 @@
                 {% if perms.documentos.add_solicitudfha and not documento.existe_solicitud %}
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#solicitudForm" data-bs-object="{{ documento.id }}" data-bs-docto="{{ documento.get_documento }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
                 {% elif perms.documentos.change_solicitudfha %}
-                <a href="{{ documento.find_solicitud }}?docto={{ documento.id }}" class="btn btn-info"><img src="{% static 'images/documentos_solicitud.png' %}" alt="{{ opciones.solicitud }}" title="{{ opciones.solicitud }}" width="30px"></a>
+                <a href="{{ documento.find_solicitud }}?valor={{ documento.credito.numero }}" class="btn btn-info"><img src="{% static 'images/documentos_solicitud.png' %}" alt="{{ opciones.solicitud }}" title="{{ opciones.solicitud }}" width="30px"></a>
                 {% endif %}
               </td>
             </tr>
