@@ -34,7 +34,7 @@
           <td>{{ object.usuario }}</td>
           
           <td>
-            {% if perms.documentos.extrae_boveda %}
+            {% if perms.documentos.change_solicitudfha %}
               <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#extraeBoveda" data-bs-object="{{ object.id }}" data-bs-desc="{{ object.documento }}"><img src="{% static 'images/documentos_entrega.png' %}" alt="{{ opciones.editar }}" title="{{ opciones.editar }}" height="25"></button>
             {% endif %}
             {% if perms.documentos.delete_solicitudfha %}
@@ -49,7 +49,7 @@
     <div class="alert alert-warning" role="alert">{{ mensaje_vacio }}</div>
 {% endif %}
 
-{% if perms.documentos.extrae_boveda %}
+{% if perms.documentos.change_solicitudfha %}
 <!-- Modal - Ventana emergente para registrar la salida de boveda -->
 <div class="modal fade" id="extraeBoveda" tabindex="-1" aria-labelledby="extraerModalLabel" aria-hidden="true">
   <div class="modal-dialog">

@@ -34,7 +34,7 @@
           <td>{{ object.usuario }}</td>
           
           <td>
-            {% if perms.documentos.extrae_boveda %}
+            {% if perms.documentos.change_solicitudfha %}
              <form method="post" action="{% url 'documentos:opera_solicitudfha' %}">
               {% csrf_token %}
               <input type="hidden" name="solicitud" value="{{ object.id }}">

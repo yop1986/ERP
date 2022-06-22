@@ -588,13 +588,6 @@ class SolicitudFHA(models.Model):
         user_model = settings.AUTH_USER_MODEL,
         )
 
-
-    class Meta:
-        permissions = [
-            ("extrae_boveda", "Extracción de documentos solicitados de boveda"),
-            ("ingreso_boveda", "Re-ingreso de documento a boveda"),
-        ]
-
     def __str__(self):
         return f'{self.fecha_solicitud} / {self.motivo}'
 
