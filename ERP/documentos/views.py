@@ -973,7 +973,7 @@ class SolicitudFHAAbierta_ListView(ListView_Login):
         context['extraeBoveda_form'] = ExtraeBoveda_Form()
         if busqueda:
             context['object_list'] = SolicitudFHA.objects.filter(documento__credito__numero=busqueda\
-                    .replace(' ','').replace('\t', '')).order_by('documento__tipo', 'documento__numero')
+                    .replace(' ','').replace('\t', ''), vigente=True).order_by('documento__tipo', 'documento__numero')
             context['form'] = Busqueda(self.request.GET)
         else:
             context['form'] = Busqueda()
