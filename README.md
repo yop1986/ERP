@@ -73,6 +73,7 @@ Se ejecutan las migraciones y creacion de usuario administrador
 
     python manage.py makemigrations <app>
     python manage.py migrate
+    python manage.py collectstatic
     python manage.py createsuperuser
 
 Eliminar las migraciones de una app
