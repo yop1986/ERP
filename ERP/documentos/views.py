@@ -36,6 +36,10 @@ OPCIONES = {
     'editar': _('Editar'),
     'nuevo': _('Nuevo'),
 }
+OPCIONES_ETIQUETA = {
+    'etiqueta':_('Opciones'),
+    'etiquetas':_('Etiquetas'),
+}
 BUSCAR_BTN = {
     'buscar': _('Buscar'),
     'limpiar': _('Limpiar'),
@@ -162,25 +166,19 @@ class Bodega_ListView(ListView_Login):
     }
 
     def get_context_data(self, *args, **kwargs):
-        busqueda = self.request.GET.get('valor')
-
         context = super().get_context_data(*args, **kwargs)
         context['url_lista'] = Bodega.list_url()
-        if busqueda:
-            context['object_list'] = Bodega.objects.filter(nombre__icontains=busqueda).order_by('nombre')
-            context['form'] = Busqueda(self.request.GET)
-        else:
-            context['form'] = Busqueda()
+        context['form'] = Busqueda(self.request.GET or None)
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.user.is_superuser:
-            return queryset
-        else:    
-            return queryset.filter(
-                Q(personal=self.request.user)
-                |Q(encargado=self.request.user)).distinct()
+        busqueda = self.request.GET.get('valor')
+        qs = super().get_queryset()
+        if not self.request.user.is_superuser:
+            qs = qs.filter(Q(personal=self.request.user) | Q(encargado=self.request.user)).distinct()
+        if busqueda:
+            qs = qs.filter(nombre__icontains=busqueda).order_by('nombre')
+        return qs
 
 class Bodega_DetailView(FormMixin, DetailView_Login):
     permission_required = 'documentos.view_bodega'
@@ -216,13 +214,10 @@ class Bodega_DetailView(FormMixin, DetailView_Login):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.user.is_superuser:
-            return queryset
-        else:    
-            return queryset.filter(
-                Q(personal=self.request.user)
-                |Q(encargado=self.request.user)).distinct()
+        qs = super().get_queryset()
+        if not self.request.user.is_superuser:
+            qs = qs.filter(Q(personal=self.request.user) | Q(encargado=self.request.user)).distinct()
+        return qs
 
     def get_success_url(self, *args, **kwargs):
         return self.object.view_url()
@@ -331,13 +326,10 @@ class Bodega_UpdateView(UpdateView_Login):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.user.is_superuser:
-            return queryset
-        else:
-            return queryset.filter(
-                Q(personal=self.request.user)
-                |Q(encargado=self.request.user)).distinct()
+        qs = super().get_queryset()
+        if not self.request.user.is_superuser:
+            qs = qs.filter(Q(personal=self.request.user) | Q(encargado=self.request.user)).distinct()
+        return qs
 
 class Bodega_DeleteView(DeleteView_Login):
     permission_required = 'documentos.delete_bodega'
@@ -359,13 +351,10 @@ class Bodega_DeleteView(DeleteView_Login):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.user.is_superuser:
-            return queryset
-        else:
-            return queryset.filter(
-                Q(personal=self.request.user)
-                |Q(encargado=self.request.user)).distinct()
+        qs = super().get_queryset()
+        if not self.request.user.is_superuser:
+            qs = qs.filter(Q(personal=self.request.user) | Q(encargado=self.request.user)).distinct()
+        return qs
 
     def get_object(self):
         obj = super().get_object()
@@ -382,10 +371,7 @@ class Estante_DetailView(DetailView_Login):
         'sub_titulo': {
             'estructura': _('Estructura'),
         },
-        'opciones':{
-            'etiqueta':_('Opciones'),
-            'etiquetas':_('Etiquetas'),
-        },
+        'opciones': OPCIONES_ETIQUETA,
     }
 
     def get_context_data(self, *args, **kwargs):
@@ -404,13 +390,10 @@ class Estante_DetailView(DetailView_Login):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.user.is_superuser:
-            return queryset
-        else:    
-            return queryset.filter(
-                Q(bodega__personal=self.request.user)
-                |Q(bodega__encargado=self.request.user)).distinct()
+        qs = super().get_queryset()
+        if not self.request.user.is_superuser:
+            qs = qs.filter(Q(bodega__personal=self.request.user) | Q(bodega__encargado=self.request.user)).distinct()
+        return qs
 
 class Estante_Etiqueta(DetailView_Login):
     permission_required = 'documentos.label_estante'
@@ -437,10 +420,7 @@ class Nivel_DetailView(DetailView_Login):
         'sub_titulo': {
             'estructura': _('Estructura'),
         },
-        'opciones':{
-            'etiqueta':_('Opciones'),
-            'etiquetas':_('Etiquetas'),
-        },
+        'opciones': OPCIONES_ETIQUETA,
     }
 
     def get_context_data(self, *args, **kwargs):
@@ -460,13 +440,11 @@ class Nivel_DetailView(DetailView_Login):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.user.is_superuser:
-            return queryset
-        else:    
-            return queryset.filter(
-                Q(estante__bodega__personal=self.request.user)
-                |Q(estante__bodega__encargado=self.request.user)).distinct()
+        qs = super().get_queryset()
+        if not self.request.user.is_superuser:
+            qs = qs.filter(Q(estante__bodega__personal=self.request.user)
+                | Q(estante__bodega__encargado=self.request.user)).distinct()
+        return qs
 
 class Nivel_Etiqueta(DetailView_Login):
     permission_required = 'documentos.label_estante'
@@ -493,10 +471,7 @@ class Posicion_DetailView(DetailView_Login):
         'sub_titulo': {
             'estructura': _('Estructura'),
         },
-        'opciones':{
-            'etiqueta':_('Opciones'),
-            'etiquetas':_('Etiquetas'),
-        },
+        'opciones': OPCIONES_ETIQUETA,
     }
 
     def get_context_data(self, *args, **kwargs):
@@ -516,13 +491,11 @@ class Posicion_DetailView(DetailView_Login):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.user.is_superuser:
-            return queryset
-        else:
-            return queryset.filter(
-                Q(nivel__estante__bodega__personal=self.request.user)
+        qs = super().get_queryset()
+        if not self.request.user.is_superuser:
+            qs = qs.filter(Q(nivel__estante__bodega__personal=self.request.user)
                 | Q(nivel__estante__bodega__encargado=self.request.user)).distinct()
+        return qs 
 
 class Posicion_Etiqueta(DetailView_Login):
     permission_required = 'documentos.label_estante'
@@ -575,16 +548,12 @@ class Caja_DetailView(DetailView_Login):
         'sub_titulo': {
             'tomos': _('Tomos')
         },
-        'opciones': {
-            'etiqueta':_('Opciones'),
-            'etiquetas':_('Etiquetas'),
-        },
+        'opciones': OPCIONES_ETIQUETA,
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        queryset = Tomo.objects.filter(caja=self.object)\
-            .order_by('-fecha_modificacion')\
+        queryset = Tomo.objects.filter(caja=self.object).order_by('-fecha_modificacion')\
             .prefetch_related('credito')
         context['estructura']={
             'tooltip_head': _('Tomo'),
@@ -593,13 +562,12 @@ class Caja_DetailView(DetailView_Login):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.user.is_superuser:
-            return queryset
-        else:
-            return queryset.filter(
+        qs = super().get_queryset()
+        if not self.request.user.is_superuser:
+            qs = qs.filter(
                 Q(posicion__nivel__estante__bodega__personal=self.request.user)
                 |Q(posicion__nivel__estante__bodega__encargado=self.request.user)).distinct()
+        return qs
 
 class Caja_DeleteView(DeleteView_Login):
     permission_required = 'documentos.delete_caja'
@@ -621,13 +589,12 @@ class Caja_DeleteView(DeleteView_Login):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.user.is_superuser:
-            return queryset
-        else:
-            return queryset.filter(
+        qs = super().get_queryset()
+        if not self.request.user.is_superuser:
+            qs = qs.filter(
                 Q(posicion__nivel__estante__bodega__personal=self.request.user)
                 |Q(posicion__nivel__estante__bodega__encargado=self.request.user)).distinct()
+        return qs
 
     def get_success_url(self, *args, **kwargs):
         return self.object.view_url()
@@ -763,30 +730,26 @@ class Solicitante_ListView(ListView_Login):
     ordering = ['-vigente', 'nombre']
     extra_context = {
         'title': _('Solicitantes'),
-        'opciones': {
-            'etiqueta': _('Opciones'),
-            'ver': _('Ver'),
-            'editar': _('Editar'),
-            'nuevo': _('Nuevo'),
-        },
+        'opciones': OPCIONES,
         'botones': BUSCAR_BTN,
         'mensaje_vacio': _('No hay "Solicitantes" para mostrar'),
     }
 
     def get_context_data(self, *args, **kwargs):
-        busqueda = self.request.GET.get('valor')
-
         context = super().get_context_data(*args, **kwargs)
         context['url_lista'] = Solicitante.list_url()
-        if busqueda:
-            context['form'] = Busqueda(self.request.GET)
-            try:
-                context['object_list'] = Solicitante.objects.filter(codigo=int(busqueda)).order_by('nombre')
-            except Exception as e:
-                context['object_list'] = Solicitante.objects.filter(nombre__icontains=busqueda).order_by('nombre')
-        else:
-            context['form'] = Busqueda()
+        context['form'] = Busqueda(self.request.GET or None)
         return context
+
+    def get_queryset(self):
+        busqueda = self.request.GET.get('valor')
+        qs = super().get_queryset()
+        if busqueda:
+            try:
+                qs = qs.filter(codigo=int(busqueda))
+            except Exception as e:
+                qs = qs.filter(nombre__icontains=busqueda)
+        return qs
 
 class Solicitante_CreateView(CreateView_Login):
     permission_required = 'documentos.add_solicitante'
@@ -819,14 +782,14 @@ class Solicitante_DeleteView(DeleteView_Login):
     model = Solicitante
     extra_context = {
         'title': _('Cambiar estado del solicitante'),
+        'botones': {
+            'cancelar': _('Cancelar'),
+        },
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['list_url'] = Solicitante.list_url()
-        context['botones']={
-            'cancelar': _('Cancelar'),
-        }
         context['mensajes']={
             'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
         }
@@ -846,28 +809,24 @@ class Motivo_ListView(ListView_Login):
     ordering = ['-vigente', 'nombre']
     extra_context = {
         'title': _('Motivos'),
-        'opciones': {
-            'etiqueta': _('Opciones'),
-            'ver': _('Ver'),
-            'editar': _('Editar'),
-            'nuevo': _('Nuevo'),
-        },
+        'opciones': OPCIONES,
         'botones': BUSCAR_BTN,
         'mensaje_vacio': _('No hay "Motivos" para mostrar'),
     }
 
     def get_context_data(self, *args, **kwargs):
-        busqueda = self.request.GET.get('valor')
-
         context = super().get_context_data(*args, **kwargs)
         context['url_lista'] = Motivo.list_url()
-        if busqueda:
-            context['form'] = Busqueda(self.request.GET)
-            context['object_list'] = Motivo.objects.filter(nombre__icontains=busqueda).order_by('nombre')
-        else:
-            context['form'] = Busqueda()
+        context['form'] = Busqueda(self.request.GET or None)
         return context
-    
+
+    def get_queryset(self):
+        busqueda = self.request.GET.get('valor')
+        qs = super().get_queryset()
+        if busqueda:
+            qs = qs.filter(nombre__icontains=busqueda)
+        return qs
+        
 class Motivo_CreateView(CreateView_Login):
     permission_required = 'documentos.add_motivo'
     template_name = 'documentos/form.html'
@@ -899,14 +858,14 @@ class Motivo_DeleteView(DeleteView_Login):
     model = Motivo
     extra_context = {
         'title': _('Cambiar estado del motivo'),
+        'botones': {
+            'cancelar': _('Cancelar'),
+        },
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['list_url'] = Motivo.list_url()
-        context['botones']={
-            'cancelar': _('Cancelar'),
-        }
         context['mensajes']={
             'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
         }
@@ -925,14 +884,15 @@ class DocumentoFHA_DeleteView(DeleteView_Login):
     model = DocumentoFHA
     extra_context = {
         'title': _('Cambiar estado al documento'),
+        'botones': {
+            'cancelar': _('Cancelar'),
+        },
+        
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['list_url'] = self.object.list_url()
-        context['botones']={
-            'cancelar': _('Cancelar'),
-        }
         context['mensajes']={
             'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado; '),
         }
@@ -966,22 +926,18 @@ class SolicitudFHAAbierta_ListView(ListView_Login):
     }
 
     def get_context_data(self, *args, **kwargs):
-        busqueda = self.request.GET.get('valor')
-
         context = super().get_context_data(*args, **kwargs)
-        context['url_lista'] = SolicitudFHA.list_url()
         context['extraeBoveda_form'] = ExtraeBoveda_Form()
-        if busqueda:
-            context['object_list'] = SolicitudFHA.objects.filter(documento__credito__numero=busqueda\
-                    .replace(' ','').replace('\t', ''), vigente=True).order_by('documento__tipo', 'documento__numero')
-            context['form'] = Busqueda(self.request.GET)
-        else:
-            context['form'] = Busqueda()
+        context['url_lista'] = SolicitudFHA.list_url()
+        context['form'] = Busqueda(self.request.GET or None)
         return context
 
     def get_queryset(self, *args, **kwargs):
-        return super().get_queryset(*args, **kwargs).filter(vigente=True, fecha_egreso__isnull=True)\
-            .prefetch_related('documento', 'documento__credito')
+        busqueda = self.request.GET.get('valor')
+        qs = super().get_queryset(*args, **kwargs).filter(vigente=True, fecha_egreso__isnull=True)
+        if busqueda:
+            qs = qs.filter(documento__credito__numero=busqueda.replace(' ','').replace('\t', ''))
+        return qs.prefetch_related('documento', 'documento__credito') 
 
 class SolicitudFHAFueraBoveda_ListView(ListView_Login):
     permission_required = 'documentos.view_solicitudfha'
@@ -996,12 +952,24 @@ class SolicitudFHAFueraBoveda_ListView(ListView_Login):
             'entregar': _('Entregar'),
             'recibir': _('Recibir'),
         },
+        'botones': BUSCAR_BTN,
         'mensaje_vacio': _('No hay "solicitudes" pendiente de entregar o recibir.'),
     }
 
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['extraeBoveda_form'] = ExtraeBoveda_Form()
+        context['url_lista'] = SolicitudFHA.listfueraboveda_url()
+        context['form'] = Busqueda(self.request.GET or None)
+        return context
+
     def get_queryset(self, *args, **kwargs):
-        return super().get_queryset(*args, **kwargs).filter(vigente=True, fecha_egreso__isnull=False)\
-        .prefetch_related('documento', 'documento__credito')            
+        busqueda = self.request.GET.get('valor')
+        qs = super().get_queryset(*args, **kwargs).filter(vigente=True, fecha_egreso__isnull=False)
+        if busqueda:
+            qs = qs.filter(documento__credito__numero=busqueda.replace(' ','').replace('\t', ''))
+        return qs.prefetch_related('documento', 'documento__credito') 
+            
 
 class SolicitudFHA_DeleteView(DeleteView_Login):
     permission_required = 'documentos.delete_solicitudfha'
@@ -1009,14 +977,14 @@ class SolicitudFHA_DeleteView(DeleteView_Login):
     template_name = 'documentos/confirmation_form.html'
     extra_context = {
         'title': _('Anular solicitud'),
+        'botones': {
+            'cancelar': _('Cancelar'),
+        },
     }
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['list_url'] = SolicitudFHA.list_url()
-        context['botones']={
-            'cancelar': _('Cancelar'),
-        }
         context['mensajes']={
             'confirmacion': _(f'¿Quiere {self.object.get_accion()} el elemento indicado?'),
         }
