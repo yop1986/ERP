@@ -203,9 +203,9 @@
                 <a href="{{ documento.delete_url }}" class="btn btn-{{documento.get_accion_tag}}"><img {% if documento.vigente %} src="{% static 'images/documentos_remove.png' %}" {% else %} src="{% static 'images/documentos_habilitar.png' %}"{% endif %}alt="{{ documento.get_accion }}" title="{{ documento.get_accion }}" width="30px"></a>
                 {% endif %}
 
-                {% if perms.documentos.add_solicitudfha and not documento.existe_solicitud %}
+                {% if documento.vigente and not documento.existe_solicitud and perms.documentos.add_solicitudfha %}
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#solicitudForm" data-bs-object="{{ documento.id }}" data-bs-docto="{{ documento.get_documento }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
-                {% elif perms.documentos.change_solicitudfha %}
+                {% elif documento.vigente and documento.existe_solicitud and perms.documentos.change_solicitudfha %}
                 <a href="{{ documento.find_solicitud }}?valor={{ documento.credito.numero }}" class="btn btn-info"><img src="{% static 'images/documentos_solicitud.png' %}" alt="{{ opciones.solicitud }}" title="{{ opciones.solicitud }}" width="30px"></a>
                 {% endif %}
               </td>

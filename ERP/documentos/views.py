@@ -89,7 +89,7 @@ class CargaMasiva_Form(FormView_Login):
             if self.request.user.has_perm('documentos.add_documentofha'):
                 _insert_documentosfha(self, doctosfha)
             else:
-                messages.warning(self.request, _('No tiene permisos para cargar documentos fha'))
+                messages.warning(self.request, _('No tiene permisos para cargar documentos FHA'))
         return super().form_valid(form)
 
 class Credito_DetailView(DetailView_Login):
@@ -934,7 +934,8 @@ class SolicitudFHAAbierta_ListView(ListView_Login):
 
     def get_queryset(self, *args, **kwargs):
         busqueda = self.request.GET.get('valor')
-        qs = super().get_queryset(*args, **kwargs).filter(vigente=True, fecha_egreso__isnull=True)
+        qs = super().get_queryset(*args, **kwargs).filter(vigente=True, fecha_egreso__isnull=True, 
+            documento__vigente = True)
         if busqueda:
             qs = qs.filter(documento__credito__numero=busqueda.replace(' ','').replace('\t', ''))
         return qs.prefetch_related('documento', 'documento__credito') 
@@ -965,7 +966,8 @@ class SolicitudFHAFueraBoveda_ListView(ListView_Login):
 
     def get_queryset(self, *args, **kwargs):
         busqueda = self.request.GET.get('valor')
-        qs = super().get_queryset(*args, **kwargs).filter(vigente=True, fecha_egreso__isnull=False)
+        qs = super().get_queryset(*args, **kwargs).filter(vigente=True, fecha_egreso__isnull=False,
+            documento__vigente = True)
         if busqueda:
             qs = qs.filter(documento__credito__numero=busqueda.replace(' ','').replace('\t', ''))
         return qs.prefetch_related('documento', 'documento__credito') 
