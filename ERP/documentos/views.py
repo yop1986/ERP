@@ -1364,6 +1364,7 @@ def _creditos_excel(hoja):
     for fila in hoja.iter_rows(min_row=2):
         if fila[orden['Credito']].value:
             CredAnt = fila[orden['Credito_Anterior']].value
+            fila_fecha = fila[orden['Fecha_Ini']].value
             lista.append({
                 'mis':      int(fila[orden['Cod_Cliente']].value),
                 'cliente':  fila[orden['Cliente']].value,
@@ -1372,7 +1373,7 @@ def _creditos_excel(hoja):
                 'moneda':   fila[orden['Moneda']].value,
                 'producto': fila[orden['Producto']].value,
                 'credito':  str(fila[orden['Credito']].value),
-                'fecha':    datetime.strptime(fila[orden['Fecha_Ini']].value, "%d/%m/%Y").strftime("%Y-%m-%d"),
+                'fecha':    fila_fecha if isinstance(fila_fecha, datetime) else datetime.strptime(fila_fecha, "%d/%m/%Y").strftime("%Y-%m-%d"),
                 'monto':    fila[orden['Monto']].value,
                 'credito_anterior': CredAnt if CredAnt else '',
                 'escaneado': True if fila[orden['Escaneado']].value=='Si' else False,
