@@ -130,7 +130,7 @@ class Credito_DetailView(DetailView_Login):
         if self.request.user.has_perm('documentos.view_documentofha'):
             context['solicitudfha_form'] = SolicitudFHA_CreateForm()
             context['documentosfha'] = DocumentoFHA.objects.filter(credito=self.object)\
-                .order_by('tipo', '-vigente')
+                .order_by('-vigente', 'tipo')
         return context
 
 class Credito_Etiqueta(DetailView_Login):
