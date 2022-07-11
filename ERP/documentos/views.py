@@ -1323,6 +1323,7 @@ def _insert_documentosfha(self, datos):
                         solicitud[0]._history_user = self.request.user
                         sol_existente.append(solicitud[0])
 
+                        documento[0].fecha = datetime.now()
                         documento[0].ubicacion = elemento['ubicacion']
                         documento[0].poliza = elemento['poliza']
                         documento[0]._change_reason='Ingreso a boveda'
@@ -1343,7 +1344,7 @@ def _insert_documentosfha(self, datos):
     log_lines = [f"DoctoFHA (nuevo): {str(r)}" for r in doctos_nuevos]
     bulk_update_with_history(sol_existente, SolicitudFHA, ['regreso_boveda', 'vigente'], batch_size=1500)
     log_lines.extend([f"DoctoFHA (reingreso): {str(r)}" for r in sol_existente])
-    bulk_update_with_history(doc_existente, DocumentoFHA, ['ubicacion', 'poliza'], batch_size=1500)
+    bulk_update_with_history(doc_existente, DocumentoFHA, ['fecha', 'ubicacion', 'poliza'], batch_size=1500)
     log_lines.extend([f"DoctoFHA (documento): {str(r)}" for r in doc_existente])
     log_lines.extend([f"Error DoctoFHA: {e['valor']}; {e['error']}" for e in errores])
     log_lines.extend(['\nFIN: '+datetime.now().strftime("%Y%m%d_%H%M%S")]) #Agrega fecha y hora de finalización
