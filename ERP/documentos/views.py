@@ -1143,8 +1143,6 @@ def salida_tomo(request):
                 comentario_final += f'Gerencia:\t{solicitante.gerencia}\n'
                 comentario_final += f'Comentario:\t{form.cleaned_data["comentario"]}'
 
-                print(f"------------------ llego:\n{comentario_final}")
-
                 tomos = Tomo.objects.filter(id__in=request.session['extraer_tomos'])
                 tomos.update(comentario=comentario_final, caja=None, usuario=request.user)
                 for tomo in tomos : tomo._change_reason, tomo._history_user = 'salida_tomo > egresar', request.user

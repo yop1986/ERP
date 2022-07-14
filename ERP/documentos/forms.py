@@ -77,15 +77,6 @@ class SalidaTomos_Form(forms.Form):
         required=True, help_text=_('Motivo de extracción'))
     solicitante = forms.ModelChoiceField(queryset=Solicitante.objects.filter(vigente=True, area='EXP'),
         required=True, help_text=_('Usuario que solicita documentos'))
-#    codigo = forms.IntegerField(required=True, help_text=_('Código de colaborador'))
-#    nombre = forms.CharField(max_length=60, required=True, 
-#        help_text=_('Nombre del colaborador'))
-#    extension = forms.CharField(max_length=6, required=False, 
-#        help_text=_('Extensión del colaborador'))
-#    correo = forms.EmailField(max_length=120, required=True, 
-#        help_text=_('Correo del colaborador'))
-#    gerencia = forms.CharField(max_length=60, required=True, 
-#        help_text=_('Gerencia a la que pertenece'))
     comentario = forms.CharField(max_length=254, required=False)
 
 ##########################################################################
