@@ -767,7 +767,7 @@ class Solicitante_UpdateView(UpdateView_Login):
     permission_required = 'documentos.change_solicitante'
     template_name = 'documentos/form.html'
     model = Solicitante
-    fields = ['codigo', 'nombre', 'area']
+    fields = ['codigo', 'nombre', 'area', 'extension', 'correo', 'gerencia']
     success_message = _('Se ha actualizado el solicitante.')
     extra_context = {
         'title': _('Actualizar Solicitante'),
@@ -1132,14 +1132,18 @@ def salida_tomo(request):
         try:
             form = SalidaTomos_Form(request.POST)
             if form.is_valid():
-                correo_form = form.cleaned_data["correo"]
-                comentario_final = f'Fecha: \t\t{datetime.today().strftime("%d-%m-%Y")}\n'
-                comentario_final += f'Codigo: \t{form.cleaned_data["codigo"]}\n'
-                comentario_final += f'Nombre: \t{form.cleaned_data["nombre"]}\n'
-                comentario_final += f'Extension: \t{form.cleaned_data["extension"]}\n'
-                comentario_final += f'Correo: \t{correo_form}\n'
-                comentario_final += f'Gerencia: \t{form.cleaned_data["gerencia"]}\n'
-                comentario_final += f'Comentario: \t{form.cleaned_data["comentario"]}'
+                solicitante = form.cleaned_data['solicitante']
+                
+                comentario_final = f'Fecha:\t\t{datetime.today().strftime("%d-%m-%Y")}\n'
+                comentario_final += f'Motivo:\t\t{form.cleaned_data["motivo"]}\n'
+                comentario_final += f'Codigo:\t\t{solicitante.codigo}\n'
+                comentario_final += f'Nombre:\t\t{solicitante.nombre}\n'
+                comentario_final += f'Extension: \t{solicitante.extension}\n'
+                comentario_final += f'Correo:\t\t{solicitante.correo}\n'
+                comentario_final += f'Gerencia:\t{solicitante.gerencia}\n'
+                comentario_final += f'Comentario:\t{form.cleaned_data["comentario"]}'
+
+                print(f"------------------ llego:\n{comentario_final}")
 
                 tomos = Tomo.objects.filter(id__in=request.session['extraer_tomos'])
                 tomos.update(comentario=comentario_final, caja=None, usuario=request.user)
@@ -1154,7 +1158,7 @@ def salida_tomo(request):
                     'object_list': {tomo for tomo in tomos},
                     'comentario': comentario_final,
                 }
-                correo = _crea_correo('Egreso por solicitud', request.user.email, [request.user.email,correo_form], 'mails/egresos.html', context)
+                correo = _crea_correo('Egreso por solicitud', request.user.email, [request.user.email,solicitante.correo], 'mails/egresos.html', context)
                 _envia_correo(correo)
         finally:
             return redirect(Tomo.envio_url())

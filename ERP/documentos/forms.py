@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
-from .models import Bodega, SolicitudFHA
+from .models import Bodega, SolicitudFHA, Motivo, Solicitante
 from usuarios.models import Usuario
      
 
@@ -73,15 +73,19 @@ class TrasladoTomos_Form(forms.Form):
     comentario = forms.CharField(max_length=150, required=False)
 
 class SalidaTomos_Form(forms.Form):
-    codigo = forms.IntegerField(required=True, help_text=_('Código de colaborador'))
-    nombre = forms.CharField(max_length=60, required=True, 
-        help_text=_('Nombre del colaborador'))
-    extension = forms.CharField(max_length=6, required=False, 
-        help_text=_('Extensión del colaborador'))
-    correo = forms.EmailField(max_length=120, required=True, 
-        help_text=_('Correo del colaborador'))
-    gerencia = forms.CharField(max_length=60, required=True, 
-        help_text=_('Gerencia a la que pertenece'))
+    motivo = forms.ModelChoiceField(queryset=Motivo.objects.filter(vigente=True, area='EXP'), 
+        required=True, help_text=_('Motivo de extracción'))
+    solicitante = forms.ModelChoiceField(queryset=Solicitante.objects.filter(vigente=True, area='EXP'),
+        required=True, help_text=_('Usuario que solicita documentos'))
+#    codigo = forms.IntegerField(required=True, help_text=_('Código de colaborador'))
+#    nombre = forms.CharField(max_length=60, required=True, 
+#        help_text=_('Nombre del colaborador'))
+#    extension = forms.CharField(max_length=6, required=False, 
+#        help_text=_('Extensión del colaborador'))
+#    correo = forms.EmailField(max_length=120, required=True, 
+#        help_text=_('Correo del colaborador'))
+#    gerencia = forms.CharField(max_length=60, required=True, 
+#        help_text=_('Gerencia a la que pertenece'))
     comentario = forms.CharField(max_length=254, required=False)
 
 ##########################################################################

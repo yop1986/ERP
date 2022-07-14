@@ -84,6 +84,122 @@ class Credito(models.Model):
     def esta_escaneado(self):
         return _('Si') if self.escaneado else _('No')
 
+class Solicitante(models.Model):
+    '''
+        Listado de posibles solicitantes de documentos a Boveda 
+    '''
+    AREA = [
+        ('EXP', _('Expedientes')),
+        ('FHA', _('FHA')),
+    ]
+
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    codigo  = models.PositiveIntegerField(_('Código'))
+    nombre  = models.CharField(_('Nombre'), max_length=30, db_index=True)
+    area    = models.CharField(_('Area'), choices=AREA, max_length=3, db_index=True) #get_area_display
+    extension = models.CharField(_('Extension'), max_length=6, blank=True, default='')
+    correo  = models.EmailField(_('Correo'), max_length=60, blank=True, default='')
+    gerencia = models.CharField(_('Gerencia'), max_length=60, blank=True, default='')
+    vigente = models.BooleanField(_('Estado'), default=True)
+    history = HistoricalRecords(
+        history_id_field = models.BigAutoField(),
+        user_model = settings.AUTH_USER_MODEL,
+        )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['codigo', 'area'], name='unq_codigo_area'),
+        ]
+
+    def __str__(self):
+        return f'{self.nombre} ({self.codigo})'
+
+    def delete(self):
+        self.vigente = not self.vigente
+        self.save()
+
+    def hard_delete(self):
+        super().delete()
+
+    def get_estado(self):
+        return _('Vigente') if self.vigente else _('No Vigente')
+
+    def get_accion(self):
+        return 'Inhabilitar' if self.vigente else 'Habilitar'
+
+    def get_accion_tag(self):
+        return 'danger' if self.vigente else 'success'
+
+    def list_url(self=None):
+        return reverse('documentos:solicitante_list')
+
+    def view_url(self):
+        return  reverse('documentos:solicitante_view', kwargs={'pk': self.id})
+
+    def update_url(self):
+        return  reverse('documentos:solicitante_update', kwargs={'pk': self.id})
+
+    def delete_url(self):
+        return  reverse('documentos:solicitante_delete', kwargs={'pk': self.id})
+
+class Motivo(models.Model):
+    '''
+        Motivos por los cuales puede solicitarse un documento a bóveda
+    '''
+    AREA = [
+        ('EXP', _('Expedientes')),
+        ('FHA', _('FHA')),
+    ]
+
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nombre  = models.CharField(_('Nombre'),db_index=True, max_length=30, unique=True) #get_area_display
+    area    = models.CharField(_('Area'), choices=AREA, max_length=3, db_index=True)
+    demanda = models.BooleanField(_('Demanda'), default=False)
+    vigente  = models.BooleanField(_('Estado'), default=True)
+    history = HistoricalRecords(
+        history_id_field = models.BigAutoField(),
+        user_model = settings.AUTH_USER_MODEL,
+        )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['nombre', 'area'], name='unq_nombre_area'),
+        ]
+
+    def __str__(self):
+        return self.nombre
+
+    def delete(self):
+        self.vigente = not self.vigente
+        self.save()
+
+    def hard_delete(self):
+        super().delete()
+
+    def get_es_demanda(self):
+        return ('Si') if self.demanda else _('No')
+
+    def get_estado(self):
+        return _('Vigente') if self.vigente else _('No Vigente')
+
+    def get_accion(self):
+        return 'Inhabilitar' if self.vigente else 'Habilitar'
+
+    def get_accion_tag(self):
+        return 'danger' if self.vigente else 'success'
+
+    def list_url(self=None):
+        return reverse('documentos:motivo_list')
+
+    def view_url(self):
+        return  reverse('documentos:motivo_view', kwargs={'pk': self.id})
+
+    def update_url(self):
+        return  reverse('documentos:motivo_update', kwargs={'pk': self.id})
+
+    def delete_url(self):
+        return  reverse('documentos:motivo_delete', kwargs={'pk': self.id})
+
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 #                   INFORMACIÓN EXPEDIENTES
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
@@ -356,7 +472,7 @@ class Tomo(models.Model):
 
     def id_as_string(self):
         return str(self.id)
-        
+
     def view_credito(self):
         return reverse('documentos:credito_view', kwargs={'pk': self.credito.id})
 
@@ -384,119 +500,6 @@ class Tomo(models.Model):
 class EncargadoDocumentos(models.Model):
     recibe_correos  = models.BooleanField(_("Encargado que recibe correos"), default=False)
     usuario         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name=_('Usuario Solicitante'))
-
-class Solicitante(models.Model):
-    '''
-        Listado de posibles solicitantes de documentos a Boveda 
-    '''
-    AREA = [
-        ('EXP', _('Expedientes')),
-        ('FHA', _('FHA')),
-    ]
-
-    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    codigo  = models.PositiveIntegerField(_('Código'))
-    nombre  = models.CharField(_('Nombre'), max_length=30, db_index=True)
-    area    = models.CharField(_('Area'), choices=AREA, max_length=3, db_index=True) #get_area_display
-    vigente = models.BooleanField(_('Estado'), default=True)
-    history = HistoricalRecords(
-        history_id_field = models.BigAutoField(),
-        user_model = settings.AUTH_USER_MODEL,
-        )
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['codigo', 'area'], name='unq_codigo_area'),
-        ]
-
-    def __str__(self):
-        return f'{self.nombre} ({self.codigo})'
-
-    def delete(self):
-        self.vigente = not self.vigente
-        self.save()
-
-    def hard_delete(self):
-        super().delete()
-
-    def get_estado(self):
-        return _('Vigente') if self.vigente else _('No Vigente')
-
-    def get_accion(self):
-        return 'Inhabilitar' if self.vigente else 'Habilitar'
-
-    def get_accion_tag(self):
-        return 'danger' if self.vigente else 'success'
-
-    def list_url(self=None):
-        return reverse('documentos:solicitante_list')
-
-    def view_url(self):
-        return  reverse('documentos:solicitante_view', kwargs={'pk': self.id})
-
-    def update_url(self):
-        return  reverse('documentos:solicitante_update', kwargs={'pk': self.id})
-
-    def delete_url(self):
-        return  reverse('documentos:solicitante_delete', kwargs={'pk': self.id})
-
-class Motivo(models.Model):
-    '''
-        Motivos por los cuales puede solicitarse un documento a bóveda
-    '''
-    AREA = [
-        ('EXP', _('Expedientes')),
-        ('FHA', _('FHA')),
-    ]
-
-    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    nombre  = models.CharField(_('Nombre'),db_index=True, max_length=30, unique=True) #get_area_display
-    area    = models.CharField(_('Area'), choices=AREA, max_length=3, db_index=True)
-    demanda = models.BooleanField(_('Demanda'), default=False)
-    vigente  = models.BooleanField(_('Estado'), default=True)
-    history = HistoricalRecords(
-        history_id_field = models.BigAutoField(),
-        user_model = settings.AUTH_USER_MODEL,
-        )
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['nombre', 'area'], name='unq_nombre_area'),
-        ]
-
-    def __str__(self):
-        return self.nombre
-
-    def delete(self):
-        self.vigente = not self.vigente
-        self.save()
-
-    def hard_delete(self):
-        super().delete()
-
-    def get_es_demanda(self):
-        return ('Si') if self.demanda else _('No')
-
-    def get_estado(self):
-        return _('Vigente') if self.vigente else _('No Vigente')
-
-    def get_accion(self):
-        return 'Inhabilitar' if self.vigente else 'Habilitar'
-
-    def get_accion_tag(self):
-        return 'danger' if self.vigente else 'success'
-
-    def list_url(self=None):
-        return reverse('documentos:motivo_list')
-
-    def view_url(self):
-        return  reverse('documentos:motivo_view', kwargs={'pk': self.id})
-
-    def update_url(self):
-        return  reverse('documentos:motivo_update', kwargs={'pk': self.id})
-
-    def delete_url(self):
-        return  reverse('documentos:motivo_delete', kwargs={'pk': self.id})
 
 class DocumentoFHA(models.Model):
     ''' 
