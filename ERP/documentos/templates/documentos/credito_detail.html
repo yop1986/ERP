@@ -151,7 +151,11 @@
                 <a href="{{ tomo.labels_url }}" class="btn btn-primary" target="_blank"><img src="{% static 'images/barcode.png' %}" alt="{{ opciones.etiquetas }}" title="{{ opciones.etiquetas }}"></a>
                 {% endif %}
                 {% if perms.documentos.change_tomo and tomo.caja and request.user in tomo.caja.posicion.nivel.estante.bodega.personal.all %}
+                  {% if tomo.id_as_string in request.session.extraer_tomos %}
+                  <a href="{% url 'documentos:opera_tomo' tomo.id %}?credito" class="btn btn-danger"><img src="{% static 'images/documentos_remove.png' %}" alt="{{ opciones.eliminar }}" title="{{ opciones.eliminar }}" height="30"></a>
+                  {% else %}
                   <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#extraerForm" data-bs-object="{{ tomo.id }}"><img src="{% static 'images/documentos_out.png' %}" alt="{{ opciones.extraer }}" title="{{ opciones.extraer }}" height="32"></button>
+                  {% endif %}
                 {% endif %}
               </td>
             </tr>

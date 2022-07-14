@@ -354,6 +354,9 @@ class Tomo(models.Model):
     def __str__(self):
         return "{}-{}".format(self.credito.numero, self.numero)
 
+    def id_as_string(self):
+        return str(self.id)
+        
     def view_credito(self):
         return reverse('documentos:credito_view', kwargs={'pk': self.credito.id})
 

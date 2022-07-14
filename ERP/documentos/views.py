@@ -111,6 +111,7 @@ class Credito_DetailView(DetailView_Login):
             'escaneado': _('Escaneado'),
             'agregar_tomo':_('Agregar tomo'),
             'remover_tomo':_('Remover tomo'),
+            'eliminar': _('Eliminar'),
             'extraer':_('Extraer'),
             'solicitud': _('Solicitud'),
             'guardar':_('Guardar'),
@@ -1093,12 +1094,15 @@ def operaciones_tomo(request, pk=None):
             return redirect(Tomo.objects.get(id=tomoid).credito.view_url())   
     else: #'quitar' in request.POST:
         ''' Elimina tomos del listado a trasladar/egresar '''
-        try: 
+        try:
             extraer_tomos = request.session['extraer_tomos']
             extraer_tomos.remove(str(pk))
             request.session['extraer_tomos'] = extraer_tomos
         finally:
-            return redirect(Tomo.envio_url())
+            if 'credito' in request.GET:
+                return redirect(Tomo.objects.get(id=pk).credito.view_url())
+            else:
+                return redirect(Tomo.envio_url())
     return redirect(credito.view_url())
     
 def salida_tomo(request):
@@ -1129,7 +1133,6 @@ def salida_tomo(request):
             form = SalidaTomos_Form(request.POST)
             if form.is_valid():
                 correo_form = form.cleaned_data["correo"]
-                print(f"correo>>>{correo_form}")
                 comentario_final = f'Fecha: \t\t{datetime.today().strftime("%d-%m-%Y")}\n'
                 comentario_final += f'Codigo: \t{form.cleaned_data["codigo"]}\n'
                 comentario_final += f'Nombre: \t{form.cleaned_data["nombre"]}\n'
@@ -1169,7 +1172,6 @@ def opera_solicitudfha(request):
             solicitud._change_reason = 'Creación de solicitud'
             solicitud.save()
 
-            #_crea_correo(subject, from_email, to_email, template, context):
             perm = Permission.objects.get(codename='change_solicitudfha')
             usuarios = Usuario.objects.filter(groups__permissions=perm).distinct()
             context = {
