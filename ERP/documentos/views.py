@@ -21,6 +21,7 @@ from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
 
 from usuarios.models import Usuario
+from usuarios import funciones_globales as fglobal
 from .models import (Bodega, Estante, Nivel, Posicion, Caja, Cliente, Moneda,
     Producto, Oficina, Credito, Tomo, Solicitante, Motivo, DocumentoFHA, SolicitudFHA)
 from .forms import (Busqueda, GeneraEstructura, CargaCreditos_Form, IngresoTomo_Form, 
@@ -83,8 +84,34 @@ class CargaMasiva_Form(FormView_Login):
     def form_valid(self, form):
         archivo = form.cleaned_data['archivo']
         libro = openpyxl.load_workbook(archivo)
-        _insert_masivo_creditos(_creditos_excel(libro[libro.sheetnames[0]]))
-        doctosfha = _documentosfha(libro[libro.sheetnames[1]])
+        
+        PARAMETROS_CREDITOS = { #Parametros que definen comportamiento de las columnas del archivo
+            #Columna: {tipo=<str,int,date,float,bool>, equivalente:<valor equivalente en el codigo>, vacio:True|False, valores:<posibles valores>}
+            'Credito': { 'tipo': 'str', 'equivalente': 'credito', 'vacio':False,},
+            'Cod_ofi': { 'tipo': 'int', 'equivalente': 'cod_ofi', 'vacio':False,},
+            'Oficina': { 'tipo': 'str', 'equivalente': 'oficina', 'vacio':False,},
+            'Cod_Cliente': { 'tipo': 'int', 'equivalente': 'mis', 'vacio':False,},
+            'Cliente': { 'tipo': 'str', 'equivalente': 'cliente', 'vacio':False,},
+            'Producto': { 'tipo': 'str', 'equivalente': 'producto', 'vacio':False,},
+            'Fecha_Ini': { 'tipo': 'date', 'equivalente': 'fecha', 'vacio':False,},
+            'Moneda': { 'tipo': 'str', 'equivalente': 'moneda', 'vacio':False,},
+            'Monto': { 'tipo': 'float', 'equivalente': 'monto', 'vacio':False,},
+            'Credito_Anterior': { 'tipo': 'str', 'equivalente': 'credito_anterior', 'vacio':True,},
+            'Escaneado': { 'tipo': 'bool', 'equivalente': 'escaneado', 'vacio':True, 'valores':'SI|NO'},
+        }
+        
+        _insert_masivo_creditos(fglobal._lectura_registros(libro[libro.sheetnames[0]], PARAMETROS_CREDITOS))
+
+        PARAMETROS_FHA = {      
+            'Credito': { 'tipo': 'str', 'equivalente': 'credito', 'vacio':False,},
+            'Tipo': { 'tipo': 'str', 'equivalente': 'tipo', 'vacio':False, 'valores': 'CED|SEG|ESC',},
+            'Numero': { 'tipo': 'str', 'equivalente': 'numero', 'vacio':False,},
+            'Ubicacion': { 'tipo': 'str', 'equivalente': 'ubicacion', 'vacio':False,},
+            'Poliza': { 'tipo': 'str', 'equivalente': 'poliza', 'vacio':True,},
+        }
+        
+        doctosfha = fglobal._lectura_registros(libro[libro.sheetnames[1]], PARAMETROS_FHA)
+        print(doctosfha)
         if(len(doctosfha)>0):
             if self.request.user.has_perm('documentos.add_documentofha'):
                 _insert_documentosfha(self, doctosfha)
@@ -1267,37 +1294,16 @@ def _escribe_log(datos, nombre):
 
     return output_file
     
-def _documentosfha(hoja):
-    '''
-        DocumentosFHA
-            hoja: openpyxl.load_workbook, hoja del archivo leído
-        return: arreglo de documentos en la hoja
-    '''
-    orden = {}
-    for i in range(len(hoja[1])):
-        orden[hoja[1][i].value]=i
-
-    documentos = []
-
-    for fila in hoja.iter_rows(min_row=2):
-        if fila[orden['Credito']].value:
-            documentos.append({
-                'credito':  fila[orden['Credito']].value,
-                'tipo':     fila[orden['Tipo']].value,
-                'numero':   fila[orden['Numero']].value,
-                'ubicacion':fila[orden['Ubicacion']].value,
-                'poliza':   fila[orden['Poliza']].value if fila[orden['Poliza']].value else '',
-            })
-    return [documentos[i:i + 200] for i in range(0, len(documentos), 200)] #segmenta en grupos de 200 ##documentos
-
 def _insert_documentosfha(self, datos):
     '''
         Insert de documentos
             datos: arreglo con la información a insertar de documentos
     '''
     fecha_hora_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
+    _escribe_log([f"Error en archivo > {str(r)}" for r in datos[1]], f'{fecha_hora_archivo}-CargaFHA')
+
     errores, doctos_nuevos, doc_existente, sol_existente = [], [], [], []
-    for sublista in datos:
+    for sublista in datos[0]:
         for elemento in sublista:
             try:
                 credito = Credito.objects.get(numero=elemento['credito'])
@@ -1355,43 +1361,16 @@ def _insert_documentosfha(self, datos):
     file = _escribe_log(log_lines, f'{fecha_hora_archivo}-CargaFHA')
 
 
-def _creditos_excel(hoja):
-    '''
-        CreditosExcel
-            hoja: openpyxl.load_workbook, hoja del archivo leído
-        Return: lista de listas con los datos de los créditos
-    '''  
-    orden = {}
-    for i in range(len(hoja[1])):
-        orden[hoja[1][i].value]=i
 
-    lista = []
-    for fila in hoja.iter_rows(min_row=2):
-        if fila[orden['Credito']].value:
-            CredAnt = fila[orden['Credito_Anterior']].value
-            fila_fecha = fila[orden['Fecha_Ini']].value
-            lista.append({
-                'mis':      int(fila[orden['Cod_Cliente']].value),
-                'cliente':  fila[orden['Cliente']].value,
-                'cod_ofi':  int(fila[orden['Cod_ofi']].value),
-                'oficina':  fila[orden['Oficina']].value,
-                'moneda':   fila[orden['Moneda']].value,
-                'producto': fila[orden['Producto']].value,
-                'credito':  str(fila[orden['Credito']].value),
-                'fecha':    fila_fecha if isinstance(fila_fecha, datetime) else datetime.strptime(fila_fecha, "%d/%m/%Y").strftime("%Y-%m-%d"),
-                'monto':    fila[orden['Monto']].value,
-                'credito_anterior': CredAnt if CredAnt else '',
-                'escaneado': True if fila[orden['Escaneado']].value=='Si' else False,
-            })
-    return [lista[i:i + 200] for i in range(0, len(lista), 200)] #segmenta en grupos de 200
-    
 def _insert_masivo_creditos(sublista):
     '''
         InsertMasivoCreditos
-            sublista: lista de listas con la información a cargar
+            sublista: [lista de listas con la información a cargar, y lineas que no cumplen validación del archivo]
     '''
     fecha_hora_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
-    for lista in sublista:
+    _escribe_log([f"Error en archivo > {str(r)}" for r in sublista[1]], f'{fecha_hora_archivo}-CargaCreditos')
+
+    for lista in sublista[0]:
         cli, ofi, cred = [], [], []
         clientes, oficinas, monedas, productos, creditos = [], [], [], [], []
         for elemento in lista:
