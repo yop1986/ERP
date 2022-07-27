@@ -1,4 +1,22 @@
 from datetime import datetime
+from pathlib import Path
+
+from django.conf import settings
+
+#ESCRITURA DE LOGS
+def _escribe_log(datos, nombre):
+    ''' 
+        Escritura de logs
+            datos:  arreglo con la información a guardar en el archivo
+            nombre: nombre del archivo
+    '''
+    output_file = Path(f'{settings.STATIC_ROOT}\\logs\\{nombre}.log')
+    output_file.parent.mkdir(exist_ok=True, parents=True)
+    f = open(output_file, 'a+')
+    f.writelines([d+'\n' for d in datos])
+    f.close()
+
+    return output_file
 
 #FUNCIONES DE CONVERSION
 def _parse(valor, tipo, *args):
@@ -49,7 +67,10 @@ def _parse_float(valor, default=0):
         return default
 
 def _parse_boolean(valor, verdadero):
-    return True if valor.upper()==verdadero else False
+    if valor:
+        return True if valor.upper()==verdadero else False
+    else:
+        return False #valor default
 
 def _parse_datetime(valor, formato_ingreso="%d/%m/%Y", formato_egreso="%Y-%m-%d"):
     '''
@@ -78,23 +99,26 @@ def _lectura_registros(hoja, parametros, fila_encabezado=1):
     '''  
     orden = {}
     for idxc, columna in enumerate(hoja[fila_encabezado]):
-        print(f"{idxc} -- {columna.value}")
-        if (hoja[fila_encabezado][idxc].value in parametros):
+        if (not parametros or hoja[fila_encabezado][idxc].value in parametros):
             orden[idxc]=hoja[fila_encabezado][idxc].value
 
     lista = []
     excluidos = []
     for idxf, fila in enumerate(hoja.iter_rows(min_row=fila_encabezado+1)):
-        registro = {}
-        for idxc, columna in enumerate(fila):
-            valor = columna.value
-            if (not valor and not parametros[orden[idxc]]['vacio']) or (valor and \
-                'valores' in parametros[orden[idxc]] and not valor.upper() in parametros[orden[idxc]]['valores'].split('|')):
-                #Si la columna no puede ser vacia, o si tiene valores definidos que no corresponden al valor ingresado
-                registro = None
-                excluidos.append(f"f:{idxf+1:6} >> {orden[idxc]}")
-                break
-            registro[parametros[orden[idxc]]['equivalente']]=_parse(valor, parametros[orden[idxc]]['tipo'], parametros[orden[idxc]])
-        if registro:
-            lista.append(registro)
-    return [lista[i:i + 200] for i in range(0, len(lista), 200)], excluidos #segmenta en grupos de 200
+        try:
+            registro = {}
+            for idxc in orden:
+                valor = fila[idxc].value
+                if (valor and 'valores' in parametros[orden[idxc]] and not valor.replace(' ', '').upper() \
+                    in parametros[orden[idxc]]['valores'].split('|')) or (not valor and not parametros[orden[idxc]]['vacio']):
+                    #Si la columna no puede ser vacia, o si tiene valores definidos que no corresponden al valor ingresado
+                    registro = None
+                    excluidos.append(f"f:{idxf+1:6} >> {orden[idxc]}")
+                    break
+                registro[parametros[orden[idxc]]['equivalente']]=_parse(valor, parametros[orden[idxc]]['tipo'], parametros[orden[idxc]])
+            if registro:
+                lista.append(registro)
+        except Exception as e:
+            excluidos.append(f"f:{idxf+1:6} >> {orden[idxc]} (Validation Error)")
+    #segmenta en grupos de 200
+    return [lista[i:i + 200] for i in range(0, len(lista), 200)], excluidos 

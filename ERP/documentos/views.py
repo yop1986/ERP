@@ -2,11 +2,9 @@ import openpyxl
 import threading
 
 from datetime import datetime
-from pathlib import Path
 from string import ascii_uppercase
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import Permission
 from django.core.mail import EmailMultiAlternatives
@@ -86,7 +84,6 @@ class CargaMasiva_Form(FormView_Login):
         libro = openpyxl.load_workbook(archivo)
         
         PARAMETROS_CREDITOS = { #Parametros que definen comportamiento de las columnas del archivo
-            #Columna: {tipo=<str,int,date,float,bool>, equivalente:<valor equivalente en el codigo>, vacio:True|False, valores:<posibles valores>}
             'Credito': { 'tipo': 'str', 'equivalente': 'credito', 'vacio':False,},
             'Cod_ofi': { 'tipo': 'int', 'equivalente': 'cod_ofi', 'vacio':False,},
             'Oficina': { 'tipo': 'str', 'equivalente': 'oficina', 'vacio':False,},
@@ -111,7 +108,6 @@ class CargaMasiva_Form(FormView_Login):
         }
         
         doctosfha = fglobal._lectura_registros(libro[libro.sheetnames[1]], PARAMETROS_FHA)
-        print(doctosfha)
         if(len(doctosfha)>0):
             if self.request.user.has_perm('documentos.add_documentofha'):
                 _insert_documentosfha(self, doctosfha)
@@ -1151,7 +1147,7 @@ def salida_tomo(request):
                     'message': _(f'Se han enviado, a {bodega}, los siguientes tomos:'),
                     'object_list': {tomo for tomo in tomos},
                 }
-                correo = _crea_correo('Traslado de Expedientes', request.user.email, [bodega.encargado.email], 'mails/egresos.html', context)
+                correo = _crea_correo('Traslado de Expedientes', request.user.email, [request.user.email, bodega.encargado.email], 'mails/egresos.html', context)
                 _envia_correo(correo)
         finally:
             return redirect(Tomo.envio_url())
@@ -1183,7 +1179,7 @@ def salida_tomo(request):
                     'object_list': {tomo for tomo in tomos},
                     'comentario': comentario_final,
                 }
-                correo = _crea_correo('Egreso por solicitud', request.user.email, [request.user.email,solicitante.correo], 'mails/egresos.html', context)
+                correo = _crea_correo('Egreso por solicitud', request.user.email, [request.user.email, solicitante.correo], 'mails/egresos.html', context)
                 _envia_correo(correo)
         finally:
             return redirect(Tomo.envio_url())
@@ -1280,27 +1276,13 @@ def _envia_correo(mail):
 ##########################################################################
 # Extrae los datos de excel a un dataset
 ##########################################################################
-def _escribe_log(datos, nombre):
-    ''' 
-        Escritura de logs
-            datos:  arreglo con la información a guardar en el archivo
-            nombre: nombre del archivo
-    '''
-    output_file = Path(f'{settings.STATIC_ROOT}\\logs\\{nombre}.log')
-    output_file.parent.mkdir(exist_ok=True, parents=True)
-    f = open(output_file, 'a+')
-    f.writelines([d+'\n' for d in datos])
-    f.close()
-
-    return output_file
-    
 def _insert_documentosfha(self, datos):
     '''
         Insert de documentos
             datos: arreglo con la información a insertar de documentos
     '''
     fecha_hora_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
-    _escribe_log([f"Error en archivo > {str(r)}" for r in datos[1]], f'{fecha_hora_archivo}-CargaFHA')
+    fglobal._escribe_log([f"Error en archivo > {str(r)}" for r in datos[1]], f'{fecha_hora_archivo}-CargaFHA')
 
     errores, doctos_nuevos, doc_existente, sol_existente = [], [], [], []
     for sublista in datos[0]:
@@ -1349,28 +1331,28 @@ def _insert_documentosfha(self, datos):
                         messages.warning(self.request, f"{elemento['credito']}, {elemento['tipo']}: {elemento['numero']} : Ya existe el documento y no hay solicitudes abiertas.")
             except Exception as e:
                 errores.append({'valor': elemento['credito'], 'error': _('No se encontró el número de crédito')})
-
-    bulk_create_with_history(doctos_nuevos, DocumentoFHA, batch_size=1500)
-    log_lines = [f"DoctoFHA (nuevo): {str(r)}" for r in doctos_nuevos]
+    #Se escriben los errores en el log
+    fglobal._escribe_log([f"Error DoctoFHA: {e['valor']}; {e['error']}" for e in errores], f'{fecha_hora_archivo}-CargaFHA')
+    #Se detallan documentos nuevos
+    resultado = DocumentoFHA.objects.bulk_create(doctos_nuevos, ignore_conflicts= True)
+    fglobal._escribe_log([f"DocumentoFHA (nuevo)> {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaFHA')
+    #Se actualización documentos y solicitudes existentes
     bulk_update_with_history(sol_existente, SolicitudFHA, ['regreso_boveda', 'vigente'], batch_size=1500)
-    log_lines.extend([f"DoctoFHA (reingreso): {str(r)}" for r in sol_existente])
+    fglobal._escribe_log([f"DoctoFHA (reingreso): {str(r)}" for r in sol_existente], f'{fecha_hora_archivo}-CargaFHA')
     bulk_update_with_history(doc_existente, DocumentoFHA, ['fecha', 'ubicacion', 'poliza'], batch_size=1500)
-    log_lines.extend([f"DoctoFHA (documento): {str(r)}" for r in doc_existente])
-    log_lines.extend([f"Error DoctoFHA: {e['valor']}; {e['error']}" for e in errores])
-    log_lines.extend(['\nFIN: '+datetime.now().strftime("%Y%m%d_%H%M%S")]) #Agrega fecha y hora de finalización
-    file = _escribe_log(log_lines, f'{fecha_hora_archivo}-CargaFHA')
+    fglobal._escribe_log([f"DoctoFHA (documento): {str(r)}" for r in doc_existente], f'{fecha_hora_archivo}-CargaFHA')
+    fglobal._escribe_log(['\nFIN: '+datetime.now().strftime("%Y%m%d_%H%M%S")], f'{fecha_hora_archivo}-CargaFHA')
+    
 
-
-
-def _insert_masivo_creditos(sublista):
+def _insert_masivo_creditos(datos):
     '''
         InsertMasivoCreditos
-            sublista: [lista de listas con la información a cargar, y lineas que no cumplen validación del archivo]
+            datos: [lista de listas con la información a cargar, y lineas que no cumplen validación del archivo]
     '''
     fecha_hora_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
-    _escribe_log([f"Error en archivo > {str(r)}" for r in sublista[1]], f'{fecha_hora_archivo}-CargaCreditos')
+    fglobal._escribe_log([f"Error en archivo > {str(r)}" for r in datos[1]], f'{fecha_hora_archivo}-CargaCreditos')
 
-    for lista in sublista[0]:
+    for lista in datos[0]:
         cli, ofi, cred = [], [], []
         clientes, oficinas, monedas, productos, creditos = [], [], [], [], []
         for elemento in lista:
@@ -1395,17 +1377,18 @@ def _insert_masivo_creditos(sublista):
                     elemento['escaneado']])
 
         resultado = _insert_clientes(clientes)
-        _escribe_log([f"Cliente > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
+        fglobal._escribe_log([f"Cliente > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
         resultado = _insert_oficinas(oficinas)
-        _escribe_log([f"Oficina > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
+        fglobal._escribe_log([f"Oficina > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
         resultado = _insert_monedas(monedas)
-        _escribe_log([f"Moneda > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
+        fglobal._escribe_log([f"Moneda > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
         resultado = _insert_productos(productos)
-        _escribe_log([f"Producto > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
+        fglobal._escribe_log([f"Producto > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
         existentes, resultado = _insert_creditos(creditos)
-        _escribe_log([f"Credito > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
-        _escribe_log([f"Credito Existente > {str(r)}" for r in existentes], f'{fecha_hora_archivo}-CargaCreditos')
-        _escribe_log(['\nFIN: '+datetime.now().strftime("%Y%m%d_%H%M%S")], f'{fecha_hora_archivo}-CargaCreditos') #Agrega fecha y hora de finalización
+        fglobal._escribe_log([f"Credito > {str(r)}" for r in resultado], f'{fecha_hora_archivo}-CargaCreditos')
+        fglobal._escribe_log([f"Credito Existente > {str(r)}" for r in existentes], f'{fecha_hora_archivo}-CargaCreditos')
+    
+    fglobal._escribe_log(['\nFIN: '+datetime.now().strftime("%Y%m%d_%H%M%S")], f'{fecha_hora_archivo}-CargaCreditos') #Agrega fecha y hora de finalización
 
 def _insert_clientes(datos):
     '''
@@ -1418,7 +1401,7 @@ def _insert_clientes(datos):
     for dato in datos:
         if not queryset.filter(codigo=dato[0]):
             clientes.append(Cliente(codigo=dato[0], nombre=dato[1]))
-    return Cliente.objects.bulk_create(clientes, ignore_conflicts= True)
+    return Cliente.objects.bulk_create(clientes, ignore_conflicts = True)
 
 def _insert_oficinas(datos):
     '''
@@ -1431,7 +1414,7 @@ def _insert_oficinas(datos):
     for dato in datos:
         if not queryset.filter(numero=dato[0]):
             oficinas.append(Oficina(numero=dato[0], descripcion=dato[1]))
-    return Oficina.objects.bulk_create(oficinas, ignore_conflicts= True)
+    return Oficina.objects.bulk_create(oficinas, ignore_conflicts = True)
 
 def _insert_monedas(datos):
     '''
@@ -1444,7 +1427,7 @@ def _insert_monedas(datos):
     for dato in datos:
         if not queryset.filter(descripcion=dato):
             monedas.append(Moneda(descripcion=dato))
-    return Moneda.objects.bulk_create(monedas, ignore_conflicts= True)
+    return Moneda.objects.bulk_create(monedas, ignore_conflicts = True)
 
 def _insert_productos(datos):
     '''
@@ -1457,7 +1440,7 @@ def _insert_productos(datos):
     for dato in datos:
         if not queryset.filter(descripcion=dato):
             productos.append(Producto(descripcion=dato))
-    return Producto.objects.bulk_create(productos, ignore_conflicts= True)
+    return Producto.objects.bulk_create(productos, ignore_conflicts = True)
 
 def _insert_creditos(datos):
     '''
