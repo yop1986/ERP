@@ -53,13 +53,13 @@ class IngresoTomo_Form(forms.Form):
     comentario = forms.CharField(max_length=254, required=False)
 
     def clean_tomo(self):
-        data = self.cleaned_data['tomo'].replace(' ', '').split('-')
+        data = self.cleaned_data['tomo'].replace("'", "-").replace(' ', '').split('-')
         if len(data)!=2 or not is_integer(data[1]):
             raise ValidationError(_('Formato de tomo incorrecto'))
         return data
 
     def clean_caja(self):
-        data = self.cleaned_data['caja'].replace(' ', '').split('-')
+        data = self.cleaned_data['caja'].replace("'", "-").replace(' ', '').split('-')
         if len(data)!=5 or not (is_integer(data[2]) and is_integer(data[3]) and is_integer(data[4])):
             raise ValidationError(_('Formato de caja incorrecto'))
         return data

@@ -1032,7 +1032,7 @@ class SolicitudFHA_DeleteView(DeleteView_Login):
 #                       FUNCIONES
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 def buscar_credito(request):
-    numero = request.GET['numero'].replace(' ','').split('-')
+    numero = request.GET['numero'].replace("'",'-').replace(' ','').split('-')
     credito = Credito.objects.filter(numero=numero[0])
     if credito:
         return redirect(credito[0].view_url())
@@ -1095,7 +1095,7 @@ def operaciones_tomo(request, pk=None):
         ''' Agrega tomos a a lista que se extraera de la bodega '''
         extraer_tomos=request.session['extraer_tomos'] if 'extraer_tomos' in request.session else []
         tomoid = request.POST['tomo-id']
-        tomo = request.POST['tomo'].replace(' ', '').split('-')
+        tomo = request.POST['tomo'].replace("'",'-').replace(' ', '').split('-')
 
         try: 
             if len(tomo)==2:
