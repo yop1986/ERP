@@ -11,6 +11,10 @@ de al estructura de la aplicación.
 
 ## Instalación
 
+Para la creación de ambientes virtuales es necesario instalar virtualenv
+    
+    pip <--proxy http://usuario:contraseña@servidor:puerto> install virtualenv
+
 Es necesario contar como minimo con los paquetes indicados en el archivo
 "Docs/dependencies.txt" para el correcto funcionamiento de cada sección.
 
@@ -20,9 +24,9 @@ Se debe iniciar un proyecto sobre le cual se colocarán los modulos
 
     django-admin startproject <nombre>
 
-Los módulos se instalan con el comando
+Los módulos se instalan con el comando, el isolation se utiliza si por algun motivo no reconoce setuptools dentro del ambiente virtual.
 
-    python -m pip install --user <paquete>
+    python -m pip install --user <paquete> <--no-build-isolation>
 
 Se realiza la configuracion dentro del proyecto
 
@@ -44,8 +48,6 @@ Se realiza la configuracion dentro del proyecto
         - USE_TZ = False # para usar hora local del equipo
 
     Se agrega la siguiente configuración al final del archivo:
-        # Trusted Origins for NGinx proxy
-        - CSRF_TRUSTED_ORIGINS = ["https://<url_configurada_en_el_servidor>"]
         # Plantillas bootstrap
         - CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
         - CRISPY_TEMPLATE_PACK = "bootstrap5"
@@ -76,10 +78,6 @@ Se ejecutan las migraciones y creacion de usuario administrador
     python manage.py collectstatic
     python manage.py createsuperuser
 
-Eliminar las migraciones de una app
-    
-    python manage.py migrate <--fake> <app> zero 
-
 Se cargan librerías adicionales a la ruta usuarios/static:
     
 - jquery (js)           # Download the compressed, production jQuery 3.6.0 y map (jquery.min.js)
@@ -96,6 +94,9 @@ Es necesario desactivar el debug en settings (adicional a la configuracion anter
     DEBUG = False
     ALLOWED_HOSTS = ['localhost', 'ip-servidor', 'nombre-servidor']
 
+    # Trusted Origins for NGinx proxy
+    CSRF_TRUSTED_ORIGINS = ["https://<url_configurada_en_el_servidor>"]
+        
 #### Certificados
 [(Instalar OpenSSL En Windows)](https://tecadmin.net/install-openssl-on-windows/)
 [(Generar certificados)](https://stackoverflow.com/questions/55407860/generate-cert-pem-and-key-pem-on-windows)
@@ -107,7 +108,7 @@ Es necesario desactivar el debug en settings (adicional a la configuracion anter
         > set OPENSSL_CONF=C:\Program Files\OpenSSL-Win64\bin\openssl.cfg 
         > set Path=%Path%;C:\Program Files\OpenSSL-Win64\bin
         _Genera los certificados (5 años aproximadamente, se puede modificar)_
-        > openssl req -x509 -newkey rsa:4096 -nodes -out <ruta>\cert.pem -keyout <ruta>\key.pem -days 1830
+        > C:\Program Files\OpenSSL-Win64\bin\openssl.exe req -x509 -newkey rsa:4096 -nodes -out <ruta>\cert.pem -keyout <ruta>\key.pem -days 1830
 
     El proceso solicita informacion adicional para generar el certificado
 
@@ -136,6 +137,8 @@ Se mofica el archivo "webproject_nginx.conf" validando principalmente:
 * alias de location media (si es necesario, path completo)
 * alias de static (si es necesario, path completo)
 * proxy_pass (redirige a la configuración del waitress en el archivo runserver.py)
+* ssl_certificate      <ruta del certificado>\\cert.pem;
+* ssl_certificate_key  <ruta del certificado>\\key.pem;
 
 *En location _los comentados pueden ser opcionales_*
 
@@ -147,6 +150,9 @@ Se mofica el archivo "webproject_nginx.conf" validando principalmente:
     #proxy_set_header        Upgrade         $http_upgrade;
     proxy_pass_header       Set-Cookie;
     proxy_pass              http://localhost:8080;
+    proxy_read_timeout 300;
+    proxy_connect_timeout 300;
+    proxy_send_timeout 300;
 
 
 Se copia el archivo modificado "<webproject_nginx>.conf" a las carpetas site enable y available de nginx.
