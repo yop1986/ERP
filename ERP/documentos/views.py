@@ -150,11 +150,12 @@ class Credito_DetailView(DetailView_Login):
                 .prefetch_related('caja', 'caja__posicion', 
                     'caja__posicion__nivel', 'caja__posicion__nivel__estante', 
                     'caja__posicion__nivel__estante__bodega',
-                    'caja__posicion__nivel__estante__bodega__personal')
+                    'caja__posicion__nivel__estante__bodega__personal')\
+                .order_by('-vigente', 'fecha_modificacion')
         if self.request.user.has_perm('documentos.view_documentofha'):
             context['solicitudfha_form'] = SolicitudFHA_CreateForm()
             context['documentosfha'] = DocumentoFHA.objects.filter(credito=self.object)\
-                .order_by('-vigente', 'tipo')
+                .order_by('-vigente', 'tipo', 'fecha')
         return context
 
 class Credito_Etiqueta(DetailView_Login):

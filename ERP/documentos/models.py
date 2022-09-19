@@ -152,7 +152,7 @@ class Motivo(models.Model):
     ]
 
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    nombre  = models.CharField(_('Nombre'),db_index=True, max_length=30, unique=True) #get_area_display
+    nombre  = models.CharField(_('Nombre'),db_index=True, max_length=30) #get_area_display
     area    = models.CharField(_('Area'), choices=AREA, max_length=3, db_index=True)
     demanda = models.BooleanField(_('Demanda'), default=False)
     vigente  = models.BooleanField(_('Estado'), default=True)

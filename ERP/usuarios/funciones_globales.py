@@ -99,6 +99,7 @@ def _lectura_registros(hoja, parametros, fila_encabezado=1):
     '''  
     orden = {}
     for idxc, columna in enumerate(hoja[fila_encabezado]):
+    #revisa encabezados para determinar el dato que contine la columna
         if (not parametros or hoja[fila_encabezado][idxc].value in parametros):
             orden[idxc]=hoja[fila_encabezado][idxc].value
 
