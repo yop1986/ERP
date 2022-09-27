@@ -5,7 +5,7 @@ from django.views.generic import TemplateView
 from django.views.generic.edit import FormMixin
 from django.utils.translation import gettext as _
 
-from .models import (Stream, Modelo, TipoDato, OrigenDato, OrigenDatoModelo, TipoLicencia, 
+from .models import (Stream, Modelo, Repositorio, OrigenDato, OrigenDatoModelo, TipoLicencia, 
     Licencia, Permiso)
 from .forms import (Busqueda, Stream_Form, Modelo_CreateForm, Modelo_Form, OrigenDato_Form, 
     ModeloUsaDato_Form, ModeloGeneraDato_Form, AsignaPermiso_Form, ModificaPermiso_Form)
@@ -238,12 +238,12 @@ class Modelo_DetailView(FormMixin, DetailView_Login):
                 OrigenDatoModelo.objects.create(modelo=self.get_object(), origendato=form.cleaned_data['origendato']).save()
         elif kwargs['formulario']=='Genera':
             nombre = form.cleaned_data['nombre']
-            tipodato = form.cleaned_data['tipodato']
-            od = OrigenDato.objects.filter(nombre=nombre, tipodato=tipodato)
+            repositorio = form.cleaned_data['repositorio']
+            od = OrigenDato.objects.filter(nombre=nombre, repositorio=repositorio)
             if od.exists():
                 messages.warning(self.request, f'Ya esta registrado el origen "{nombre}" en el modelo {od.modelo}');
             else:
-                OrigenDato.objects.create(nombre=nombre, tipodato=tipodato, modelo=self.get_object()).save()         
+                OrigenDato.objects.create(nombre=nombre, repositorio=repositorio, modelo=self.get_object()).save()         
         return super(Modelo_DetailView, self).form_valid(form)
 
     def get_success_url(self):
@@ -291,13 +291,13 @@ class Modelo_DeleteView(DeleteView_Login):
 
 
 
-class TipoDato_ListView(ListView_Login):
-    model = TipoDato
-    permission_required = 'qlik.view_tipodato'
+class Repositorio_ListView(ListView_Login):
+    model = Repositorio
+    permission_required = 'qlik.view_repositorio'
     paginate_by = 15
     ordering = ['nombre']
     extra_context = {
-        'title': _('Tipos de Datos'),
+        'title': _('Repositorio'),
         'opciones': {
             'etiqueta': _('Opciones'),
             'ver': _('Ver'),
@@ -309,26 +309,26 @@ class TipoDato_ListView(ListView_Login):
             'buscar': _('Buscar'),
             'limpiar': _('Limpiar'),
         },
-        'mensaje_vacio': _('No hay "Tipos de datos" registrados'),
+        'mensaje_vacio': _('No hay "Repositorios" registrados'),
     }
 
     def get_context_data(self, *args, **kwargs):
         busqueda = self.request.GET.get('valor')
 
         context = super().get_context_data(*args, **kwargs)
-        context['url_lista'] = TipoDato.list_url()
+        context['url_lista'] = Repositorio.list_url()
         if busqueda:
-            context['object_list'] = TipoDato.objects.filter(nombre__icontains=busqueda).order_by('nombre')
+            context['object_list'] = Repositorio.objects.filter(nombre__icontains=busqueda).order_by('nombre')
             context['form'] = Busqueda(self.request.GET)
         else:
             context['form'] = Busqueda()
         return context
 
-class TipoDato_DetailView(DetailView_Login):
-    model = TipoDato
-    permission_required = 'qlik.view_tipodato'
+class Repositorio_DetailView(DetailView_Login):
+    model = Repositorio
+    permission_required = 'qlik.view_repositorio'
     extra_context = {
-        'title': _('Tipo de Dato'),
+        'title': _('Repositorio'),
         'sub_titulo': {
             'origenes': _('Origen de Datos'),
             'permisos': _('Permisos'),
@@ -342,44 +342,44 @@ class TipoDato_DetailView(DetailView_Login):
     }
 
     def get_context_data(self, *args, **kwargs):
-        context = super(TipoDato_DetailView, self).get_context_data(*args, **kwargs)
+        context = super(Repositorio_DetailView, self).get_context_data(*args, **kwargs)
         context['origenes'] = self.object.get_origenes()
         context['permisos'] = self.object.get_permisos()
         return context
 
-class TipoDato_CreateView(CreateView_Login):
-    model = TipoDato
-    permission_required = 'qlik.add_tipodato'
+class Repositorio_CreateView(CreateView_Login):
+    model = Repositorio
+    permission_required = 'qlik.add_repositorio'
     template_name = 'qlik/form.html'
     fields = ['nombre', 'origenmodelo']
     extra_context = {
-        'title': _('Nuevo Tipo de Dato'),
+        'title': _('Nuevo Repositorio'),
         'botones': {
             'guardar': _('Guardar'),
         }
     }
 
     def get_success_url(self):
-        return TipoDato.list_url()
+        return Repositorio.list_url()
 
-class TipoDato_UpdateView(UpdateView_Login):
-    model = TipoDato
-    permission_required = 'qlik.change_tipodato'
+class Repositorio_UpdateView(UpdateView_Login):
+    model = Repositorio
+    permission_required = 'qlik.change_repositorio'
     template_name = 'qlik/form.html'
     fields = ['nombre', 'origenmodelo', 'vigente']
     extra_context = {
-        'title': _('Modificar Tipo de Dato'),
+        'title': _('Modificar Repositorio'),
         'botones': {
             'guardar': _('Guardar'),
         }
     }
 
-class TipoDato_DeleteView(DeleteView_Login):
-    permission_required = 'qlik.delete_tipodato'
+class Repositorio_DeleteView(DeleteView_Login):
+    permission_required = 'qlik.delete_repositorio'
     template_name = 'qlik/confirmation_form.html'
-    model = TipoDato
+    model = Repositorio
     extra_context = {
-        'title': _('Eliminar el tipo de dato'),
+        'title': _('Eliminar Repositorio'),
         'confirmacion': _('Esta seguro de eliminar el elemento'),
         'botones': {
             'eliminar': _('Eliminar'),
@@ -393,7 +393,7 @@ class OrigenDato_ListView(ListView_Login):
     model = OrigenDato
     permission_required = 'qlik.view_origendato'
     paginate_by = 15
-    ordering = ['nombre', 'tipodato__nombre']
+    ordering = ['nombre', 'repositorio__nombre']
     extra_context = {
         'title': _('Origenes de Datos'),
         'opciones': {
@@ -796,7 +796,7 @@ def ajax_origenes_asociados(request):
         Origenes asociados
     '''
     tipo_dato_id = request.GET.get('tipo_origen_id')
-    origenes = OrigenDato.objects.filter(tipodato=tipo_dato_id, vigente=True).order_by('nombre')
+    origenes = OrigenDato.objects.filter(repositorio=tipo_dato_id, vigente=True).order_by('nombre')
     return render(request, 'qlik/modelo_detail_origenes_dropdown.html', {'origenes': origenes})
 
 def ajax_permisos_objetos(request):

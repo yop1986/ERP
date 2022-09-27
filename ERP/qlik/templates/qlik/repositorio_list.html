@@ -2,8 +2,8 @@
 {% load static verbose_names crispy_forms_tags %}
 
 {% block create_button %}
-{% if perms.qlik.add_tipodato %}
-<a href="{% url 'qlik:tipodato_create' %}" class="btn btn-success"><img src="{% static 'images/qlik_add.png' %}" width="32" alt="{{ opciones.nuevo }}" title="{{ opciones.nuevo }}"></a>
+{% if perms.qlik.add_repositorio %}
+<a href="{% url 'qlik:repositorio_create' %}" class="btn btn-success"><img src="{% static 'images/qlik_add.png' %}" width="32" alt="{{ opciones.nuevo }}" title="{{ opciones.nuevo }}"></a>
 {% endif %}
 {% endblock %}
 
@@ -30,10 +30,10 @@
           <td>{{ object.get_estado }}</td>
           <td>
             <a href="{{ object.view_url }}" class="btn btn-dark">{{ opciones.ver }}</a>
-            {% if perms.qlik.change_tipodato %}
+            {% if perms.qlik.change_repositorio %}
             <a href="{{ object.update_url }}" class="btn btn-dark">{{ opciones.editar }}</a>
             {% endif %}
-            {% if perms.qlik.delete_tipodato %}
+            {% if perms.qlik.delete_repositorio %}
             <a href="{{ object.delete_url }}" class="btn btn-danger">{{ opciones.eliminar }}</a>
             {% endif %}
           </td>

@@ -16,7 +16,7 @@
         <tr>
           <th scope="col">#</th>
           <th scope="col">{% get_verbose_field_name object_list.0 "nombre" %}</th>
-          <th scope="col">{% get_verbose_field_name object_list.0 "tipodato" %}</th>
+          <th scope="col">{% get_verbose_field_name object_list.0 "repositorio" %}</th>
           <th scope="col">{% get_verbose_field_name object_list.0 "modelo" %}</th>
           <th scope="col">{% get_verbose_field_name object_list.0 "vigente" %}</th>
           <th scope="col">{{ opciones.etiqueta }}</th>
@@ -27,7 +27,7 @@
         <tr>
           <th scope="row">{{ forloop.counter0|add:page_obj.start_index }}</th>
           <td>{{ object }}</td>
-          <td><a href="{{ object.tipodato.view_url }}">{{ object.tipodato }}</a></td>
+          <td><a href="{{ object.repositorio.view_url }}">{{ object.repositorio }}</a></td>
         {% if object.modelo %}
           <td><a href="{{ object.modelo.view_url }}">{{ object.modelo }}</a></td>
         {% else %}

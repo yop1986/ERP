@@ -92,7 +92,7 @@ class Modelo(models.Model):
     def external_url(self):
         return f'{QLIK_PROXY}sense/app/{self.qlik_id}'
 
-class TipoDato(models.Model):
+class Repositorio(models.Model):
     ''' 
         Tipo de dato
         También se puede utilizar para definir el origen de los datos y así filtrarlos 
@@ -112,23 +112,23 @@ class TipoDato(models.Model):
 
     def get_origenes(self):
         '''Origenes asociados al Stream'''
-        return OrigenDato.objects.filter(tipodato=self, vigente=True)
+        return OrigenDato.objects.filter(repositorio=self, vigente=True)
 
     def get_permisos(self):
-        return Permiso.objects.filter(tobjeto='TipoDato', obj_id=self.id)\
+        return Permiso.objects.filter(tobjeto='Repositorio', obj_id=self.id)\
             .prefetch_related('licencia').order_by('licencias__nombre')
 
     def list_url(self=None):
-        return reverse('qlik:tipodato_list')
+        return reverse('qlik:repositorio_list')
 
     def view_url(self):
-        return reverse('qlik:tipodato_view', kwargs={'pk': self.id})
+        return reverse('qlik:repositorio_view', kwargs={'pk': self.id})
 
     def update_url(self):
-        return reverse('qlik:tipodato_update', kwargs={'pk': self.id})
+        return reverse('qlik:repositorio_update', kwargs={'pk': self.id})
 
     def delete_url(self):
-        return reverse('qlik:tipodato_delete', kwargs={'pk': self.id})
+        return reverse('qlik:repositorio_delete', kwargs={'pk': self.id})
 
 class OrigenDato(models.Model):
     '''
@@ -139,12 +139,12 @@ class OrigenDato(models.Model):
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre  = models.CharField(verbose_name=_('Nombre'), max_length=90)
     vigente = models.BooleanField(verbose_name=_('Estado'), default=True)
-    tipodato = models.ForeignKey(TipoDato, verbose_name=_('Tipo de dato'), on_delete=models.RESTRICT, related_name='origendato_tipodato')
+    repositorio = models.ForeignKey(Repositorio, verbose_name=_('Tipo de dato'), on_delete=models.RESTRICT, related_name='origendato_repositorio')
     modelo  = models.ForeignKey(Modelo, verbose_name=_('Modelo'), on_delete=models.SET_NULL, blank=True, null=True, related_name='origendato_modelo')
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['nombre', 'tipodato'], name='unq_nombre_tipodato'),
+            models.UniqueConstraint(fields=['nombre', 'repositorio'], name='unq_nombre_repositorio'),
         ]
 
     def __str__(self):
@@ -257,7 +257,7 @@ class Permiso(models.Model):
         Establece las reglas que manejan los permisos
     '''
     MODELO_ASOCIADO = [
-        ('TipoDato', _('Conexión')),
+        ('Repositorio', _('Conexión')),
         ('Modelo', _('Modelo')),
         ('Stream', 'Stream'),
     ]

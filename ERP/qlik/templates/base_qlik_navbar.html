@@ -20,14 +20,14 @@
       </li>
     {% endif %}
 
-    {% if perms.qlik.view_origendato or perms.qlik.view_tipodato %}
+    {% if perms.qlik.view_origendato or perms.qlik.view_repositorio %}
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Catálogos
         </a>
         <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-      {% if perms.qlik.view_tipodato %}
-          <li><a class="dropdown-item" href="{% url 'qlik:tipodato_list' %}">Tipo de Datos</a></li>
+      {% if perms.qlik.view_repositorio %}
+          <li><a class="dropdown-item" href="{% url 'qlik:repositorio_list' %}">Repositorio</a></li>
       {% endif %}
           <li><hr class="dropdown-divider"></li>
       {% if perms.qlik.view_origendato %}

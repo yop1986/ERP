@@ -18,11 +18,11 @@ urlpatterns = [
     path('modelo/update/<uuid:pk>', views.Modelo_UpdateView.as_view(), name='modelo_update'),
     path('modelo/delete/<uuid:pk>', views.Modelo_DeleteView.as_view(), name='modelo_delete'),
 
-    path('tipodato/', views.TipoDato_ListView.as_view(), name='tipodato_list'),
-    path('tipodato/<int:pk>/', views.TipoDato_DetailView.as_view(), name='tipodato_view'),
-    path('tipodato/create/', views.TipoDato_CreateView.as_view(), name='tipodato_create'),
-    path('tipodato/update/<int:pk>', views.TipoDato_UpdateView.as_view(), name='tipodato_update'),
-    path('tipodato/delete/<int:pk>', views.TipoDato_DeleteView.as_view(), name='tipodato_delete'),
+    path('repositorio/', views.Repositorio_ListView.as_view(), name='repositorio_list'),
+    path('repositorio/<int:pk>/', views.Repositorio_DetailView.as_view(), name='repositorio_view'),
+    path('repositorio/create/', views.Repositorio_CreateView.as_view(), name='repositorio_create'),
+    path('repositorio/update/<int:pk>', views.Repositorio_UpdateView.as_view(), name='repositorio_update'),
+    path('repositorio/delete/<int:pk>', views.Repositorio_DeleteView.as_view(), name='repositorio_delete'),
 
     path('origenes/', views.OrigenDato_ListView.as_view(), name='origendato_list'),
     path('origenes/<uuid:pk>/', views.OrigenDato_DetailView.as_view(), name='origendato_view'),

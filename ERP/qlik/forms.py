@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import NON_FIELD_ERRORS
 from django.utils.translation import gettext as _
 
-from .models import Stream, Modelo, TipoDato, OrigenDato, OrigenDatoModelo, Permiso
+from .models import Stream, Modelo, Repositorio, OrigenDato, OrigenDatoModelo, Permiso
 
 class Busqueda(forms.Form):
     valor = forms.CharField(required=True)
@@ -61,24 +61,24 @@ class ModeloUsaDato_Form(forms.ModelForm):
         Modelo_DetailView
         Agrega el origen de datos que utiliza el modelo
     '''
-    tipodato = forms.ModelChoiceField(queryset=TipoDato.objects.filter(vigente=True).order_by('nombre'))
+    repositorio = forms.ModelChoiceField(queryset=Repositorio.objects.filter(vigente=True).order_by('nombre'))
     class Meta:
         model = OrigenDatoModelo
-        fields = ['tipodato', 'origendato']
+        fields = ['repositorio', 'origendato']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['tipodato'].label = _('Tipo de Dato')
+        self.fields['repositorio'].label = _('Tipo de Dato')
         self.fields['origendato'].queryset = OrigenDato.objects.none()
 
-        if 'tipodato' in self.data:
+        if 'repositorio' in self.data:
             try:
-                tipodato_id = int(self.data.get('tipodato'))
-                self.fields['origendato'].queryset = OrigenDato.objects.filter(tipodato_id=tipodato_id).order_by('nombre')
+                repositorio_id = int(self.data.get('repositorio'))
+                self.fields['origendato'].queryset = OrigenDato.objects.filter(repositorio_id=repositorio_id).order_by('nombre')
             except (ValueError, TypeError):
                 pass
         elif self.instance.pk:
-            self.fields['origendato'].queryset = self.instance.tipodato.origendato_set.order_by('nombre')
+            self.fields['origendato'].queryset = self.instance.repositorio.origendato_set.order_by('nombre')
     
 
 class ModeloGeneraDato_Form(forms.ModelForm):
@@ -88,7 +88,7 @@ class ModeloGeneraDato_Form(forms.ModelForm):
     '''
     class Meta:
         model = OrigenDato
-        fields = ['nombre', 'tipodato']
+        fields = ['nombre', 'repositorio']
         error_messages = {
             NON_FIELD_ERRORS: {
                 'unique_together': _('Nombre y tipo de dato no son únicos.'),
@@ -97,7 +97,7 @@ class ModeloGeneraDato_Form(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['tipodato'].queryset = TipoDato.objects.filter(vigente=True, origenmodelo=True).order_by('nombre')
+        self.fields['repositorio'].queryset = Repositorio.objects.filter(vigente=True, origenmodelo=True).order_by('nombre')
 
 
 class OrigenDato_Form(forms.ModelForm):
@@ -106,11 +106,11 @@ class OrigenDato_Form(forms.ModelForm):
     '''
     class Meta:
         model = OrigenDato
-        fields = ['nombre', 'tipodato']
+        fields = ['nombre', 'repositorio']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['tipodato'].queryset = TipoDato.objects.filter(vigente=True, origenmodelo=False).order_by('nombre')
+        self.fields['repositorio'].queryset = Repositorio.objects.filter(vigente=True, origenmodelo=False).order_by('nombre')
 
 
 class AsignaPermiso_Form(forms.ModelForm):
@@ -118,7 +118,7 @@ class AsignaPermiso_Form(forms.ModelForm):
         Permiso_CreateView
         Permite llevar el control de los permisos a los objetos
     '''
-    objeto = forms.ModelChoiceField(queryset=TipoDato.objects.none())
+    objeto = forms.ModelChoiceField(queryset=Repositorio.objects.none())
     
     class Meta:
         model = Permiso
