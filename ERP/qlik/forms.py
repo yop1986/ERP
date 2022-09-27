@@ -68,10 +68,11 @@ class ModeloUsaDato_Form(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['repositorio'].label = _('Tipo de Dato')
+        self.fields['repositorio'].label = _('Repositorio')
         self.fields['origendato'].queryset = OrigenDato.objects.none()
 
         if 'repositorio' in self.data:
+            print(self.data)
             try:
                 repositorio_id = int(self.data.get('repositorio'))
                 self.fields['origendato'].queryset = OrigenDato.objects.filter(repositorio_id=repositorio_id).order_by('nombre')

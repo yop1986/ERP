@@ -29,6 +29,7 @@ urlpatterns = [
     path('origenes/create/', views.OrigenDato_CreateView.as_view(), name='origendato_create'),
     path('origenes/update/<uuid:pk>', views.OrigenDato_UpdateView.as_view(), name='origendato_update'),
     path('origenes/delete/<uuid:pk>', views.OrigenDato_DeleteView.as_view(), name='origendato_delete'),
+    path('origenes/delete/<uuid:pk>/<uuid:modelo>/', views.OrigenDato_DeleteView.as_view(), name='origendato_delete'),
     path('ajax/origenes/', views.ajax_origenes_asociados, name='ajax_origenes'),
 
     path('origenmodelo/delete/<int:pk>', views.OrigenDatoModelo_DeleteView.as_view(), name='origendatomodelo_delete'),

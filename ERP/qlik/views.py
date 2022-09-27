@@ -101,7 +101,7 @@ class Stream_DetailView(FormMixin, DetailView_Login):
         return super(Stream_DetailView, self).form_valid(form)
 
     def get_success_url(self):
-        return self.get_object().detail_url()
+        return self.get_object().view_url()
 
 class Stream_CreateView(CreateView_Login):
     model = Stream
@@ -247,7 +247,7 @@ class Modelo_DetailView(FormMixin, DetailView_Login):
         return super(Modelo_DetailView, self).form_valid(form)
 
     def get_success_url(self):
-        return self.get_object().detail_url()
+        return self.get_object().view_url()
     
 class Modelo_CreateView(CreateView_Login):
     model = Modelo
@@ -484,6 +484,11 @@ class OrigenDato_DeleteView(DeleteView_Login):
         }
     }
 
+    def get_success_url(self, *args, **kwargs):
+        if 'modelo' in self.kwargs:
+            return Modelo.objects.get(id=self.kwargs['modelo']).view_url()
+        else:
+            return self.object.list_url()
 
 class OrigenDatoModelo_DeleteView(DeleteView_Login):
     model = OrigenDatoModelo
@@ -497,7 +502,8 @@ class OrigenDatoModelo_DeleteView(DeleteView_Login):
     }
 
     def get_success_url(self):
-        return self.object.modelo.detail_url()
+        return self.object.modelo.view_url()
+
 
 
 class TipoLicencia_ListView(ListView_Login):
@@ -795,7 +801,7 @@ def ajax_origenes_asociados(request):
         Modelo_DetailView
         Origenes asociados
     '''
-    tipo_dato_id = request.GET.get('tipo_origen_id')
+    tipo_dato_id = request.GET.get('repositorio_id')
     origenes = OrigenDato.objects.filter(repositorio=tipo_dato_id, vigente=True).order_by('nombre')
     return render(request, 'qlik/modelo_detail_origenes_dropdown.html', {'origenes': origenes})
 

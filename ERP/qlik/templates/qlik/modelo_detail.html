@@ -80,12 +80,12 @@
           {% if perms.qlik.view_origendatomodelo %}
             <h3>{{ sub_titulo.usa_datos }}</h3>
             {% if origendatomodelo %}
-              {% for object in origendatomodelo %}
+              {% for obj in origendatomodelo %}
               <p>
                 {% if perms.qlik.delete_origendatomodelo %}
-                <a href="{{ object.delete_url }}" class="btn btn-danger btn-sm"><img src="{% static '/images/qlik_remove.png' %}" width="18" alt="{{ opciones.eliminar }}"></a>
+                <a href="{{ obj.delete_url }}" class="btn btn-danger btn-sm"><img src="{% static '/images/qlik_remove.png' %}" width="18" alt="{{ opciones.eliminar }}"></a>
                 {% endif %}
-                <a href="{{ object.origendato.view_url }}">{{ object.origendato }} ({{ object.origendato.tipodato }})</a> 
+                <a href="{{ obj.origendato.view_url }}">{{ obj.origendato }} ({{ obj.origendato.repositorio }})</a> 
               </p>
               {% endfor %}
             {% endif %}
@@ -95,12 +95,12 @@
           {% if perms.qlik.view_origendato %}
             <h3>{{ sub_titulo.genera_datos }}</h3>
             {% if origendato %}
-              {% for object in origendato %}
+              {% for obj in origendato %}
               <p>
                 {% if perms.qlik.delete_origendato %}
-                <a href="{{ object.delete_url }}" class="btn btn-danger btn-sm"><img src="{% static '/images/qlik_remove.png' %}" width="18" alt="{{ opciones.eliminar }}"></a>
+                <a href="{{ obj.delete_url }}/{{ object.id }}/" class="btn btn-danger btn-sm"><img src="{% static '/images/qlik_remove.png' %}" width="18" alt="{{ opciones.eliminar }}"></a>
                 {% endif %}
-                <a href="{{ object.view_url }}">{{ object }} ({{ object.tipodato }})</a> 
+                <a href="{{ obj.view_url }}">{{ obj }} ({{ obj.repositorio }})</a> 
               </p>
               {% endfor %}
             {% endif %}
@@ -156,14 +156,14 @@
 {% block js %}
 <script src="{% static 'js/jquery.min.js'%}"></script>
 <script>
-$("#id_tipodato").on("change", function() {
+$("#id_repositorio").on("change", function() {
     //obtiene la url que consulta el detalle de origenes
     var url = $("#ModeloUsaOrigenes").attr("url_ajax_origenes"); 
-    var tipo_origen_id = 0;
+    var repositorio_id = 0;
 
     //obtiene el id del tipo de origen seleccionado
     if ($(this).val() != '' ){
-      tipo_origen_id = $(this).val();
+      repositorio_id = $(this).val();
     }
 
     //llamado ajax
@@ -172,7 +172,7 @@ $("#id_tipodato").on("change", function() {
       url: url,
       //parametros GET
       data: {
-        'tipo_origen_id': tipo_origen_id
+        'repositorio_id': repositorio_id
       },
 
       //data recibe la infomración de la llamada si fue exitosa
